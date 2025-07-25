@@ -44,6 +44,12 @@ const navigationItems = [
     emoji: '📝',
   },
   {
+    id: 'datasets' as TabType,
+    label: 'Dataset Library',
+    icon: Database,
+    emoji: '📚',
+  },
+  {
     id: 'settings' as TabType,
     label: 'Settings',
     icon: Settings,

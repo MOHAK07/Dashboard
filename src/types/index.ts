@@ -91,6 +91,7 @@ export interface ExportOptions {
 }
 
 export type TabType = 'overview' | 'comparison' | 'deepdive' | 'explorer' | 'settings';
+export type TabType = 'overview' | 'comparison' | 'deepdive' | 'explorer' | 'datasets' | 'settings';
 
 export interface AppState {
   data: DataRow[];

@@ -9,7 +9,6 @@ import {
   Search,
   Bell,
   User,
-  Database,
   Upload
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
@@ -19,7 +18,6 @@ import { SavedFilters } from './SavedFilters';
 
 interface HeaderProps {
   onMobileMenuToggle: () => void;
-  onDatasetLibraryToggle: () => void;
   onUploadNewDataset: () => void;
 }
 
@@ -110,19 +108,6 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
 
         {/* Right side */}
         <div className="flex items-center space-x-2 lg:space-x-4">
-          {/* Dataset Library Toggle */}
-          <button
-            onClick={toggleDatasetLibrary}
-            className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              state.datasetLibraryOpen 
-                ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400' 
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}
-            title="Toggle dataset library"
-          >
-            <Database className="h-5 w-5" />
-          </button>
-
           {/* Upload Menu */}
           <div className="relative" ref={uploadMenuRef}>
             <button
@@ -144,15 +129,6 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     Upload New Dataset
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowUploadMenu(false);
-                      toggleDatasetLibrary();
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    Manage Datasets
                   </button>
                 </div>
               </div>
