@@ -12,6 +12,7 @@ export interface DataRow {
 }
 
 export interface ValidationResult {
+  validData: DataRow[];
   isValid: boolean;
   totalRows: number;
   validRows: number;
@@ -90,7 +91,6 @@ export interface ExportOptions {
   quality?: 'low' | 'medium' | 'high';
 }
 
-export type TabType = 'overview' | 'comparison' | 'deepdive' | 'explorer' | 'settings';
 export type TabType = 'overview' | 'comparison' | 'deepdive' | 'explorer' | 'datasets' | 'settings';
 
 export interface AppState {

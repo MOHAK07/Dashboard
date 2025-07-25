@@ -111,293 +111,358 @@ export function DatasetsTab() {
           return 0;
       }
     });
+    
+  const activeDataset = state.activeDatasetId
+    ? state.datasets.find(d => d.id === state.activeDatasetId)
+    : null;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Dataset Library
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage and organize your data sources
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('openFileUpload'))}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <Upload className="h-4 w-4" />
-            <span>Upload Dataset</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
-              <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Datasets</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {state.datasets.length}
-              </p>
-            </div>
+    <>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Dataset Library
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Manage and organize your data sources
+            </p>
           </div>
-        </div>
-
-        <div className="card">
+          
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-success-100 dark:bg-success-900/50 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Valid Datasets</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {state.datasets.filter(d => d.status === 'valid').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-secondary-100 dark:bg-secondary-900/50 rounded-lg">
-              <FileText className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Rows</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {state.datasets.reduce((sum, d) => sum + d.rowCount, 0).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-accent-100 dark:bg-accent-900/50 rounded-lg">
-              <BarChart3 className="h-5 w-5 text-accent-600 dark:text-accent-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Dataset</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {state.activeDatasetId ? 
-                  state.datasets.find(d => d.id === state.activeDatasetId)?.name.substring(0, 12) + '...' : 
-                  'None'
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="card">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search datasets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-10 w-64"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="input-field"
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('openFileUpload'))}
+              className="btn-primary flex items-center space-x-2"
             >
-              <option value="all">All Status</option>
-              <option value="valid">Valid</option>
-              <option value="warning">Warning</option>
-              <option value="error">Error</option>
-            </select>
+              <Upload className="h-4 w-4" />
+              <span>Upload Dataset</span>
+            </button>
+          </div>
+        </div>
 
-            {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="input-field"
-            >
-              <option value="date">Sort by Date</option>
-              <option value="name">Sort by Name</option>
-              <option value="size">Sort by Size</option>
-              <option value="rows">Sort by Rows</option>
-            </select>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="card">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
+                <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Datasets</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {state.datasets.length}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'grid' 
-                    ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                <Grid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'list' 
-                    ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                <List className="h-4 w-4" />
-              </button>
+          <div className="card">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-success-100 dark:bg-success-900/50 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Valid Datasets</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {state.datasets.filter(d => d.status === 'valid').length}
+                </p>
+              </div>
             </div>
+          </div>
 
-            {/* Bulk Actions */}
-            {selectedDatasets.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedDatasets.length} selected
-                </span>
-                <button
-                  onClick={handleMergeDatasets}
-                  disabled={selectedDatasets.length < 2}
-                  className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
-                >
-                  <Merge className="h-4 w-4" />
-                  <span>Merge</span>
-                </button>
+          <div className="card">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-secondary-100 dark:bg-secondary-900/50 rounded-lg">
+                <FileText className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Rows</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {state.datasets.reduce((sum, d) => sum + d.rowCount, 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card relative group">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-accent-100 dark:bg-accent-900/50 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-accent-600 dark:text-accent-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Dataset</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+                  {activeDataset ? activeDataset.name : 'None'}
+                </p>
+              </div>
+            </div>
+            {activeDataset && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs p-2 text-sm text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                {activeDataset.name}
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Dataset Grid/List */}
-      {filteredDatasets.length === 0 ? (
-        <div className="card text-center py-12">
-          <Database className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            No datasets found
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {searchTerm || filterStatus !== 'all' 
-              ? 'Try adjusting your search or filter criteria'
-              : 'Upload your first dataset to get started'
-            }
-          </p>
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('openFileUpload'))}
-            className="btn-primary flex items-center space-x-2 mx-auto"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Upload Dataset</span>
-          </button>
-        </div>
-      ) : (
-        <div className={viewMode === 'grid' 
-          ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
-          : 'space-y-4'
-        }>
-          {filteredDatasets.map((dataset) => (
-            <div
-              key={dataset.id}
-              className={`
-                card cursor-pointer transition-all duration-200 hover:shadow-lg
-                ${state.activeDatasetId === dataset.id 
-                  ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'hover:shadow-md'
-                }
-                ${selectedDatasets.includes(dataset.id) ? 'ring-2 ring-secondary-500' : ''}
-                ${viewMode === 'list' ? 'flex items-center space-x-4' : ''}
-              `}
-            >
-              <div className={viewMode === 'list' ? 'flex items-center space-x-3' : 'mb-4'}>
+        {/* Controls */}
+        <div className="card">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
-                  type="checkbox"
-                  checked={selectedDatasets.includes(dataset.id)}
-                  onChange={() => handleDatasetSelect(dataset.id)}
-                  className="rounded border-gray-300 text-secondary-600 focus:ring-secondary-500"
-                  onClick={(e) => e.stopPropagation()}
+                  type="text"
+                  placeholder="Search datasets..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input-field pl-10 w-64"
                 />
-                <div 
-                  className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: dataset.color }}
-                />
-                <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                      {dataset.name}
-                    </h3>
-                    {viewMode === 'grid' && getStatusIcon(dataset.status)}
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                    {dataset.fileName}
-                  </p>
-                </div>
               </div>
 
-              {viewMode === 'grid' ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="text-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Rows</p>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        {dataset.rowCount.toLocaleString()}
-                      </p>
+              {/* Status Filter */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="input-field"
+              >
+                <option value="all">All Status</option>
+                <option value="valid">Valid</option>
+                <option value="warning">Warning</option>
+                <option value="error">Error</option>
+              </select>
+
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="input-field"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="name">Sort by Name</option>
+                <option value="size">Sort by Size</option>
+                <option value="rows">Sort by Rows</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded transition-colors ${
+                    viewMode === 'grid' 
+                      ? 'bg-white dark:bg-gray-600 shadow-sm' 
+                      : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <Grid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded transition-colors ${
+                    viewMode === 'list' 
+                      ? 'bg-white dark:bg-gray-600 shadow-sm' 
+                      : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Bulk Actions */}
+              {selectedDatasets.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedDatasets.length} selected
+                  </span>
+                  <button
+                    onClick={handleMergeDatasets}
+                    disabled={selectedDatasets.length < 2}
+                    className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                  >
+                    <Merge className="h-4 w-4" />
+                    <span>Merge</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Dataset Grid/List */}
+        {filteredDatasets.length === 0 ? (
+          <div className="card text-center py-12">
+            <Database className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              No datasets found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {searchTerm || filterStatus !== 'all' 
+                ? 'Try adjusting your search or filter criteria'
+                : 'Upload your first dataset to get started'
+              }
+            </p>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('openFileUpload'))}
+              className="btn-primary flex items-center space-x-2 mx-auto"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Upload Dataset</span>
+            </button>
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+            : 'space-y-4'
+          }>
+            {filteredDatasets.map((dataset) => (
+              <div
+                key={dataset.id}
+                className={`
+                  card cursor-pointer transition-all duration-200 hover:shadow-lg
+                  ${state.activeDatasetId === dataset.id 
+                    ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20' 
+                    : 'hover:shadow-md'
+                  }
+                  ${selectedDatasets.includes(dataset.id) ? 'ring-2 ring-secondary-500' : ''}
+                  ${viewMode === 'list' ? 'flex items-center space-x-4' : ''}
+                `}
+              >
+                <div className={viewMode === 'list' ? 'flex items-center space-x-3' : 'mb-4'}>
+                  <input
+                    type="checkbox"
+                    checked={selectedDatasets.includes(dataset.id)}
+                    onChange={() => handleDatasetSelect(dataset.id)}
+                    className="rounded border-gray-300 text-secondary-600 focus:ring-secondary-500"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div 
+                    className="w-4 h-4 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: dataset.color }}
+                  />
+                  <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {dataset.name}
+                      </h3>
+                      {viewMode === 'grid' && getStatusIcon(dataset.status)}
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Size</p>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        {formatFileSize(dataset.fileSize)}
-                      </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                      {dataset.fileName}
+                    </p>
+                  </div>
+                </div>
+
+                {viewMode === 'grid' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Rows</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                          {dataset.rowCount.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Size</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                          {formatFileSize(dataset.fileSize)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="mb-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dataset.status)}`}>
-                      {getStatusIcon(dataset.status)}
-                      <span className="ml-1 capitalize">{dataset.status}</span>
-                    </span>
-                  </div>
+                    <div className="mb-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dataset.status)}`}>
+                        {getStatusIcon(dataset.status)}
+                        <span className="ml-1 capitalize">{dataset.status}</span>
+                      </span>
+                    </div>
 
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    {new Date(dataset.uploadDate).toLocaleDateString()}
-                  </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                      {new Date(dataset.uploadDate).toLocaleDateString()}
+                    </div>
 
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDataset(dataset.id);
-                      }}
-                      className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                        state.activeDatasetId === dataset.id
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {state.activeDatasetId === dataset.id ? 'Active' : 'Activate'}
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDataset(dataset.id);
+                        }}
+                        className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                          state.activeDatasetId === dataset.id
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {state.activeDatasetId === dataset.id ? 'Active' : 'Activate'}
+                      </button>
 
-                    <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewDataset(dataset);
+                          }}
+                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                          title="Preview data"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeDataset(dataset.id);
+                          }}
+                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded transition-colors"
+                          title="Delete dataset"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between flex-1">
+                    <div className="flex items-center space-x-6">
+                      <div className="text-sm">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {dataset.rowCount.toLocaleString()}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-1">rows</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {formatFileSize(dataset.fileSize)}
+                        </span>
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dataset.status)}`}>
+                        {getStatusIcon(dataset.status)}
+                        <span className="ml-1 capitalize">{dataset.status}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDataset(dataset.id);
+                        }}
+                        className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                          state.activeDatasetId === dataset.id
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {state.activeDatasetId === dataset.id ? 'Active' : 'Activate'}
+                      </button>
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setPreviewDataset(dataset);
                         }}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
                         title="Preview data"
                       >
                         <Eye className="h-4 w-4" />
@@ -407,103 +472,46 @@ export function DatasetsTab() {
                           e.stopPropagation();
                           removeDataset(dataset.id);
                         }}
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded transition-colors"
+                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded transition-colors"
                         title="Delete dataset"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-between flex-1">
-                  <div className="flex items-center space-x-6">
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {dataset.rowCount.toLocaleString()}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400 ml-1">rows</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatFileSize(dataset.fileSize)}
-                      </span>
-                    </div>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dataset.status)}`}>
-                      {getStatusIcon(dataset.status)}
-                      <span className="ml-1 capitalize">{dataset.status}</span>
-                    </span>
-                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDataset(dataset.id);
-                      }}
-                      className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                        state.activeDatasetId === dataset.id
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {state.activeDatasetId === dataset.id ? 'Active' : 'Activate'}
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewDataset(dataset);
-                      }}
-                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
-                      title="Preview data"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeDataset(dataset.id);
-                      }}
-                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded transition-colors"
-                      title="Delete dataset"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Merge Dialog */}
-      {showMergeDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              Merge Datasets
-            </h3>
-            <p className="mb-6 text-gray-700 dark:text-gray-300">
-              Are you sure you want to merge the selected datasets? This will create a new merged dataset.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button onClick={handleCancelMerge} className="btn-secondary">
-                Cancel
-              </button>
-              <button onClick={handleConfirmMerge} className="btn-primary">
+        {/* Merge Dialog */}
+        {showMergeDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
                 Merge Datasets
-              </button>
+              </h3>
+              <p className="mb-6 text-gray-700 dark:text-gray-300">
+                Are you sure you want to merge the selected datasets? This will create a new merged dataset.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button onClick={handleCancelMerge} className="btn-secondary">
+                  Cancel
+                </button>
+                <button onClick={handleConfirmMerge} className="btn-primary">
+                  Merge Datasets
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Dataset Preview Modal */}
       {previewDataset && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-16">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
@@ -569,6 +577,6 @@ export function DatasetsTab() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

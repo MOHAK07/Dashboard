@@ -3,6 +3,7 @@ import { Upload, FileText, X, CheckCircle, AlertTriangle, AlertCircle, Plus, Eye
 import { FileParser } from '../utils/fileParser';
 import { DataRow, Dataset } from '../types';
 import { useApp } from '../contexts/AppContext';
+import { DataProcessor } from '../utils/dataProcessing';
 
 interface MultiFileUploadProps {
   onClose: () => void;
@@ -109,7 +110,7 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
       const validation = FileParser.validateData(data);
 
       const dataset: Dataset = {
-        id: generateId(),
+        id: uploadingFile.id,
         name: uploadingFile.file.name.replace(/\.[^/.]+$/, ''),
         data: validation.validData || [],
         fileName: uploadingFile.file.name,
@@ -148,6 +149,7 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
 
   const removeFile = (id: string) => {
     setUploadingFiles(prev => prev.filter(f => f.id !== id));
+    setValidatedDatasets(prev => prev.filter(ds => ds.id !== id));
   };
 
   const getStatusIcon = (status: UploadingFile['status']) => {
@@ -265,7 +267,7 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
                             {file.file.name}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                            {DataProcessor.formatFileSize(file.file.size)}
                           </p>
                         </div>
                       </div>

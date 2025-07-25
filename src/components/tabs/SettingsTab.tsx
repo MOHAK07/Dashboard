@@ -1,5 +1,4 @@
-import React from 'react';
-import { Monitor, Moon, Sun, Globe, Bell, Save, Trash2 } from 'lucide-react';
+import { Monitor, Moon, Sun, Bell, Save, Trash2 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 
 export function SettingsTab() {
@@ -239,6 +238,7 @@ export function SettingsTab() {
             <button
               onClick={() => {
                 sessionStorage.removeItem('dashboard-data');
+                sessionStorage.removeItem('dashboard-datasets');
                 window.location.reload();
               }}
               className="btn-secondary text-sm"
