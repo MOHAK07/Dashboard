@@ -9,7 +9,6 @@ interface AppContextType {
   removeDataset: (datasetId: string) => void;
   setActiveDataset: (datasetId: string) => void;
   mergeDatasets: (primaryId: string, secondaryId: string, joinKey: keyof DataRow) => void;
-  toggleDatasetLibrary: () => void;
   setBrushSelection: (selection: BrushSelection | null) => void;
   addChartAnnotation: (annotation: Omit<ChartAnnotation, 'id' | 'timestamp'>) => void;
   removeChartAnnotation: (annotationId: string) => void;
@@ -30,7 +29,6 @@ type AppAction =
   | { type: 'ADD_DATASET'; payload: Dataset }
   | { type: 'REMOVE_DATASET'; payload: string }
   | { type: 'SET_ACTIVE_DATASET'; payload: string }
-  | { type: 'TOGGLE_DATASET_LIBRARY' }
   | { type: 'SET_BRUSH_SELECTION'; payload: BrushSelection | null }
   | { type: 'ADD_CHART_ANNOTATION'; payload: ChartAnnotation }
   | { type: 'REMOVE_CHART_ANNOTATION'; payload: string }
@@ -51,7 +49,6 @@ const initialState: AppState = {
   filteredData: [],
   datasets: [],
   activeDatasetId: null,
-  datasetLibraryOpen: false,
   chartInteractionMode: 'normal',
   brushSelection: null,
   chartAnnotations: [],
@@ -115,11 +112,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         activeDatasetId: action.payload,
         data: activeDataset?.data || [],
         filteredData: activeDataset?.data || [],
-      };
-    case 'TOGGLE_DATASET_LIBRARY':
-      return {
-        ...state,
-        datasetLibraryOpen: !state.datasetLibraryOpen,
       };
     case 'SET_BRUSH_SELECTION':
       return {
@@ -360,10 +352,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addDataset(mergedDataset);
   };
 
-  const toggleDatasetLibrary = () => {
-    dispatch({ type: 'TOGGLE_DATASET_LIBRARY' });
-  };
-
   const setBrushSelection = (selection: BrushSelection | null) => {
     dispatch({ type: 'SET_BRUSH_SELECTION', payload: selection });
   };
@@ -460,7 +448,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     removeDataset,
     setActiveDataset,
     mergeDatasets,
-    toggleDatasetLibrary,
     setBrushSelection,
     addChartAnnotation,
     removeChartAnnotation,
