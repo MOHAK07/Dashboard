@@ -17,6 +17,25 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
   
   const timeSeriesData = DataProcessor.getTimeSeries(data, 'month');
   
+  // Return placeholder if no data is available
+  if (!data || data.length === 0 || !timeSeriesData || timeSeriesData.length === 0) {
+    return (
+      <ChartContainer
+        title="Sales Trends Over Time"
+        onChartTypeChange={(type) => setChartType(type as 'line' | 'area' | 'bar')}
+        availableTypes={['line', 'area', 'bar']}
+        currentType={chartType}
+      >
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="text-center">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Upload data to view sales trends</p>
+          </div>
+        </div>
+      </ChartContainer>
+    );
+  }
+
   const chartOptions: ApexOptions = {
     chart: {
       type: chartType,

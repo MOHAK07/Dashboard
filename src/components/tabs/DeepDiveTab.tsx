@@ -14,7 +14,31 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
   const { state } = useApp();
   const isDarkMode = state.settings.theme === 'dark';
   
+  // Return placeholder if no data is available
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Upload data to view detailed analysis</p>
+        </div>
+      </div>
+    );
+  }
+
   const productData = DataProcessor.aggregateByProduct(data);
+
+  // Return placeholder if no product data is available
+  if (!productData || productData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <p className="text-lg font-medium">No product data available</p>
+          <p className="text-sm">The uploaded data doesn't contain product information</p>
+        </div>
+      </div>
+    );
+  }
 
   // Treemap Data
   const treemapOptions: ApexOptions = {
