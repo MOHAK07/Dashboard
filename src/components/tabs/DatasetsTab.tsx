@@ -358,13 +358,13 @@ export function DatasetsTab() {
                 {viewMode === 'grid' ? (
                   <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="text-center">
+                      <div className="">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Rows</p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">
                           {dataset.rowCount.toLocaleString()}
                         </p>
                       </div>
-                      <div className="text-center">
+                      <div className="">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Size</p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">
                           {formatFileSize(dataset.fileSize)}
