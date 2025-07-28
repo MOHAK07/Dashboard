@@ -3,7 +3,7 @@ import { ApexOptions } from 'apexcharts';
 import { DataRow } from '../../types';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { ChartContainer } from './ChartContainer';
-import { InteractiveChart } from './InteractiveChart';
+import Chart from 'react-apexcharts';
 import { useApp } from '../../contexts/AppContext';
 
 interface SalesTrendsChartProps {
@@ -101,8 +101,57 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
     },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
+      shared: true,
+      intersect: false,
+      followCursor: true,
       y: {
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+      },
+      x: {
+        formatter: (val: number, opts: any) => {
+          if (opts && opts.dataPointIndex !== undefined) {
+            const date = new Date(timeSeriesData[opts.dataPointIndex].date + '-01');
+            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          }
+          return '';
+        },
+      },
+      custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+        if (dataPointIndex === undefined || !timeSeriesData[dataPointIndex]) return '';
+        
+        const currentValue = series[seriesIndex][dataPointIndex];
+        const previousValue = dataPointIndex > 0 ? series[seriesIndex][dataPointIndex - 1] : null;
+        const date = new Date(timeSeriesData[dataPointIndex].date + '-01');
+        const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        let changeText = '';
+        if (previousValue !== null && previousValue !== 0) {
+          const change = ((currentValue - previousValue) / previousValue) * 100;
+          const changeColor = change >= 0 ? '#22c55e' : '#ef4444';
+          const changeIcon = change >= 0 ? '↗' : '↘';
+          changeText = `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+              <span style="color: ${changeColor}; font-weight: 600;">
+                ${changeIcon} ${Math.abs(change).toFixed(1)}% vs previous period
+              </span>
+            </div>
+          `;
+        }
+        
+        return `
+          <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 4px;">
+              ${formattedDate}
+            </div>
+            <div style="font-size: 18px; font-weight: 700; color: #3b82f6;">
+              ${DataProcessor.formatCurrency(currentValue, state.settings.currency)}
+            </div>
+            <div style="font-size: 12px; color: ${isDarkMode ? '#9ca3af' : '#6b7280'}; margin-top: 4px;">
+              Units: ${DataProcessor.formatNumber(timeSeriesData[dataPointIndex].units)}
+            </div>
+            ${changeText}
+          </div>
+        `;
       },
     },
     markers: {
@@ -130,18 +179,11 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
       availableTypes={['line', 'area', 'bar']}
       currentType={chartType}
     >
-      <InteractiveChart
-        chartId="sales-trends"
+      <Chart
         options={chartOptions}
         series={series}
         type={chartType}
         height="100%"
-        enableAnnotations={true}
-        enableBrushing={true}
-        onBrushSelection={(selection) => {
-          // Handle brush selection for cross-filtering
-          console.log('Brush selection:', selection);
-        }}
       />
     </ChartContainer>
   );
