@@ -71,13 +71,14 @@ export function FactoryPerformanceChart({
       },
     },
     xaxis: {
-      categories: isHorizontal ? undefined : categories,
+      categories: categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+        rotate: isHorizontal ? 0 : -45,
+        rotateAlways: !isHorizontal,
       },
     },
     yaxis: {
-      categories: isHorizontal ? categories : undefined,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
@@ -88,7 +89,46 @@ export function FactoryPerformanceChart({
     grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      y: { formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) },
+      shared: false,
+      intersect: true,
+      followCursor: true,
+      y: { 
+        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) 
+      },
+      custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+        if (dataPointIndex === undefined || !factoryData[dataPointIndex]) return '';
+        
+        const factory = factoryData[dataPointIndex];
+        const value = series[seriesIndex][dataPointIndex];
+        
+        return `
+          <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 8px;">
+              ${factory.name}
+            </div>
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Revenue: </span>
+              <span style="font-weight: 600; color: #3b82f6;">
+                ${DataProcessor.formatCurrency(value, state.settings.currency)}
+              </span>
+            </div>
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Units Sold: </span>
+              <span style="font-weight: 600;">
+                ${DataProcessor.formatNumber(factory.totalUnits)}
+              </span>
+            </div>
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Products: </span>
+              <span style="font-weight: 600;">${factory.products}</span>
+            </div>
+            <div>
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Plants: </span>
+              <span style="font-weight: 600;">${factory.plants}</span>
+            </div>
+          </div>
+        `;
+      },
     },
     responsive: [{
       breakpoint: 768,
@@ -97,7 +137,13 @@ export function FactoryPerformanceChart({
           bar: {
             horizontal: true,
           }
-        }
+        },
+        xaxis: {
+          labels: {
+            rotate: 0,
+            rotateAlways: false,
+          },
+        },
       }
     }]
   };

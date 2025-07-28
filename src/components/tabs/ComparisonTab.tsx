@@ -16,9 +16,33 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
   
   const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   
+  // Return placeholder if no data is available
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <p className="text-lg font-medium">No data available</p>
+          <p className="text-sm">Upload data to view plant comparisons</p>
+        </div>
+      </div>
+    );
+  }
+
   const uniquePlants = DataProcessor.getUniqueValues(data, 'PlantName');
   const plantData = DataProcessor.aggregateByPlant(data);
   
+  // Return placeholder if no plant data is available
+  if (!plantData || plantData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <p className="text-lg font-medium">No plant data available</p>
+          <p className="text-sm">The uploaded data doesn't contain plant information</p>
+        </div>
+      </div>
+    );
+  }
+
   const filteredPlantData = selectedPlants.length > 0 
     ? plantData.filter(plant => selectedPlants.includes(plant.name))
     : plantData.slice(0, 5); // Show top 5 by default

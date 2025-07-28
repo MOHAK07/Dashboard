@@ -191,8 +191,46 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
+      shared: false,
+      intersect: true,
+      followCursor: true,
       y: {
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+      },
+      custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+        if (dataPointIndex === undefined || !plantData[dataPointIndex]) return '';
+        
+        const plant = plantData[dataPointIndex];
+        const value = series[dataPointIndex];
+        const percentage = ((value / series.reduce((a: number, b: number) => a + b, 0)) * 100).toFixed(1);
+        
+        return `
+          <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 8px;">
+              ${plant.name}
+            </div>
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Revenue: </span>
+              <span style="font-weight: 600; color: #3b82f6;">
+                ${DataProcessor.formatCurrency(value, state.settings.currency)}
+              </span>
+            </div>
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Percentage: </span>
+              <span style="font-weight: 600; color: #22c55e;">${percentage}%</span>
+            </div>
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Units Sold: </span>
+              <span style="font-weight: 600;">
+                ${DataProcessor.formatNumber(plant.totalUnits)}
+              </span>
+            </div>
+            <div>
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Factory: </span>
+              <span style="font-weight: 600;">${plant.factoryName}</span>
+            </div>
+          </div>
+        `;
       },
     },
     responsive: [{
