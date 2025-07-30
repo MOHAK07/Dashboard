@@ -322,29 +322,30 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
       )}
 
       {/* Active Dataset Indicator */}
-      {state.activeDatasetId && state.datasets.length > 1 && (
+      {state.activeDatasetIds.length > 0 && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              Active Dataset:
+              Active Dataset{state.activeDatasetIds.length > 1 ? 's' : ''}:
             </span>
-            {(() => {
-              const activeDataset = state.datasets.find(d => d.id === state.activeDatasetId);
-              return activeDataset ? (
-                <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {state.datasets
+                .filter(d => state.activeDatasetIds.includes(d.id))
+                .map(dataset => (
+                <div key={dataset.id} className="flex items-center space-x-2">
                   <div 
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: activeDataset.color }}
+                    style={{ backgroundColor: dataset.color }}
                   />
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {activeDataset.name}
+                    {dataset.name}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    ({activeDataset.rowCount.toLocaleString()} rows)
+                    ({dataset.rowCount.toLocaleString()} rows)
                   </span>
                 </div>
-              ) : null;
-            })()}
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -7,7 +7,8 @@ interface AppContextType {
   setData: (data: DataRow[]) => void;
   addDataset: (dataset: Dataset) => void;
   removeDataset: (datasetId: string) => void;
-  setActiveDataset: (datasetId: string) => void;
+  setActiveDatasets: (datasetIds: string[]) => void;
+  toggleDatasetActive: (datasetId: string) => void;
   mergeDatasets: (primaryId: string, secondaryId: string, joinKey: keyof DataRow) => void;
   setBrushSelection: (selection: BrushSelection | null) => void;
   addChartAnnotation: (annotation: Omit<ChartAnnotation, 'id' | 'timestamp'>) => void;
@@ -22,13 +23,15 @@ interface AppContextType {
   loadFilterSet: (id: string) => void;
   deleteFilterSet: (id: string) => void;
   loadSampleData: () => void;
+  getMultiDatasetData: () => MultiDatasetData[];
 }
 
 type AppAction = 
   | { type: 'SET_DATA'; payload: DataRow[] }
   | { type: 'ADD_DATASET'; payload: Dataset }
   | { type: 'REMOVE_DATASET'; payload: string }
-  | { type: 'SET_ACTIVE_DATASET'; payload: string }
+  | { type: 'SET_ACTIVE_DATASETS'; payload: string[] }
+  | { type: 'TOGGLE_DATASET_ACTIVE'; payload: string }
   | { type: 'SET_BRUSH_SELECTION'; payload: BrushSelection | null }
   | { type: 'ADD_CHART_ANNOTATION'; payload: ChartAnnotation }
   | { type: 'REMOVE_CHART_ANNOTATION'; payload: string }
@@ -48,7 +51,7 @@ const initialState: AppState = {
   data: [],
   filteredData: [],
   datasets: [],
-  activeDatasetId: null,
+  activeDatasetIds: [],
   chartInteractionMode: 'normal',
   brushSelection: null,
   chartAnnotations: [],
@@ -88,30 +91,47 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         datasets: newDatasets,
-        activeDatasetId: action.payload.id,
+        activeDatasetIds: [action.payload.id],
         data: action.payload.data,
         filteredData: action.payload.data,
       };
     case 'REMOVE_DATASET':
       const remainingDatasets = state.datasets.filter(d => d.id !== action.payload);
-      const wasActive = state.activeDatasetId === action.payload;
-      const newActiveId = wasActive && remainingDatasets.length > 0 ? remainingDatasets[0].id : state.activeDatasetId;
-      const newActiveDataset = remainingDatasets.find(d => d.id === newActiveId);
+      const newActiveIds = state.activeDatasetIds.filter(id => id !== action.payload);
+      const combinedData = remainingDatasets
+        .filter(d => newActiveIds.includes(d.id))
+        .flatMap(d => d.data);
       
       return {
         ...state,
         datasets: remainingDatasets,
-        activeDatasetId: remainingDatasets.length > 0 ? newActiveId : null,
-        data: newActiveDataset?.data || [],
-        filteredData: newActiveDataset?.data || [],
+        activeDatasetIds: newActiveIds,
+        data: combinedData,
+        filteredData: combinedData,
       };
-    case 'SET_ACTIVE_DATASET':
-      const activeDataset = state.datasets.find(d => d.id === action.payload);
+    case 'SET_ACTIVE_DATASETS':
+      const activeDatasets = state.datasets.filter(d => action.payload.includes(d.id));
+      const allData = activeDatasets.flatMap(d => d.data);
       return {
         ...state,
-        activeDatasetId: action.payload,
-        data: activeDataset?.data || [],
-        filteredData: activeDataset?.data || [],
+        activeDatasetIds: action.payload,
+        data: allData,
+        filteredData: allData,
+      };
+    case 'TOGGLE_DATASET_ACTIVE':
+      const currentIds = state.activeDatasetIds;
+      const newIds = currentIds.includes(action.payload)
+        ? currentIds.filter(id => id !== action.payload)
+        : [...currentIds, action.payload];
+      
+      const toggledActiveDatasets = state.datasets.filter(d => newIds.includes(d.id));
+      const toggledAllData = toggledActiveDatasets.flatMap(d => d.data);
+      
+      return {
+        ...state,
+        activeDatasetIds: newIds,
+        data: toggledAllData,
+        filteredData: toggledAllData,
       };
     case 'SET_BRUSH_SELECTION':
       return {
@@ -323,8 +343,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'REMOVE_DATASET', payload: datasetId });
   };
 
-  const setActiveDataset = (datasetId: string) => {
-    dispatch({ type: 'SET_ACTIVE_DATASET', payload: datasetId });
+  const setActiveDatasets = (datasetIds: string[]) => {
+    dispatch({ type: 'SET_ACTIVE_DATASETS', payload: datasetIds });
+  };
+  };
+
+  const toggleDatasetActive = (datasetId: string) => {
+    dispatch({ type: 'TOGGLE_DATASET_ACTIVE', payload: datasetId });
   };
 
   const mergeDatasets = (primaryId: string, secondaryId: string, joinKey: keyof DataRow) => {
@@ -441,12 +466,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_SAMPLE_DATA_LOADED', payload: true });
   };
   const value: AppContextType = {
+  const getMultiDatasetData = (): MultiDatasetData[] => {
+    return state.datasets
+      .filter(dataset => state.activeDatasetIds.includes(dataset.id))
+      .map(dataset => ({
+        datasetId: dataset.id,
+        datasetName: dataset.name,
+        data: dataset.data,
+        color: dataset.color,
+      }));
+  };
+
     state,
     dispatch,
     setData,
     addDataset,
     removeDataset,
-    setActiveDataset,
+    setActiveDatasets,
+    toggleDatasetActive,
     mergeDatasets,
     setBrushSelection,
     addChartAnnotation,
@@ -461,6 +498,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadFilterSet,
     deleteFilterSet,
     loadSampleData,
+    getMultiDatasetData,
   };
 
   return (

@@ -25,7 +25,7 @@ import { Dataset } from '../../types';
 import { DataProcessor } from '../../utils/dataProcessing';
 
 export function DatasetsTab() {
-  const { state, setActiveDataset, removeDataset, mergeDatasets } = useApp();
+  const { state, setActiveDatasets, toggleDatasetActive, removeDataset, mergeDatasets } = useApp();
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null);
@@ -147,9 +147,7 @@ export function DatasetsTab() {
       }
     });
     
-  const activeDataset = state.activeDatasetId
-    ? state.datasets.find(d => d.id === state.activeDatasetId)
-    : null;
+  const activeDatasets = state.datasets.filter(d => state.activeDatasetIds.includes(d.id));
 
   return (
     <>
@@ -226,15 +224,20 @@ export function DatasetsTab() {
                 <BarChart3 className="h-5 w-5 text-accent-600 dark:text-accent-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Dataset</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Active Dataset{activeDatasets.length > 1 ? 's' : ''}
+                </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
-                  {activeDataset ? activeDataset.name : 'None'}
+                  {activeDatasets.length > 0 
+                    ? `${activeDatasets.length} dataset${activeDatasets.length > 1 ? 's' : ''}`
+                    : 'None'
+                  }
                 </p>
               </div>
             </div>
-            {activeDataset && (
+            {activeDatasets.length > 0 && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs p-2 text-sm text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                {activeDataset.name}
+                {activeDatasets.map(d => d.name).join(', ')}
               </div>
             )}
           </div>
@@ -384,7 +387,7 @@ export function DatasetsTab() {
                 key={dataset.id}
                 className={`
                   card cursor-pointer transition-all duration-200
-                  ${state.activeDatasetId === dataset.id 
+                  ${state.activeDatasetIds.includes(dataset.id)
                     ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20' 
                     : 'hover:shadow-md'
                   }
@@ -449,15 +452,15 @@ export function DatasetsTab() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveDataset(dataset.id);
+                          toggleDatasetActive(dataset.id);
                         }}
                         className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                          state.activeDatasetId === dataset.id
+                          state.activeDatasetIds.includes(dataset.id)
                             ? 'bg-primary-600 text-white'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}
                       >
-                        {state.activeDatasetId === dataset.id ? 'Active' : 'Activate'}
+                        {state.activeDatasetIds.includes(dataset.id) ? 'Active' : 'Activate'}
                       </button>
 
                       <div className="flex items-center space-x-1">
@@ -508,15 +511,15 @@ export function DatasetsTab() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveDataset(dataset.id);
+                          toggleDatasetActive(dataset.id);
                         }}
                         className={`text-xs px-3 py-1 rounded-full transition-colors ${
-                          state.activeDatasetId === dataset.id
+                          state.activeDatasetIds.includes(dataset.id)
                             ? 'bg-primary-600 text-white'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}
                       >
-                        {state.activeDatasetId === dataset.id ? 'Active' : 'Activate'}
+                        {state.activeDatasetIds.includes(dataset.id) ? 'Active' : 'Activate'}
                       </button>
 
                       <button
@@ -626,12 +629,12 @@ export function DatasetsTab() {
               </div>
               <button
                 onClick={() => {
-                  setActiveDataset(previewDataset.id);
+                  toggleDatasetActive(previewDataset.id);
                   setPreviewDataset(null);
                 }}
                 className="btn-primary w-full md:w-auto"
               >
-                Use This Dataset
+                {state.activeDatasetIds.includes(previewDataset.id) ? 'Remove from Active' : 'Add to Active'}
               </button>
             </div>
           </div>

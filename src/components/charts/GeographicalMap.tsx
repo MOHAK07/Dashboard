@@ -28,7 +28,10 @@ function MapUpdater({ data }: { data: DataRow[] }) {
 }
 
 export function GeographicalMap({ data, className = '' }: GeographicalMapProps) {
-  const { state } = useApp();
+  const { state, getMultiDatasetData } = useApp();
+  const multiDatasetData = getMultiDatasetData();
+  const isMultiDataset = multiDatasetData.length > 1;
+  
   const factoryData = DataProcessor.aggregateByFactory(data);
   
   const getMarkerSize = (revenue: number, maxRevenue: number) => {
@@ -62,7 +65,7 @@ export function GeographicalMap({ data, className = '' }: GeographicalMapProps) 
   return (
     <div className={`card ${className}`}>
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-        Geographical Sales Map
+        Geographical Sales Map{isMultiDataset ? ' - Combined View' : ''}
       </h3>
       <div className="h-80 rounded-lg overflow-hidden">
         <MapContainer
@@ -78,45 +81,100 @@ export function GeographicalMap({ data, className = '' }: GeographicalMapProps) 
           
           <MapUpdater data={data} />
           
-          {factoryData.map((factory) => (
-            <CircleMarker
-              key={factory.name}
-              center={[factory.latitude, factory.longitude]}
-              radius={getMarkerSize(factory.totalRevenue, maxRevenue)}
-              fillColor={getMarkerColor(factory.totalRevenue, maxRevenue)}
-              color="#ffffff"
-              weight={2}
-              opacity={0.8}
-              fillOpacity={0.6}
-            >
-              <Popup>
-                <div className="text-sm">
-                  <h4 className="font-semibold">{factory.name}</h4>
-                  <p>Revenue: {DataProcessor.formatCurrency(factory.totalRevenue, state.settings.currency)}</p>
-                  <p>Units: {DataProcessor.formatNumber(factory.totalUnits)}</p>
-                  <p>Products: {factory.products}</p>
-                  <p>Plants: {factory.plants}</p>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+          {isMultiDataset ? (
+            // Show markers for each dataset with different styling
+            multiDatasetData.map((dataset, datasetIndex) => {
+              const datasetFactoryData = DataProcessor.aggregateByFactory(dataset.data);
+              const datasetMaxRevenue = Math.max(...datasetFactoryData.map(f => f.totalRevenue));
+              
+              return datasetFactoryData.map((factory, factoryIndex) => (
+                <CircleMarker
+                  key={`${dataset.datasetId}-${factory.name}`}
+                  center={[
+                    factory.latitude + (datasetIndex * 0.01), // Slight offset for visibility
+                    factory.longitude + (datasetIndex * 0.01)
+                  ]}
+                  radius={getMarkerSize(factory.totalRevenue, datasetMaxRevenue)}
+                  fillColor={dataset.color}
+                  color="#ffffff"
+                  weight={2}
+                  opacity={0.8}
+                  fillOpacity={0.7}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: dataset.color }}
+                        />
+                        <span className="font-medium">{dataset.datasetName}</span>
+                      </div>
+                      <h4 className="font-semibold">{factory.name}</h4>
+                      <p>Revenue: {DataProcessor.formatCurrency(factory.totalRevenue, state.settings.currency)}</p>
+                      <p>Units: {DataProcessor.formatNumber(factory.totalUnits)}</p>
+                      <p>Products: {factory.products}</p>
+                      <p>Plants: {factory.plants}</p>
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              ));
+            })
+          ) : (
+            factoryData.map((factory) => (
+              <CircleMarker
+                key={factory.name}
+                center={[factory.latitude, factory.longitude]}
+                radius={getMarkerSize(factory.totalRevenue, maxRevenue)}
+                fillColor={getMarkerColor(factory.totalRevenue, maxRevenue)}
+                color="#ffffff"
+                weight={2}
+                opacity={0.8}
+                fillOpacity={0.6}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <h4 className="font-semibold">{factory.name}</h4>
+                    <p>Revenue: {DataProcessor.formatCurrency(factory.totalRevenue, state.settings.currency)}</p>
+                    <p>Units: {DataProcessor.formatNumber(factory.totalUnits)}</p>
+                    <p>Products: {factory.products}</p>
+                    <p>Plants: {factory.plants}</p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))
+          )}
         </MapContainer>
       </div>
       
       {/* Legend */}
       <div className="mt-4 flex items-center justify-center space-x-6 text-sm">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Low Revenue</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Medium Revenue</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-red-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">High Revenue</span>
-        </div>
+        {isMultiDataset ? (
+          multiDatasetData.map(dataset => (
+            <div key={dataset.datasetId} className="flex items-center space-x-2">
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: dataset.color }}
+              />
+              <span className="text-gray-600 dark:text-gray-400">{dataset.datasetName}</span>
+            </div>
+          ))
+        ) : (
+          <>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+              <span className="text-gray-600 dark:text-gray-400">Low Revenue</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-orange-500"></div>
+              <span className="text-gray-600 dark:text-gray-400">Medium Revenue</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-red-500"></div>
+              <span className="text-gray-600 dark:text-gray-400">High Revenue</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -97,7 +97,7 @@ export interface AppState {
   data: DataRow[];
   filteredData: DataRow[];
   datasets: Dataset[];
-  activeDatasetId: string | null;
+  activeDatasetIds: string[];
   datasetLibraryOpen: boolean;
   chartInteractionMode: 'normal' | 'brush' | 'crossfilter';
   brushSelection: BrushSelection | null;
@@ -125,6 +125,13 @@ export interface Dataset {
   validationSummary?: string;
   color: string;
   preview: DataRow[];
+}
+
+export interface MultiDatasetData {
+  datasetId: string;
+  datasetName: string;
+  data: DataRow[];
+  color: string;
 }
 
 export interface BrushSelection {

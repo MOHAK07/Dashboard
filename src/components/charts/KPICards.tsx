@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { DataRow } from '../../types';
+import { useApp } from '../../contexts/AppContext';
 
 interface KPICardsProps {
   data: DataRow[];
@@ -19,6 +20,10 @@ interface KPICardsProps {
 }
 
 export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
+  const { getMultiDatasetData } = useApp();
+  const multiDatasetData = getMultiDatasetData();
+  const isMultiDataset = multiDatasetData.length > 1;
+  
   const kpis = DataProcessor.calculateKPIs(data);
 
   const getCurrencyIcon = (currency: string) => {
@@ -37,6 +42,14 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
         return DollarSign;
     }
   };
+
+  // Calculate KPIs for each dataset if multiple are active
+  const datasetKPIs = isMultiDataset 
+    ? multiDatasetData.map(dataset => ({
+        ...dataset,
+        kpis: DataProcessor.calculateKPIs(dataset.data)
+      }))
+    : [];
 
   const cards = [
     {
@@ -103,7 +116,9 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
         return (
           <div
             key={card.title}
-            className="card hover:shadow-md transition-all duration-200 group"
+            className={`card hover:shadow-md transition-all duration-200 group ${
+              isMultiDataset ? 'pb-4' : ''
+            }`}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -141,6 +156,50 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
                 `} />
               </div>
             </div>
+            
+            {/* Multi-dataset breakdown */}
+            {isMultiDataset && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="space-y-2">
+                  {datasetKPIs.map((dataset) => {
+                    let value: string;
+                    switch (index) {
+                      case 0: // Revenue
+                        value = DataProcessor.formatCurrency(dataset.kpis.totalRevenue, currency);
+                        break;
+                      case 1: // Units
+                        value = DataProcessor.formatNumber(dataset.kpis.totalUnits);
+                        break;
+                      case 2: // Factories
+                        value = dataset.kpis.totalFactories.toString();
+                        break;
+                      case 3: // Products
+                        value = dataset.kpis.totalProducts.toString();
+                        break;
+                      default:
+                        value = '0';
+                    }
+                    
+                    return (
+                      <div key={dataset.datasetId} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: dataset.color }}
+                          />
+                          <span className="text-gray-600 dark:text-gray-400 truncate max-w-20">
+                            {dataset.datasetName}
+                          </span>
+                        </div>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {value}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}

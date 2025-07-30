@@ -17,9 +17,12 @@ export function FactoryPerformanceChart({
   isDarkMode = false,
   enableDrillDown = true,
 }: FactoryPerformanceChartProps) {
-  const { addDrillDownFilter, state } = useApp();
+  const { addDrillDownFilter, state, getMultiDatasetData } = useApp();
   const [chartType, setChartType] = useState<'bar' | 'horizontal'>('bar');
   const isHorizontal = chartType === 'horizontal';
+
+  const multiDatasetData = getMultiDatasetData();
+  const isMultiDataset = multiDatasetData.length > 1;
 
   const factoryData = DataProcessor.aggregateByFactory(data);
   
@@ -38,8 +41,44 @@ export function FactoryPerformanceChart({
     );
   }
   
-  const categories = factoryData.map((f) => f.name);
-  const values = factoryData.map((f) => f.totalRevenue);
+  // Prepare data for multi-dataset comparison
+  const prepareChartData = () => {
+    if (!isMultiDataset) {
+      return {
+        categories: factoryData.map((f) => f.name),
+        series: [{
+          name: 'Revenue',
+          data: factoryData.map((f) => f.totalRevenue),
+          color: '#3b82f6'
+        }]
+      };
+    }
+
+    // For multi-dataset, create series for each dataset
+    const allFactories = new Set<string>();
+    const datasetSeries: any[] = [];
+
+    multiDatasetData.forEach(dataset => {
+      const datasetFactoryData = DataProcessor.aggregateByFactory(dataset.data);
+      datasetFactoryData.forEach(factory => allFactories.add(factory.name));
+      
+      datasetSeries.push({
+        name: dataset.datasetName,
+        data: Array.from(allFactories).map(factoryName => {
+          const factory = datasetFactoryData.find(f => f.name === factoryName);
+          return factory ? factory.totalRevenue : 0;
+        }),
+        color: dataset.color
+      });
+    });
+
+    return {
+      categories: Array.from(allFactories),
+      series: datasetSeries
+    };
+  };
+
+  const { categories, series } = prepareChartData();
 
   const chartOptions: ApexOptions = {
     chart: {
@@ -47,6 +86,7 @@ export function FactoryPerformanceChart({
       type: 'bar',
       toolbar: { show: false },
       background: 'transparent',
+      stacked: false,
       events: enableDrillDown ? {
         dataPointSelection: (event: any, chartContext: any, config: any) => {
           const factoryName = categories[config.dataPointIndex];
@@ -58,6 +98,7 @@ export function FactoryPerformanceChart({
       bar: {
         horizontal: isHorizontal,
         borderRadius: 8,
+        columnWidth: isMultiDataset ? '60%' : '70%',
         dataLabels: { 
           position: isHorizontal ? 'center' : 'top' 
         },
@@ -81,41 +122,41 @@ export function FactoryPerformanceChart({
         formatter: !isHorizontal ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
       },
     },
-    colors: ['#3b82f6'],
+    colors: series.map(s => s.color),
     theme: { mode: isDarkMode ? 'dark' : 'light' },
     grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
+    legend: isMultiDataset ? {
+      show: true,
+      position: 'top',
+      labels: {
+        colors: isDarkMode ? '#9ca3af' : '#6b7280',
+      },
+    } : { show: false },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+      custom: ({ series: tooltipSeries, seriesIndex, dataPointIndex, w }: any) => {
         if (dataPointIndex === undefined || !factoryData[dataPointIndex]) return '';
         
-        const factory = factoryData[dataPointIndex];
-        const value = series[seriesIndex][dataPointIndex];
+        const factoryName = categories[dataPointIndex];
+        const value = tooltipSeries[seriesIndex][dataPointIndex];
+        const seriesName = w.globals.seriesNames[seriesIndex];
         
         return `
           <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 8px;">
-              ${factory.name}
+              ${factoryName}
             </div>
+            ${isMultiDataset ? `
+            <div style="margin-bottom: 6px;">
+              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Dataset: </span>
+              <span style="font-weight: 600;">${seriesName}</span>
+            </div>
+            ` : ''}
             <div style="margin-bottom: 6px;">
               <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Revenue: </span>
-              <span style="font-weight: 600; color: #3b82f6;">
+              <span style="font-weight: 600; color: ${series[seriesIndex]?.color || '#3b82f6'};">
                 ${DataProcessor.formatCurrency(value, state.settings.currency)}
               </span>
-            </div>
-            <div style="margin-bottom: 6px;">
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Units Sold: </span>
-              <span style="font-weight: 600;">
-                ${DataProcessor.formatNumber(factory.totalUnits)}
-              </span>
-            </div>
-            <div style="margin-bottom: 6px;">
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Products: </span>
-              <span style="font-weight: 600;">${factory.products}</span>
-            </div>
-            <div>
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Plants: </span>
-              <span style="font-weight: 600;">${factory.plants}</span>
             </div>
           </div>
         `;
@@ -133,16 +174,9 @@ export function FactoryPerformanceChart({
     }]
   };
 
-  const series = [
-    {
-      name: 'Revenue',
-      data: values,
-    },
-  ];
-
   return (
     <ChartContainer
-      title="Factory Performance"
+      title={`Factory Performance${isMultiDataset ? ' Comparison' : ''}`}
       onChartTypeChange={(type) => setChartType(type as 'bar' | 'horizontal')}
       availableTypes={['bar', 'horizontal']}
       currentType={chartType}

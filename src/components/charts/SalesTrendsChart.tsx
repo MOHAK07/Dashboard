@@ -12,8 +12,11 @@ interface SalesTrendsChartProps {
 }
 
 export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartProps) {
-  const { state } = useApp();
+  const { state, getMultiDatasetData } = useApp();
   const [chartType, setChartType] = useState<'line' | 'area' | 'bar'>('line');
+  
+  const multiDatasetData = getMultiDatasetData();
+  const isMultiDataset = multiDatasetData.length > 1;
   
   const timeSeriesData = DataProcessor.getTimeSeries(data, 'month');
   
@@ -35,6 +38,55 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
       </ChartContainer>
     );
   }
+
+  // Prepare data for multi-dataset comparison
+  const prepareTimeSeriesData = () => {
+    if (!isMultiDataset) {
+      return {
+        categories: timeSeriesData.map(point => {
+          const date = new Date(point.date + '-01');
+          return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }),
+        series: [{
+          name: 'Revenue',
+          data: timeSeriesData.map(point => point.revenue),
+          color: '#3b82f6'
+        }]
+      };
+    }
+
+    // For multi-dataset, create series for each dataset
+    const allDates = new Set<string>();
+    const datasetSeries: any[] = [];
+
+    multiDatasetData.forEach(dataset => {
+      const datasetTimeSeries = DataProcessor.getTimeSeries(dataset.data, 'month');
+      datasetTimeSeries.forEach(point => allDates.add(point.date));
+    });
+
+    const sortedDates = Array.from(allDates).sort();
+
+    multiDatasetData.forEach(dataset => {
+      const datasetTimeSeries = DataProcessor.getTimeSeries(dataset.data, 'month');
+      const timeSeriesMap = new Map(datasetTimeSeries.map(point => [point.date, point.revenue]));
+      
+      datasetSeries.push({
+        name: dataset.datasetName,
+        data: sortedDates.map(date => timeSeriesMap.get(date) || 0),
+        color: dataset.color
+      });
+    });
+
+    return {
+      categories: sortedDates.map(date => {
+        const dateObj = new Date(date + '-01');
+        return dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }),
+      series: datasetSeries
+    };
+  };
+
+  const { categories, series } = prepareTimeSeriesData();
 
   const chartOptions: ApexOptions = {
     chart: {
@@ -74,10 +126,7 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
       enabled: false,
     },
     xaxis: {
-      categories: timeSeriesData.map(point => {
-        const date = new Date(point.date + '-01');
-        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      }),
+      categories: categories,
       labels: {
         style: {
           colors: isDarkMode ? '#9ca3af' : '#6b7280',
@@ -92,13 +141,20 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
         },
       },
     },
-    colors: ['#3b82f6'],
+    colors: series.map(s => s.color),
     theme: {
       mode: isDarkMode ? 'dark' : 'light',
     },
     grid: {
       borderColor: isDarkMode ? '#374151' : '#e5e7eb',
     },
+    legend: isMultiDataset ? {
+      show: true,
+      position: 'top',
+      labels: {
+        colors: isDarkMode ? '#9ca3af' : '#6b7280',
+      },
+    } : { show: false },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
       shared: true,
@@ -107,56 +163,10 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
       y: {
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
       },
-      x: {
-        formatter: (val: number, opts: any) => {
-          if (opts && opts.dataPointIndex !== undefined) {
-            const date = new Date(timeSeriesData[opts.dataPointIndex].date + '-01');
-            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-          }
-          return '';
-        },
-      },
-      custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
-        if (dataPointIndex === undefined || !timeSeriesData[dataPointIndex]) return '';
-        
-        const currentValue = series[seriesIndex][dataPointIndex];
-        const previousValue = dataPointIndex > 0 ? series[seriesIndex][dataPointIndex - 1] : null;
-        const date = new Date(timeSeriesData[dataPointIndex].date + '-01');
-        const formattedDate = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        
-        let changeText = '';
-        if (previousValue !== null && previousValue !== 0) {
-          const change = ((currentValue - previousValue) / previousValue) * 100;
-          const changeColor = change >= 0 ? '#22c55e' : '#ef4444';
-          const changeIcon = change >= 0 ? '↗' : '↘';
-          changeText = `
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-              <span style="color: ${changeColor}; font-weight: 600;">
-                ${changeIcon} ${Math.abs(change).toFixed(1)}% vs previous period
-              </span>
-            </div>
-          `;
-        }
-        
-        return `
-          <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-            <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 4px;">
-              ${formattedDate}
-            </div>
-            <div style="font-size: 18px; font-weight: 700; color: #3b82f6;">
-              ${DataProcessor.formatCurrency(currentValue, state.settings.currency)}
-            </div>
-            <div style="font-size: 12px; color: ${isDarkMode ? '#9ca3af' : '#6b7280'}; margin-top: 4px;">
-              Units: ${DataProcessor.formatNumber(timeSeriesData[dataPointIndex].units)}
-            </div>
-            ${changeText}
-          </div>
-        `;
-      },
     },
     markers: {
       size: chartType === 'line' ? 6 : 0,
-      colors: ['#3b82f6'],
+      colors: series.map(s => s.color),
       strokeColors: '#ffffff',
       strokeWidth: 2,
       hover: {
@@ -165,16 +175,9 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
     },
   };
 
-  const series = [
-    {
-      name: 'Revenue',
-      data: timeSeriesData.map(point => point.revenue),
-    },
-  ];
-
   return (
     <ChartContainer
-      title="Sales Trends Over Time"
+      title={`Sales Trends Over Time${isMultiDataset ? ' - Dataset Comparison' : ''}`}
       onChartTypeChange={(type) => setChartType(type as 'line' | 'area' | 'bar')}
       availableTypes={['line', 'area', 'bar']}
       currentType={chartType}

@@ -11,8 +11,10 @@ interface ComparisonTabProps {
 }
 
 export function ComparisonTab({ data }: ComparisonTabProps) {
-  const { state } = useApp();
+  const { state, getMultiDatasetData } = useApp();
   const isDarkMode = state.settings.theme === 'dark';
+  const multiDatasetData = getMultiDatasetData();
+  const isMultiDataset = multiDatasetData.length > 1;
   
   const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   
@@ -172,10 +174,29 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
 
   return (
     <div className="space-y-8">
+      {/* Multi-dataset indicator */}
+      {isMultiDataset && (
+        <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-700">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
+              <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-primary-900 dark:text-primary-100">
+                Multi-Dataset Comparison Mode
+              </h3>
+              <p className="text-sm text-primary-700 dark:text-primary-300">
+                Comparing data across {multiDatasetData.length} active datasets: {multiDatasetData.map(d => d.datasetName).join(', ')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Plant Selection */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Select Plants to Compare
+          Select Plants to Compare{isMultiDataset ? ' (Across All Active Datasets)' : ''}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {uniquePlants.map(plant => (
