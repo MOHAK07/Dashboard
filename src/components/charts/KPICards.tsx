@@ -1,5 +1,15 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, Building2, Package, DollarSign, Users } from 'lucide-react';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Building2, 
+  Package, 
+  DollarSign, 
+  Users,
+  IndianRupee,
+  Euro,
+  PoundSterling,
+  JapaneseYen
+} from 'lucide-react';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { DataRow } from '../../types';
 
@@ -11,13 +21,30 @@ interface KPICardsProps {
 export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
   const kpis = DataProcessor.calculateKPIs(data);
 
+  const getCurrencyIcon = (currency: string) => {
+    switch (currency) {
+      case 'INR':
+        return IndianRupee;
+      case 'EUR':
+        return Euro;
+      case 'GBP':
+        return PoundSterling;
+      case 'JPY':
+        return JapaneseYen;
+      case 'USD':
+      case 'CAD':
+      default:
+        return DollarSign;
+    }
+  };
+
   const cards = [
     {
       title: 'Total Revenue',
       value: DataProcessor.formatCurrency(kpis.totalRevenue, currency),
       change: 12.5,
       changeType: 'increase' as const,
-      icon: DollarSign,
+      icon: getCurrencyIcon(currency),
       color: 'primary',
     },
     {
@@ -69,7 +96,7 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {cards.map((card, index) => {
         const Icon = card.icon;
         
@@ -78,17 +105,17 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
             key={card.title}
             className="card hover:shadow-md transition-all duration-200 group"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
                   {card.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {card.value}
                 </p>
                 
                 {card.change !== 0 && (
-                  <div className={`flex items-center space-x-1 ${getChangeColor(card.changeType)}`}>
+                  <div className={`flex items-center space-x-1.5 ${getChangeColor(card.changeType)}`}>
                     {getChangeIcon(card.changeType)}
                     <span className="text-sm font-medium">
                       {Math.abs(card.change)}%

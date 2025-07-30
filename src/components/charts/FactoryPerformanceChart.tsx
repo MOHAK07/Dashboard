@@ -65,23 +65,20 @@ export function FactoryPerformanceChart({
     },
     dataLabels: {
       enabled: false,
-      formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-      style: {
-        colors: [isDarkMode ? '#f3f4f6' : '#374151'],
-      },
     },
     xaxis: {
       categories: categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-        rotate: isHorizontal ? 0 : -45,
-        rotateAlways: !isHorizontal,
+        formatter: isHorizontal
+          ? (value: string) => DataProcessor.formatCurrency(Number(value), state.settings.currency)
+          : undefined,
       },
     },
     yaxis: {
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+        formatter: !isHorizontal ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
       },
     },
     colors: ['#3b82f6'],
@@ -89,12 +86,6 @@ export function FactoryPerformanceChart({
     grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      shared: false,
-      intersect: true,
-      followCursor: true,
-      y: { 
-        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) 
-      },
       custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
         if (dataPointIndex === undefined || !factoryData[dataPointIndex]) return '';
         
@@ -137,13 +128,7 @@ export function FactoryPerformanceChart({
           bar: {
             horizontal: true,
           }
-        },
-        xaxis: {
-          labels: {
-            rotate: 0,
-            rotateAlways: false,
-          },
-        },
+        }
       }
     }]
   };

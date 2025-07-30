@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Database, 
   Eye, 
@@ -17,7 +17,8 @@ import {
   Filter,
   Search,
   Grid,
-  List
+  List,
+  ChevronDown
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Dataset } from '../../types';
@@ -30,8 +31,43 @@ export function DatasetsTab() {
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'rows'>('date');
   const [filterStatus, setFilterStatus] = useState<'all' | 'valid' | 'warning' | 'error'>('all');
+
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusRef.current && !statusRef.current.contains(event.target as Node)) {
+        setIsStatusOpen(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const statusOptions = [
+    { value: 'all', label: 'All Status' },
+    { value: 'valid', label: 'Valid' },
+    { value: 'warning', label: 'Warning' },
+    { value: 'error', label: 'Error' },
+  ];
+
+  const sortOptions = [
+    { value: 'date', label: 'Sort by Date' },
+    { value: 'name', label: 'Sort by Name' },
+    { value: 'size', label: 'Sort by Size' },
+    { value: 'rows', label: 'Sort by Rows' },
+  ];
 
   const getStatusIcon = (status: Dataset['status']) => {
     switch (status) {
@@ -89,7 +125,6 @@ export function DatasetsTab() {
     setShowMergeDialog(false);
   };
 
-  // Filter and sort datasets
   const filteredDatasets = state.datasets
     .filter(dataset => {
       const matchesSearch = dataset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -177,9 +212,9 @@ export function DatasetsTab() {
                 <FileText className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Rows</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Dataset Rows</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {state.datasets.reduce((sum, d) => sum + d.rowCount, 0).toLocaleString()}
+                  {(activeDataset?.rowCount ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -208,46 +243,75 @@ export function DatasetsTab() {
         {/* Controls */}
         <div className="card">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-4">
               {/* Search */}
-              <div className="relative">
+              <div className="relative w-full sm:w-auto sm:flex-1 md:flex-none md:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search datasets..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field pl-10 w-64"
+                  className="input-field pl-10 w-full"
                 />
               </div>
 
-              {/* Status Filter */}
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="input-field"
-              >
-                <option value="all">All Status</option>
-                <option value="valid">Valid</option>
-                <option value="warning">Warning</option>
-                <option value="error">Error</option>
-              </select>
+              {/* Status Filter Dropdown */}
+              <div className="relative w-full sm:w-auto" ref={statusRef}>
+                <button
+                  onClick={() => setIsStatusOpen(!isStatusOpen)}
+                  className="input-field flex items-center justify-between text-left w-full sm:w-40"
+                >
+                  <span>{statusOptions.find(o => o.value === filterStatus)?.label}</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isStatusOpen && (
+                  <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
+                    {statusOptions.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setFilterStatus(option.value as any);
+                          setIsStatusOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-              {/* Sort */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="input-field"
-              >
-                <option value="date">Sort by Date</option>
-                <option value="name">Sort by Name</option>
-                <option value="size">Sort by Size</option>
-                <option value="rows">Sort by Rows</option>
-              </select>
+              {/* Sort Dropdown */}
+              <div className="relative w-full sm:w-auto" ref={sortRef}>
+                <button
+                  onClick={() => setIsSortOpen(!isSortOpen)}
+                  className="input-field flex items-center justify-between text-left w-full sm:w-48"
+                >
+                  <span>{sortOptions.find(o => o.value === sortBy)?.label}</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isSortOpen && (
+                  <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
+                    {sortOptions.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value as any);
+                          setIsSortOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              {/* View Mode Toggle */}
               <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -270,8 +334,6 @@ export function DatasetsTab() {
                   <List className="h-4 w-4" />
                 </button>
               </div>
-
-              {/* Bulk Actions */}
               {selectedDatasets.length > 0 && (
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -321,7 +383,7 @@ export function DatasetsTab() {
               <div
                 key={dataset.id}
                 className={`
-                  card cursor-pointer transition-all duration-200 hover:shadow-lg
+                  card cursor-pointer transition-all duration-200
                   ${state.activeDatasetId === dataset.id 
                     ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20' 
                     : 'hover:shadow-md'
@@ -330,7 +392,7 @@ export function DatasetsTab() {
                   ${viewMode === 'list' ? 'flex items-center space-x-4' : ''}
                 `}
               >
-                <div className={viewMode === 'list' ? 'flex items-center space-x-3' : 'mb-4'}>
+                <div className={viewMode === 'list' ? 'flex items-center space-x-3 flex-shrink-0' : 'mb-4'}>
                   <input
                     type="checkbox"
                     checked={selectedDatasets.includes(dataset.id)}
@@ -342,7 +404,7 @@ export function DatasetsTab() {
                     className="w-4 h-4 rounded-full flex-shrink-0"
                     style={{ backgroundColor: dataset.color }}
                   />
-                  <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
+                  <div className={viewMode === 'list' ? 'w-48' : ''}>
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
                         {dataset.name}
@@ -358,13 +420,13 @@ export function DatasetsTab() {
                 {viewMode === 'grid' ? (
                   <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="">
+                      <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Rows</p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">
                           {dataset.rowCount.toLocaleString()}
                         </p>
                       </div>
-                      <div className="">
+                      <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Size</p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">
                           {formatFileSize(dataset.fileSize)}
@@ -424,14 +486,14 @@ export function DatasetsTab() {
                   </>
                 ) : (
                   <div className="flex items-center justify-between flex-1">
-                    <div className="flex items-center space-x-6">
-                      <div className="text-sm">
+                    <div className="flex items-center space-x-6 text-sm">
+                      <div>
                         <span className="font-medium text-gray-900 dark:text-gray-100">
                           {dataset.rowCount.toLocaleString()}
                         </span>
                         <span className="text-gray-500 dark:text-gray-400 ml-1">rows</span>
                       </div>
-                      <div className="text-sm">
+                      <div>
                         <span className="font-medium text-gray-900 dark:text-gray-100">
                           {formatFileSize(dataset.fileSize)}
                         </span>
@@ -485,7 +547,6 @@ export function DatasetsTab() {
           </div>
         )}
 
-        {/* Merge Dialog */}
         {showMergeDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
@@ -508,7 +569,6 @@ export function DatasetsTab() {
         )}
       </div>
 
-      {/* Dataset Preview Modal */}
       {previewDataset && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-16">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[calc(100vh-8rem)] flex flex-col overflow-hidden">

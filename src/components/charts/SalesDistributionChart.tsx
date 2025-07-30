@@ -1,99 +1,3 @@
-// import React, { useState } from 'react';
-// import Chart from 'react-apexcharts';
-// import { ApexOptions } from 'apexcharts';
-// import { DataRow } from '../../types';
-// import { DataProcessor } from '../../utils/dataProcessing';
-// import { ChartContainer } from './ChartContainer';
-
-// interface SalesDistributionChartProps {
-//   data: DataRow[];
-//   isDarkMode?: boolean;
-// }
-
-// export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistributionChartProps) {
-//   const [chartType, setChartType] = useState<'donut' | 'pie'>('donut');
-  
-//   const plantData = DataProcessor.aggregateByPlant(data);
-  
-//   const chartOptions: ApexOptions = {
-//     chart: {
-//       type: chartType,
-//       background: 'transparent',
-//     },
-//     labels: plantData.map(plant => plant.name),
-//     colors: [
-//       '#3b82f6', '#22c55e', '#f97316', '#ef4444', 
-//       '#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899'
-//     ],
-//     legend: {
-//       position: 'bottom',
-//       labels: {
-//         colors: isDarkMode ? '#9ca3af' : '#6b7280',
-//       },
-//     },
-//     plotOptions: {
-//       pie: {
-//         donut: {
-//           size: chartType === 'donut' ? '70%' : '0%',
-//           labels: {
-//             show: true,
-//             name: {
-//               show: true,
-//               color: isDarkMode ? '#f3f4f6' : '#374151',
-//             },
-//             value: {
-//               show: true,
-//               formatter: (val: string) => DataProcessor.formatCurrency(Number(val)),
-//               color: isDarkMode ? '#f3f4f6' : '#374151',
-//             },
-//             total: {
-//               show: true,
-//               label: 'Total Revenue',
-//               formatter: () => {
-//                 const total = plantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
-//                 return DataProcessor.formatCurrency(total);
-//               },
-//               color: isDarkMode ? '#f3f4f6' : '#374151',
-//             },
-//           },
-//         },
-//       },
-//     },
-//     dataLabels: {
-//       enabled: true,
-//       formatter: (val: number) => `${val.toFixed(1)}%`,
-//       style: {
-//         colors: ['#ffffff'],
-//       },
-//     },
-//     tooltip: {
-//       theme: isDarkMode ? 'dark' : 'light',
-//       y: {
-//         formatter: (val: number) => DataProcessor.formatCurrency(val),
-//       },
-//     },
-//   };
-
-//   const series = plantData.map(plant => plant.totalRevenue);
-
-//   return (
-//     <ChartContainer
-//       title="Sales Distribution by Plant"
-//       onChartTypeChange={(type) => setChartType(type as 'donut' | 'pie')}
-//       availableTypes={['donut', 'pie']}
-//       currentType={chartType}
-//     >
-//       <Chart
-//         options={chartOptions}
-//         series={series}
-//         type={chartType}
-//         height="100%"
-//       />
-//     </ChartContainer>
-//   );
-// }
-
-
 import React, { useState } from 'react';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
@@ -129,11 +33,25 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     );
   }
 
+  const totalRevenue = plantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
+
   const chartOptions: ApexOptions = {
     chart: {
       id: 'sales-distribution',
       type: chartType,
       background: 'transparent',
+      animations: {
+        enabled: true,
+        speed: 600,
+        animateGradually: {
+            enabled: true,
+            delay: 150
+        },
+        dynamicAnimation: {
+            enabled: true,
+            speed: 350
+        }
+      },
       events: {
         dataPointSelection: (event: any, chartContext: any, config: any) => {
           const plantName = plantData[config.dataPointIndex]?.name;
@@ -156,13 +74,14 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     },
     plotOptions: {
       pie: {
+        offsetX: chartType === 'pie' ? -80 : 0,
         donut: {
           size: chartType === 'donut' ? '70%' : '0%',
           labels: {
-            show: true,
+            show: chartType === 'donut',
             name: {
               show: true,
-              color: isDarkMode ? '#f3f4f6' : '#374151',
+              color: isDarkMode ? '#9ca3af' : '#6b7280',
             },
             value: {
               show: true,
@@ -172,10 +91,7 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
             total: {
               show: true,
               label: 'Total Revenue',
-              formatter: () => {
-                const total = plantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
-                return DataProcessor.formatCurrency(total, state.settings.currency);
-              },
+              formatter: () => DataProcessor.formatCurrency(totalRevenue, state.settings.currency),
               color: isDarkMode ? '#f3f4f6' : '#374151',
             },
           },
@@ -191,46 +107,8 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      shared: false,
-      intersect: true,
-      followCursor: true,
       y: {
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-      },
-      custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
-        if (dataPointIndex === undefined || !plantData[dataPointIndex]) return '';
-        
-        const plant = plantData[dataPointIndex];
-        const value = series[dataPointIndex];
-        const percentage = ((value / series.reduce((a: number, b: number) => a + b, 0)) * 100).toFixed(1);
-        
-        return `
-          <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-            <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 8px;">
-              ${plant.name}
-            </div>
-            <div style="margin-bottom: 6px;">
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Revenue: </span>
-              <span style="font-weight: 600; color: #3b82f6;">
-                ${DataProcessor.formatCurrency(value, state.settings.currency)}
-              </span>
-            </div>
-            <div style="margin-bottom: 6px;">
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Percentage: </span>
-              <span style="font-weight: 600; color: #22c55e;">${percentage}%</span>
-            </div>
-            <div style="margin-bottom: 6px;">
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Units Sold: </span>
-              <span style="font-weight: 600;">
-                ${DataProcessor.formatNumber(plant.totalUnits)}
-              </span>
-            </div>
-            <div>
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Factory: </span>
-              <span style="font-weight: 600;">${plant.factoryName}</span>
-            </div>
-          </div>
-        `;
       },
     },
     responsive: [{
@@ -244,6 +122,8 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
   };
 
   const series = plantData.map(plant => plant.totalRevenue);
+  
+  const chartKey = JSON.stringify(state.filters.drillDownFilters);
 
   return (
     <ChartContainer
@@ -252,14 +132,25 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
       availableTypes={['donut', 'pie']}
       currentType={chartType}
     >
-      <Chart
-        options={chartOptions}
-        series={series}
-        type={chartType}
-        height="100%"
-      />
+      <div className="relative w-full h-full">
+        <Chart
+          key={chartKey}
+          options={chartOptions}
+          series={series}
+          type={chartType}
+          height="100%"
+          width="100%"
+        />
+        <div 
+          className={`absolute top-1/2 right-10 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none transition-opacity duration-300
+          ${chartType === 'pie' ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {DataProcessor.formatCurrency(totalRevenue, state.settings.currency)}
+          </p>
+        </div>
+      </div>
     </ChartContainer>
   );
 }
-
-

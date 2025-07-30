@@ -6,7 +6,8 @@ import {
   Database, 
   Settings,
   Menu,
-  X
+  X,
+  Library
 } from 'lucide-react';
 import { TabType } from '../types';
 import { useApp } from '../contexts/AppContext';
@@ -45,8 +46,8 @@ const navigationItems = [
   },
   {
     id: 'datasets' as TabType,
-    label: 'Dataset Library',
-    icon: Database,
+    label: 'Data Manager',
+    icon: Library,
     emoji: '📚',
   },
   {
@@ -136,11 +137,6 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileToggle }:
                       `}
                       aria-current={isActive ? 'page' : undefined}
                     >
-                      {/* Active indicator bar */}
-                      {isActive && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600 dark:bg-primary-400 rounded-r-full" />
-                      )}
-                      
                       {/* Icon container with proper spacing */}
                       <div className={`flex items-center justify-center ${isCollapsed ? 'w-full' : 'w-5 mr-3'}`}>
                         <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary-600 dark:text-primary-400' : ''}`} />
