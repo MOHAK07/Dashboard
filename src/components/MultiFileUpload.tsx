@@ -27,7 +27,7 @@ const DATASET_COLORS = [
 ];
 
 export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFileUploadProps) {
-  const { addDataset } = useApp(); // We'll use this only onContinue
+  const { dispatch } = useApp(); // We'll use this only onContinue
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [validatedDatasets, setValidatedDatasets] = useState<Dataset[]>([]); // Local buffer
@@ -181,7 +181,7 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
 
   // Continue handler: add all validated datasets to global state
   const handleContinue = () => {
-    validatedDatasets.forEach(ds => addDataset(ds));
+    validatedDatasets.forEach(ds => dispatch({ type: 'ADD_DATASET', payload: ds }));
     if (onContinue) onContinue();
   };
 
