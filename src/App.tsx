@@ -5,7 +5,6 @@ import { AppProvider, useApp } from './contexts/AppContext';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MultiFileUpload } from './components/MultiFileUpload';
-import { DatasetLibrary } from './components/DatasetLibrary';
 import { OverviewTab } from './components/tabs/OverviewTab';
 import { ComparisonTab } from './components/tabs/ComparisonTab';
 import { DeepDiveTab } from './components/tabs/DeepDiveTab';
@@ -16,7 +15,7 @@ import { DataRow } from './types';
 import { WelcomeScreen } from './components/WelcomeScreen';
 
 function DashboardContent() {
-  const { state, addDataset, toggleDatasetLibrary } = useApp();
+  const { state, setActiveTab, loadSampleData } = useApp();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
@@ -28,18 +27,14 @@ function DashboardContent() {
     return () => window.removeEventListener('openFileUpload', handleOpenFileUpload);
   }, []);
 
-  // Check if this is the first visit
-  useEffect(() => {
-    // Auto-load sample data if no data is present and not explicitly loaded
-    if (state.data.length === 0 && !state.sampleDataLoaded) {
-      // Show welcome screen
-    }
-  }, [state.data.length, state.sampleDataLoaded]);
-
-
   const renderTabContent = () => {
-    if (state.data.length === 0) {
-      return <WelcomeScreen onFileUpload={() => setShowFileUpload(true)} />;
+    // Show welcome screen only if no datasets are loaded
+    if (state.datasets.length === 0 && !showFileUpload) {
+      return (
+        <WelcomeScreen 
+          onFileUpload={() => setShowFileUpload(true)}
+        />
+      );
     }
 
     const filteredData = state.filteredData;
@@ -62,20 +57,24 @@ function DashboardContent() {
     }
   };
 
-  // Show welcome screen when no data is loaded
-  if (state.data.length === 0 && !showFileUpload) {
-    return <WelcomeScreen onFileUpload={() => setShowFileUpload(true)} />;
+  // Show welcome screen when no datasets are loaded and not uploading
+  if (state.datasets.length === 0 && !showFileUpload) {
+    return (
+      <WelcomeScreen 
+        onFileUpload={() => setShowFileUpload(true)}
+      />
+    );
   }
 
   // Show file upload modal
   if (showFileUpload) {
-    // Add a prop to distinguish between close and continue actions
-    const handleClose = () => setShowFileUpload(false); // Only close modal, show WelcomeScreen
+    const handleClose = () => setShowFileUpload(false);
     const handleContinue = () => {
       setShowFileUpload(false);
-      // Optionally, you could set a flag to skip WelcomeScreen if needed
-      // For now, closing modal will show dashboard if data is present
+      // Switch to datasets tab after upload
+      setActiveTab('datasets');
     };
+    
     return (
       <MultiFileUpload 
         onClose={handleClose}
