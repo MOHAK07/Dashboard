@@ -53,6 +53,7 @@ function DashboardContent() {
       case 'settings':
         return <SettingsTab />;
       default:
+    }
     // Switch to overview tab after upload
     setActiveTab('overview');
   };
