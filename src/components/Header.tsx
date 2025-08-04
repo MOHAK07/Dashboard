@@ -52,7 +52,8 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
 
   const toggleTheme = () => {
     const newTheme = state.settings.theme === 'light' ? 'dark' : 'light';
-    setSettings({ ...state.settings, theme: newTheme });
+    const newSettings = { ...state.settings, theme: newTheme };
+    setSettings(newSettings);
   };
 
   const handleDateRangeChange = (start: string, end: string) => {

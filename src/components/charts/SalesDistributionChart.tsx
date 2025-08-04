@@ -47,18 +47,22 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
         availableTypes={['donut', 'pie']}
         currentType={chartType}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
+        <div className="flex flex-wrap justify-center items-center gap-6 h-full p-4">
           {multiDatasetData.map((dataset, index) => {
             const datasetPlantData = DataProcessor.aggregateByPlant(dataset.data);
             const datasetTotalRevenue = datasetPlantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
             
             if (datasetPlantData.length === 0) return null;
 
+            // Calculate optimal size based on number of datasets
+            const chartSize = multiDatasetData.length <= 2 ? '300' : multiDatasetData.length <= 3 ? '250' : '200';
+            const containerWidth = multiDatasetData.length <= 2 ? 'w-80' : multiDatasetData.length <= 3 ? 'w-64' : 'w-52';
             const chartOptions: ApexOptions = {
               chart: {
                 type: chartType,
                 background: 'transparent',
-                height: '100%',
+                height: chartSize,
+                width: chartSize,
               },
               labels: datasetPlantData.map(plant => plant.name),
               colors: [
@@ -74,24 +78,24 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
               plotOptions: {
                 pie: {
                   donut: {
-                    size: chartType === 'donut' ? '60%' : '0%',
+                    size: chartType === 'donut' ? '50%' : '0%',
                     labels: {
                       show: chartType === 'donut',
                       name: {
                         show: true,
-                        fontSize: '12px',
+                        fontSize: '10px',
                         color: isDarkMode ? '#9ca3af' : '#6b7280',
                       },
                       value: {
                         show: true,
-                        fontSize: '14px',
+                        fontSize: '12px',
                         formatter: (val: string) => DataProcessor.formatCurrency(Number(val), state.settings.currency),
                         color: isDarkMode ? '#f3f4f6' : '#374151',
                       },
                       total: {
                         show: true,
                         label: 'Total',
-                        fontSize: '12px',
+                        fontSize: '10px',
                         formatter: () => DataProcessor.formatCurrency(datasetTotalRevenue, state.settings.currency),
                         color: isDarkMode ? '#f3f4f6' : '#374151',
                       },
@@ -100,7 +104,12 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
                 },
               },
               dataLabels: {
-                enabled: false, // Disable to save space
+                enabled: true,
+                style: {
+                  fontSize: '10px',
+                  colors: ['#ffffff'],
+                },
+                formatter: (val: number) => val > 5 ? `${val.toFixed(0)}%` : '', // Only show if > 5%
               },
               tooltip: {
                 theme: isDarkMode ? 'dark' : 'light',
@@ -113,23 +122,29 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
             const series = datasetPlantData.map(plant => plant.totalRevenue);
 
             return (
-              <div key={dataset.datasetId} className="flex flex-col">
-                <div className="flex items-center space-x-2 mb-2">
+              <div key={dataset.datasetId} className={`flex flex-col items-center ${containerWidth}`}>
+                <div className="flex items-center space-x-2 mb-3">
                   <div 
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: dataset.color }}
                   />
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center">
                     {dataset.datasetName}
                   </h4>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 flex items-center justify-center">
                   <Chart
                     options={chartOptions}
                     series={series}
                     type={chartType}
-                    height="200"
+                    height={chartSize}
+                    width={chartSize}
                   />
+                </div>
+                <div className="mt-2 text-center">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Total: {DataProcessor.formatCurrency(datasetTotalRevenue, state.settings.currency)}
+                  </p>
                 </div>
               </div>
             );

@@ -45,8 +45,8 @@ const initialState: AppState = {
     drillDownFilters: {},
   },
   settings: {
-    theme: 'light',
-    currency: 'USD',
+    theme: 'light' as 'light' | 'dark' | 'system',
+    currency: 'INR',
     language: 'en',
     notifications: true,
     autoSave: true,
@@ -75,7 +75,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
     
     case 'ADD_DATASET': {
       const newDatasets = [...state.datasets, action.payload];
-      const newActiveDatasetIds = [...state.activeDatasetIds, action.payload.id];
+      // Only activate the first dataset automatically
+      const newActiveDatasetIds = state.datasets.length === 0 
+        ? [action.payload.id] 
+        : state.activeDatasetIds;
       const combinedData = combineActiveDatasets(newDatasets, newActiveDatasetIds);
       
       return { 
@@ -189,6 +192,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setSettings = (settings: UserSettings) => {
     dispatch({ type: 'SET_SETTINGS', payload: settings });
+    
+    // Apply theme immediately
+    if (settings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (settings.theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // System theme
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   };
 
   const toggleDatasetActive = (id: string) => {
