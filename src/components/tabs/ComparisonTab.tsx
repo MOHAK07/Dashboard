@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
+import { Database } from 'lucide-react';
 import { DataRow } from '../../types';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { ChartContainer } from '../charts/ChartContainer';
