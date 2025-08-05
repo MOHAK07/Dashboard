@@ -226,34 +226,34 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
       </div>
 
       {/* KPI Comparison Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
         {plantKPIs.map((plant, index) => (
           <div key={plant.name} className="card">
             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {plant.name}
             </h4>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
-                <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400">Total Revenue</p>
+                <p className="text-sm font-bold text-primary-600 dark:text-primary-400 break-words">
                   {DataProcessor.formatCurrency(plant.totalRevenue, state.settings.currency)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Units Sold</p>
-                <p className="text-lg font-bold text-secondary-600 dark:text-secondary-400">
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400">Units Sold</p>
+                <p className="text-sm font-bold text-secondary-600 dark:text-secondary-400">
                   {DataProcessor.formatNumber(plant.totalUnits)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Avg Price</p>
-                <p className="text-lg font-bold text-accent-600 dark:text-accent-400">
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400">Avg Price</p>
+                <p className="text-sm font-bold text-accent-600 dark:text-accent-400 break-words">
                   {DataProcessor.formatCurrency(plant.avgRevenuePerUnit, state.settings.currency)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Products</p>
-                <p className="text-lg font-bold text-gray-700 dark:text-gray-300">
+              <div className="space-y-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400">Products</p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
                   {plant.productCount}
                 </p>
               </div>
@@ -263,8 +263,8 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ChartContainer title="Revenue by Product and Plant">
+      <div className="space-y-8">
+        <ChartContainer title="Revenue by Product and Plant" className="w-full">
           <Chart
             options={groupedBarOptions}
             series={groupedBarSeries}
@@ -273,7 +273,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
           />
         </ChartContainer>
 
-        <ChartContainer title="Multi-Metric Comparison">
+        <ChartContainer title="Multi-Metric Comparison" className="w-full">
           <Chart
             options={radarOptions}
             series={radarSeries}
