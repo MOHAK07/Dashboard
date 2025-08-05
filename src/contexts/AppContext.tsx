@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { Dataset, DataRow, FilterState, UserSettings, TabType } from '../types';
 
 // Define the state interface
@@ -179,7 +179,40 @@ const AppContext = createContext<{
 
 // Provider component
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  // Initialize state from localStorage/sessionStorage if available
+  const loadInitialState = () => {
+    try {
+      // Try to load datasets from sessionStorage
+      const savedDatasetsString = sessionStorage.getItem('dashboard-datasets');
+      const savedDataString = sessionStorage.getItem('dashboard-data');
+      
+      if (savedDatasetsString && savedDataString) {
+        const savedDatasets = JSON.parse(savedDatasetsString);
+        const savedData = JSON.parse(savedDataString);
+        
+        const savedActiveDatasetIdsString = sessionStorage.getItem('dashboard-active-ids');
+
+        // If we have datasets, data, and active IDs, use them to initialize state
+        if (savedDatasets.length > 0 && savedData && savedActiveDatasetIdsString) {
+          const savedActiveDatasetIds = JSON.parse(savedActiveDatasetIdsString);
+          return {
+            ...initialState,
+            datasets: savedDatasets,
+            activeDatasetIds: savedActiveDatasetIds,
+            data: savedData,
+            filteredData: savedData,
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved state:', error);
+    }
+    
+    // If no saved state or error, return initial state
+    return initialState;
+  };
+  
+  const [state, dispatch] = useReducer(appReducer, loadInitialState());
 
   // Helper functions
   const setActiveTab = (tab: TabType) => {
@@ -275,6 +308,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'ADD_DATASET', payload: sampleDataset });
     dispatch({ type: 'LOAD_SAMPLE_DATA' });
   };
+
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    // Only save if we have datasets
+    if (state.datasets.length > 0) {
+      try {
+        sessionStorage.setItem('dashboard-datasets', JSON.stringify(state.datasets));
+        sessionStorage.setItem('dashboard-data', JSON.stringify(state.data));
+        sessionStorage.setItem('dashboard-active-ids', JSON.stringify(state.activeDatasetIds));
+      } catch (error) {
+        console.error('Error saving state to sessionStorage:', error);
+      }
+    }
+  }, [state.datasets, state.data, state.activeDatasetIds]);
+
+  // Save settings to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('dashboard-settings', JSON.stringify(state.settings));
+    } catch (error) {
+      console.error('Error saving settings to localStorage:', error);
+    }
+  }, [state.settings]);
 
   return (
     <AppContext.Provider value={{ 

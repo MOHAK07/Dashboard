@@ -25,13 +25,19 @@ export function OverviewTab({ data }: OverviewTabProps) {
       <KPICards data={data} currency={state.settings.currency} />
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <FactoryPerformanceChart data={data} isDarkMode={isDarkMode} />
+      </div>
+      
+      <div className="grid grid-cols-1 gap-8">
         <SalesDistributionChart data={data} isDarkMode={isDarkMode} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <SalesTrendsChart data={data} isDarkMode={isDarkMode} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-8">
         <GeographicalMap data={data} />
       </div>
     </div>

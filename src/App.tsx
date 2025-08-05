@@ -72,8 +72,8 @@ function DashboardContent() {
     const handleClose = () => setShowFileUpload(false);
     const handleContinue = () => {
       setShowFileUpload(false);
-      // Switch to datasets tab after upload
-      setActiveTab('datasets');
+      // Switch to overview tab after upload
+      setActiveTab('overview');
     };
     
     return (

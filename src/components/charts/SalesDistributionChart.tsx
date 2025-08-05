@@ -13,7 +13,7 @@ interface SalesDistributionChartProps {
 }
 
 export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistributionChartProps) {
-  const { addDrillDownFilter, state, getMultiDatasetData } = useApp();
+  const { state, getMultiDatasetData } = useApp();
   const [chartType, setChartType] = useState<'donut' | 'pie'>('donut');
   
   const multiDatasetData = getMultiDatasetData();
@@ -47,22 +47,22 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
         availableTypes={['donut', 'pie']}
         currentType={chartType}
       >
-        <div className="flex flex-wrap justify-center items-center gap-6 h-full p-4">
+        <div className="grid grid-cols-2 gap-8 h-full p-4 overflow-visible">
           {multiDatasetData.map((dataset, index) => {
             const datasetPlantData = DataProcessor.aggregateByPlant(dataset.data);
             const datasetTotalRevenue = datasetPlantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
             
             if (datasetPlantData.length === 0) return null;
 
-            // Calculate optimal size based on number of datasets
-            const chartSize = multiDatasetData.length <= 2 ? '300' : multiDatasetData.length <= 3 ? '250' : '200';
-            const containerWidth = multiDatasetData.length <= 2 ? 'w-80' : multiDatasetData.length <= 3 ? 'w-64' : 'w-52';
             const chartOptions: ApexOptions = {
               chart: {
                 type: chartType,
                 background: 'transparent',
-                height: chartSize,
-                width: chartSize,
+                fontFamily: 'inherit',
+                animations: {
+                  enabled: true,
+                  speed: 300
+                }
               },
               labels: datasetPlantData.map(plant => plant.name),
               colors: [
@@ -122,7 +122,7 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
             const series = datasetPlantData.map(plant => plant.totalRevenue);
 
             return (
-              <div key={dataset.datasetId} className={`flex flex-col items-center ${containerWidth}`}>
+              <div key={dataset.datasetId} className="flex flex-col items-center justify-center bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm h-[400px]">
                 <div className="flex items-center space-x-2 mb-3">
                   <div 
                     className="w-3 h-3 rounded-full"
@@ -132,13 +132,13 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
                     {dataset.datasetName}
                   </h4>
                 </div>
-                <div className="flex-1 flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center">
                   <Chart
                     options={chartOptions}
                     series={series}
                     type={chartType}
-                    height={chartSize}
-                    width={chartSize}
+                    height="100%"
+                    width="100%"
                   />
                 </div>
                 <div className="mt-2 text-center">
@@ -193,7 +193,7 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     },
     plotOptions: {
       pie: {
-        offsetX: chartType === 'pie' ? -80 : 0,
+        offsetX: 0, // Remove the offset that was causing the chart to be partially off-screen
         donut: {
           size: chartType === 'donut' ? '70%' : '0%',
           labels: {
@@ -251,15 +251,21 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
       availableTypes={['donut', 'pie']}
       currentType={chartType}
     >
-      <div className="relative w-full h-full">
-        <Chart
-          key={chartKey}
-          options={chartOptions}
-          series={series}
-          type={chartType}
-          height="100%"
-          width="100%"
-        />
+      <div className="relative w-full h-[400px] flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+        <div className="w-full h-full flex flex-col items-center justify-center">
+          <div className="w-full max-w-[600px] h-[300px] flex items-center justify-center">
+            <Chart
+              key={chartKey}
+              options={chartOptions}
+              series={series}
+              type={chartType}
+              height="100%"
+              width="100%"
+            />
+          </div>
+          <div className={`mt-4 flex flex-col items-center justify-center text-center ${chartType === 'pie' && 'hidden'}`}>
+          </div>
+        </div>
         <div 
           className={`absolute top-1/2 right-10 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none transition-opacity duration-300
           ${chartType === 'pie' ? 'opacity-100' : 'opacity-0'}`}
@@ -272,4 +278,8 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
       </div>
     </ChartContainer>
   );
+}
+
+function addDrillDownFilter(arg0: string, plantName: any) {
+  throw new Error('Function not implemented.');
 }
