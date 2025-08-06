@@ -168,6 +168,9 @@ const AppContext = createContext<{
   setSettings: (settings: UserSettings) => void;
   toggleDatasetActive: (id: string) => void;
   removeDataset: (id: string) => void;
+  addDrillDownFilter: (key: string, value: any) => void;
+  clearDrillDownFilters: () => void;
+  clearGlobalFilters: () => void;
   getMultiDatasetData: () => Array<{
     datasetId: string;
     datasetName: string;
@@ -214,6 +217,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   const [state, dispatch] = useReducer(appReducer, loadInitialState());
 
+  // Effect to apply filters whenever data or filters change
+  useEffect(() => {
+    let processedData = state.data;
+
+    // Apply date range filter
+    const { start, end } = state.filters.dateRange;
+    if (start && end) {
+      processedData = processedData.filter(row => {
+        const rowDate = new Date(row.Date);
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        startDate.setUTCHours(0, 0, 0, 0);
+        endDate.setUTCHours(23, 59, 59, 999);
+        return rowDate >= startDate && rowDate <= endDate;
+      });
+    }
+
+    // Apply product filter
+    if (state.filters.selectedProducts.length > 0) {
+      const selectedProductsSet = new Set(state.filters.selectedProducts);
+      processedData = processedData.filter(row => selectedProductsSet.has(row.ProductName));
+    }
+
+    // Apply plant filter
+    if (state.filters.selectedPlants.length > 0) {
+      const selectedPlantsSet = new Set(state.filters.selectedPlants);
+      processedData = processedData.filter(row => selectedPlantsSet.has(row.PlantName));
+    }
+
+    // Apply factory filter
+    if (state.filters.selectedFactories.length > 0) {
+      const selectedFactoriesSet = new Set(state.filters.selectedFactories);
+      processedData = processedData.filter(row => selectedFactoriesSet.has(row.FactoryName));
+    }
+
+    // Apply drill-down filters
+    const { drillDownFilters } = state.filters;
+    if (Object.keys(drillDownFilters).length > 0) {
+      processedData = processedData.filter(row => {
+        return Object.entries(drillDownFilters).every(([key, value]) => {
+          return (row as any)[key] === value;
+        });
+      });
+    }
+
+    dispatch({ type: 'SET_FILTERED_DATA', payload: processedData });
+  }, [state.data, state.filters]);
+
   // Helper functions
   const setActiveTab = (tab: TabType) => {
     dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
@@ -248,6 +299,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const removeDataset = (id: string) => {
     dispatch({ type: 'DELETE_DATASET', payload: id });
+  };
+
+  const addDrillDownFilter = (key: string, value: any) => {
+    dispatch({
+      type: 'SET_FILTERS',
+      payload: {
+        ...state.filters,
+        drillDownFilters: { ...state.filters.drillDownFilters, [key]: value },
+      },
+    });
+  };
+
+  const clearDrillDownFilters = () => {
+    dispatch({
+      type: 'SET_FILTERS',
+      payload: { ...state.filters, drillDownFilters: {} },
+    });
+  };
+
+  const clearGlobalFilters = () => {
+    dispatch({
+      type: 'SET_FILTERS',
+      payload: {
+        ...state.filters,
+        dateRange: { start: '', end: '' },
+        selectedProducts: [],
+        selectedPlants: [],
+        selectedFactories: [],
+      },
+    });
   };
 
   const getMultiDatasetData = () => {
@@ -341,6 +422,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSettings,
       toggleDatasetActive,
       removeDataset,
+      addDrillDownFilter,
+      clearDrillDownFilters,
+      clearGlobalFilters,
       getMultiDatasetData,
       loadSampleData,
     }}>

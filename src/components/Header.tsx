@@ -9,7 +9,8 @@ import {
   Search,
   Bell,
   User,
-  Upload
+  Upload,
+  X
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { DataProcessor } from '../utils/dataProcessing';
@@ -21,8 +22,8 @@ interface HeaderProps {
   onUploadNewDataset: () => void;
 }
 
-export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNewDataset }: HeaderProps) {
-  const { state, setFilters, setSettings, toggleDatasetLibrary } = useApp();
+export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) {
+  const { state, setFilters, setSettings, clearGlobalFilters } = useApp();
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
@@ -52,7 +53,7 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
 
   const toggleTheme = () => {
     const newTheme = state.settings.theme === 'light' ? 'dark' : 'light';
-    const newSettings = { ...state.settings, theme: newTheme };
+    const newSettings = { ...state.settings, theme: newTheme as 'light' | 'dark' | 'system' };
     setSettings(newSettings);
   };
 
@@ -86,6 +87,12 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
       console.error('Export failed:', error);
     }
   };
+  
+  const hasGlobalFilters =
+    (state.filters.dateRange.start && state.filters.dateRange.end) ||
+    state.filters.selectedProducts.length > 0 ||
+    state.filters.selectedPlants.length > 0 ||
+    state.filters.selectedFactories.length > 0;
 
   return (
     <header className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 lg:px-6 transition-all duration-300`}>
@@ -293,34 +300,42 @@ export function Header({ onMobileMenuToggle, onDatasetLibraryToggle, onUploadNew
       </div>
 
       {/* Active Filters Display */}
-      {state.data.length > 0 && (
-        state.filters.dateRange.start || 
-        state.filters.dateRange.end || 
-        state.filters.selectedProducts.length > 0
-      ) && (
+      {state.data.length > 0 && hasGlobalFilters && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1">
-              Active Filters:
-            </span>
-            
-            {state.filters.dateRange.start && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
-                {state.filters.dateRange.start} - {state.filters.dateRange.end || 'ongoing'}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1">
+                Active Filters:
               </span>
-            )}
+              
+              {state.filters.dateRange.start && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
+                  {state.filters.dateRange.start} - {state.filters.dateRange.end || 'ongoing'}
+                </span>
+              )}
+              
+              {state.filters.selectedProducts.map(product => (
+                <span
+                  key={product}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300"
+                >
+                  {product}
+                </span>
+              ))}
+            </div>
             
-            {state.filters.selectedProducts.map(product => (
-              <span
-                key={product}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300"
-              >
-                {product}
-              </span>
-            ))}
+            <button
+              onClick={clearGlobalFilters}
+              className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors flex items-center space-x-1"
+              title="Clear global filters"
+            >
+              <X className="h-4 w-4" />
+              <span>Clear</span>
+            </button>
           </div>
         </div>
       )}
+
 
       {/* Active Dataset Indicator */}
       {state.activeDatasetIds.length > 0 && (
