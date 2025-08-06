@@ -12,7 +12,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
 
 export function ComparisonTab({ data }: ComparisonTabProps) {
   const { state } = useApp();
-  const { activeDatasets, datasets, settings } = state;
+  const { activeDatasetIds, datasets, settings } = state;
   const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   const [showTopN, setShowTopN] = useState(8);
 
@@ -20,7 +20,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
   const createMultiDatasetPlantData = () => {
     const plantDataMap = new Map();
     
-    activeDatasets.forEach((datasetId, datasetIndex) => {
+    activeDatasetIds.forEach((datasetId, datasetIndex) => {
       const dataset = datasets.find(d => d.id === datasetId);
       if (!dataset) return;
       
@@ -83,9 +83,9 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
   };
 
   const plantKPIs = useMemo(() => {
-    if (activeDatasets.length === 0) return [];
+    if (activeDatasetIds.length === 0) return [];
     
-    if (activeDatasets.length === 1) {
+    if (activeDatasetIds.length === 1) {
       // Single dataset logic
       const plantGroups = data.reduce((acc, row) => {
         const plant = row.Plant || 'Unknown Plant';
@@ -125,7 +125,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
       // Multi-dataset logic
       return createMultiDatasetPlantData().sort((a, b) => b.totalRevenue - a.totalRevenue);
     }
-  }, [data, activeDatasets, datasets]);
+  }, [data, activeDatasetIds, datasets]);
 
   const availablePlants = useMemo(() => {
     return plantKPIs.map(kpi => kpi.plant);
@@ -181,7 +181,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
     );
   };
 
-  if (activeDatasets.length === 0) {
+  if (activeDatasetIds.length === 0) {
     return (
       <div className="space-y-8">
         <div className="card">
@@ -225,7 +225,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
                     </span>
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Comparing data across {activeDatasets.length} active datasets: {activeDatasets.map(id => {
+                    Comparing data across {activeDatasetIds.length} active datasets: {activeDatasetIds.map(id => {
                       const dataset = datasets.find(d => d.id === id);
                       return dataset?.name || id;
                     }).join(', ')}
@@ -239,7 +239,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
         {/* Plant Selection */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Select Plants to Compare {activeDatasets.length > 1 ? '(Across All Active Datasets)' : ''}
+            Select Plants to Compare {activeDatasetIds.length > 1 ? '(Across All Active Datasets)' : ''}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
             {availablePlants.map((plant) => (
@@ -333,7 +333,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {kpi.plant}
                 </h3>
-                {activeDatasets.length > 1 && kpi.datasets && (
+                {activeDatasetIds.length > 1 && kpi.datasets && (
                   <div className="flex items-center space-x-1">
                     {kpi.datasets.length > 1 ? (
                       <div className="w-3 h-3 rounded-full bg-gray-400" title="Multiple Datasets" />
