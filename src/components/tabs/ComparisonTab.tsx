@@ -387,6 +387,7 @@ function createMultiDatasetPlantData(multiDatasetData: Array<{
   return Array.from(plantMap.values()).sort((a, b) => b.totalRevenue - a.totalRevenue);
 }
               {plant.name}
+            </h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <p className="text-xs text-gray-600 dark:text-gray-400">Total Revenue</p>
