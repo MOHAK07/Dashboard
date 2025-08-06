@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useAppContext } from '../../contexts/AppContext';
+import { useApp } from '../../contexts/AppContext';
 import { DataRow } from '../../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Database, TrendingUp, Package, DollarSign, Factory, Users, Target, Award } from 'lucide-react';
@@ -11,7 +11,7 @@ interface ComparisonTabProps {
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
 
 export function ComparisonTab({ data }: ComparisonTabProps) {
-  const { state } = useAppContext();
+  const { state } = useApp();
   const { activeDatasets, datasets, settings } = state;
   const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   const [showTopN, setShowTopN] = useState(8);
