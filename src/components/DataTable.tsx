@@ -1,52 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Search, SortAsc, SortDesc, Filter } from 'lucide-react';
-import { DataRow } from '../types';
+import { FlexibleDataRow } from '../types';
 import { DataProcessor } from '../utils/dataProcessing';
 import { useApp } from '../contexts/AppContext';
 
 interface DataTableProps {
-  data: DataRow[];
+  data: FlexibleDataRow[];
   className?: string;
 }
 
 interface ColumnConfig {
-  key: keyof DataRow;
+  key: string;
   label: string;
   width: number;
   sortable: boolean;
   filterable: boolean;
-  formatter?: (value: any, currency?: string) => string;
+  isNumeric: boolean;
 }
-
-const columns: ColumnConfig[] = [
-  { key: 'Date', label: 'Date', width: 120, sortable: true, filterable: true },
-  { key: 'FactoryName', label: 'Factory', width: 150, sortable: true, filterable: true },
-  { key: 'PlantName', label: 'Plant', width: 150, sortable: true, filterable: true },
-  { key: 'ProductName', label: 'Product', width: 180, sortable: true, filterable: true },
-  { 
-    key: 'UnitsSold', 
-    label: 'Units Sold', 
-    width: 120, 
-    sortable: true, 
-    filterable: false,
-    formatter: (value: number) => DataProcessor.formatNumber(value)
-  },
-  { 
-    key: 'Revenue', 
-    label: 'Revenue', 
-    width: 120, 
-    sortable: true, 
-    filterable: false,
-    formatter: (value: number, currency?: string) => DataProcessor.formatCurrency(value, currency)
-  },
-];
 
 interface RowProps {
   index: number;
   style: React.CSSProperties;
   data: {
-    filteredData: DataRow[];
+    filteredData: FlexibleDataRow[];
     columns: ColumnConfig[];
     currency: string;
   };
@@ -62,15 +39,28 @@ function Row({ index, style, data }: RowProps) {
         index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
       } hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors`}
     >
-      {data.columns.map((column) => (
-        <div
-          key={column.key}
-          style={{ width: column.width }}
-          className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap"
-        >
-          {column.formatter ? column.formatter(row[column.key], data.currency) : String(row[column.key])}
-        </div>
-      ))}
+      {data.columns.map((column) => {
+        const value = row[column.key];
+        let displayValue = String(value || '');
+        
+        if (column.isNumeric && typeof value === 'number') {
+          if (column.key.toLowerCase().includes('price') || column.key.toLowerCase().includes('revenue')) {
+            displayValue = DataProcessor.formatCurrency(value, data.currency);
+          } else {
+            displayValue = DataProcessor.formatNumber(value);
+          }
+        }
+        
+        return (
+          <div
+            key={column.key}
+            style={{ width: column.width }}
+            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap"
+          >
+            {displayValue}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -79,11 +69,28 @@ export function DataTable({ data, className = '' }: DataTableProps) {
   const { state } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof DataRow | null;
+    key: string | null;
     direction: 'asc' | 'desc';
   }>({ key: null, direction: 'asc' });
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+
+  // Generate column configuration dynamically
+  const columns: ColumnConfig[] = useMemo(() => {
+    if (data.length === 0) return [];
+    
+    const sampleRow = data[0];
+    const numericColumns = DataProcessor.findNumericColumns(data);
+    
+    return Object.keys(sampleRow).map(key => ({
+      key,
+      label: key,
+      width: key.toLowerCase().includes('address') || key.toLowerCase().includes('adress') ? 200 : 120,
+      sortable: true,
+      filterable: !key.toLowerCase().includes('address') && !key.toLowerCase().includes('adress'),
+      isNumeric: numericColumns.includes(key),
+    }));
+  }, [data]);
 
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
@@ -92,7 +99,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
     if (searchTerm) {
       filtered = filtered.filter(row =>
         Object.values(row).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+          String(value || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
     }
@@ -101,7 +108,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
     Object.entries(columnFilters).forEach(([key, value]) => {
       if (value) {
         filtered = filtered.filter(row =>
-          String(row[key as keyof DataRow]).toLowerCase().includes(value.toLowerCase())
+          String(row[key] || '').toLowerCase().includes(value.toLowerCase())
         );
       }
     });
@@ -116,8 +123,8 @@ export function DataTable({ data, className = '' }: DataTableProps) {
           return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
         }
         
-        const aString = String(aValue).toLowerCase();
-        const bString = String(bValue).toLowerCase();
+        const aString = String(aValue || '').toLowerCase();
+        const bString = String(bValue || '').toLowerCase();
         
         if (sortConfig.direction === 'asc') {
           return aString.localeCompare(bString);
@@ -130,7 +137,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
     return filtered;
   }, [data, searchTerm, sortConfig, columnFilters]);
 
-  const handleSort = (key: keyof DataRow) => {
+  const handleSort = (key: string) => {
     setSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
@@ -144,12 +151,25 @@ export function DataTable({ data, className = '' }: DataTableProps) {
     }));
   };
 
-  const getSortIcon = (key: keyof DataRow) => {
+  const getSortIcon = (key: string) => {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === 'asc' ? 
       <SortAsc className="h-4 w-4" /> : 
       <SortDesc className="h-4 w-4" />;
   };
+
+  if (data.length === 0) {
+    return (
+      <div className={`card ${className}`}>
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="text-center">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Upload data to view the data explorer</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`card ${className}`}>
@@ -185,7 +205,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
       {/* Column Filters */}
       {showFilters && (
         <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {columns.filter(col => col.filterable).map(column => (
               <div key={column.key}>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -206,7 +226,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="flex bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+        <div className="flex bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-x-auto">
           {columns.map((column) => (
             <div
               key={column.key}
@@ -234,18 +254,21 @@ export function DataTable({ data, className = '' }: DataTableProps) {
             No data matches your current filters
           </div>
         ) : (
-          <List
-            height={400}
-            itemCount={filteredAndSortedData.length}
-            itemSize={48}
-            itemData={{
-              filteredData: filteredAndSortedData,
-              columns,
-              currency: state.settings.currency
-            }}
-          >
-            {Row}
-          </List>
+          <div className="overflow-x-auto">
+            <List
+              height={400}
+              itemCount={filteredAndSortedData.length}
+              itemSize={48}
+              itemData={{
+                filteredData: filteredAndSortedData,
+                columns,
+                currency: state.settings.currency
+              }}
+              width={columns.reduce((total, col) => total + col.width, 0)}
+            >
+              {Row}
+            </List>
+          </div>
         )}
       </div>
 

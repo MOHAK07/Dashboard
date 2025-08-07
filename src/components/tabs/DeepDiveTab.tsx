@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
 import { Database } from 'lucide-react';
-import { DataRow } from '../../types';
+import { FlexibleDataRow } from '../../types';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { ChartContainer } from '../charts/ChartContainer';
 import { useApp } from '../../contexts/AppContext';
 
 interface DeepDiveTabProps {
-  data: DataRow[];
+  data: FlexibleDataRow[];
 }
 
 export function DeepDiveTab({ data }: DeepDiveTabProps) {
@@ -17,7 +17,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
   
-  // Return placeholder if no data is available
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
@@ -29,19 +28,34 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
     );
   }
 
-  const productData = DataProcessor.aggregateByProduct(data);
+  const categoricalColumns = DataProcessor.findCategoricalColumns(data);
+  const numericColumns = DataProcessor.findNumericColumns(data);
+  
+  const primaryCategoryColumn = categoricalColumns.find(col =>
+    col.toLowerCase().includes('name') ||
+    col.toLowerCase().includes('product') ||
+    col.toLowerCase().includes('category')
+  ) || categoricalColumns[0];
 
-  // Return placeholder if no product data is available
-  if (!productData || productData.length === 0) {
+  const primaryValueColumn = numericColumns.find(col => 
+    col.toLowerCase().includes('price') || 
+    col.toLowerCase().includes('revenue') ||
+    col.toLowerCase().includes('quantity') ||
+    col.toLowerCase().includes('amount')
+  ) || numericColumns[0];
+
+  if (!primaryCategoryColumn || !primaryValueColumn) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
         <div className="text-center">
-          <p className="text-lg font-medium">No product data available</p>
-          <p className="text-sm">The uploaded data doesn't contain product information</p>
+          <p className="text-lg font-medium">Insufficient data for deep dive</p>
+          <p className="text-sm">Need both categorical and numeric columns</p>
         </div>
       </div>
     );
   }
+
+  const aggregatedData = DataProcessor.aggregateByCategory(data, primaryCategoryColumn, primaryValueColumn);
 
   // Treemap Data
   const treemapOptions: ApexOptions = {
@@ -58,7 +72,7 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
       },
       formatter: (text: string, opts: any) => {
         const value = opts.value;
-        return [text, DataProcessor.formatCurrency(value)];
+        return [text, DataProcessor.formatCurrency(value, state.settings.currency)];
       },
     },
     colors: [
@@ -81,9 +95,9 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
 
   const treemapSeries = [
     {
-      data: productData.map(product => ({
-        x: product.name,
-        y: product.totalRevenue,
+      data: aggregatedData.map(item => ({
+        x: item.name,
+        y: item.total,
       })),
     },
   ];
@@ -100,7 +114,7 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
     },
     xaxis: {
       title: {
-        text: 'Units Sold',
+        text: 'Count',
         style: {
           color: isDarkMode ? '#9ca3af' : '#6b7280',
         },
@@ -114,7 +128,7 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
     },
     yaxis: {
       title: {
-        text: 'Revenue',
+        text: 'Total Value',
         style: {
           color: isDarkMode ? '#9ca3af' : '#6b7280',
         },
@@ -136,13 +150,13 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
       custom: ({ dataPointIndex }: any) => {
-        const product = productData[dataPointIndex];
+        const item = aggregatedData[dataPointIndex];
         return `
           <div class="p-3">
-            <div class="font-semibold">${product.name}</div>
-            <div>Units: ${DataProcessor.formatNumber(product.totalUnits)}</div>
-            <div>Revenue: ${DataProcessor.formatCurrency(product.totalRevenue, state.settings.currency)}</div>
-            <div>Avg Price: ${DataProcessor.formatCurrency(product.avgRevenuePerUnit, state.settings.currency)}</div>
+            <div class="font-semibold">${item.name}</div>
+            <div>Count: ${DataProcessor.formatNumber(item.count)}</div>
+            <div>Total: ${DataProcessor.formatCurrency(item.total, state.settings.currency)}</div>
+            <div>Average: ${DataProcessor.formatCurrency(item.average, state.settings.currency)}</div>
           </div>
         `;
       },
@@ -151,87 +165,13 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
 
   const scatterSeries = [
     {
-      name: 'Products',
-      data: productData.map(product => ({
-        x: product.totalUnits,
-        y: product.totalRevenue,
+      name: primaryCategoryColumn,
+      data: aggregatedData.map(item => ({
+        x: item.count,
+        y: item.total,
       })),
     },
   ];
-
-  // Heatmap Data - Monthly Sales by Product
-  const monthlyData = new Map<string, Map<string, number>>();
-  
-  data.forEach(row => {
-    const month = row.Date.substring(0, 7);
-    if (!monthlyData.has(month)) {
-      monthlyData.set(month, new Map());
-    }
-    const monthMap = monthlyData.get(month)!;
-    const currentValue = monthMap.get(row.ProductName) || 0;
-    monthMap.set(row.ProductName, currentValue + row.Revenue);
-  });
-
-  const allMonths = Array.from(monthlyData.keys()).sort();
-  const topProducts = productData.slice(0, 10).map(p => p.name); // Top 10 products by revenue
-
-  const heatmapSeries = topProducts.map(product => ({
-    name: product,
-    data: allMonths.map(month => {
-      const value = monthlyData.get(month)?.get(product) || 0;
-      return {
-        x: month,
-        y: value,
-      };
-    }),
-  }));
-
-  const heatmapOptions: ApexOptions = {
-    chart: {
-      type: 'heatmap',
-      background: 'transparent',
-    },
-    dataLabels: {
-      enabled: false,
-    },
-    colors: ['#3b82f6'],
-    xaxis: {
-      type: 'category',
-      categories: allMonths,
-      labels: {
-        style: {
-          colors: isDarkMode ? '#9ca3af' : '#6b7280',
-        },
-      },
-    },
-    yaxis: {
-      labels: {
-        style: {
-          colors: isDarkMode ? '#9ca3af' : '#6b7280',
-        },
-      },
-    },
-    theme: {
-      mode: isDarkMode ? 'dark' : 'light',
-    },
-    tooltip: {
-      theme: isDarkMode ? 'dark' : 'light',
-      y: {
-        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-      },
-    },
-    plotOptions: {
-      heatmap: {
-        shadeIntensity: 0.5,
-        colorScale: {
-          ranges: [
-            { from: 0, to: 0, color: '#f3f4f6' },
-            { from: 1, to: 1000000, color: '#3b82f6' },
-          ],
-        },
-      },
-    },
-  };
 
   return (
     <div className="space-y-8">
@@ -247,55 +187,55 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
                 Multi-Dataset Deep Dive
               </h3>
               <p className="text-sm text-primary-700 dark:text-primary-300">
-                Analyzing product performance across {multiDatasetData.length} datasets: {multiDatasetData.map(d => d.datasetName).join(', ')}
+                Analyzing performance across {multiDatasetData.length} datasets
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Product Performance Summary */}
+      {/* Performance Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card">
           <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Top Product by Revenue
+            Top {primaryCategoryColumn} by Value
           </h4>
           <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-            {productData[0]?.name || 'N/A'}
+            {aggregatedData[0]?.name || 'N/A'}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {DataProcessor.formatCurrency(productData[0]?.totalRevenue || 0, state.settings.currency)}
+            {DataProcessor.formatCurrency(aggregatedData[0]?.total || 0, state.settings.currency)}
           </p>
         </div>
         
         <div className="card">
           <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Most Popular Product
+            Most Frequent {primaryCategoryColumn}
           </h4>
           <p className="text-2xl font-bold text-secondary-600 dark:text-secondary-400">
-            {productData.sort((a, b) => b.totalUnits - a.totalUnits)[0]?.name || 'N/A'}
+            {aggregatedData.sort((a, b) => b.count - a.count)[0]?.name || 'N/A'}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {DataProcessor.formatNumber(productData.sort((a, b) => b.totalUnits - a.totalUnits)[0]?.totalUnits || 0)} units
+            {DataProcessor.formatNumber(aggregatedData.sort((a, b) => b.count - a.count)[0]?.count || 0)} records
           </p>
         </div>
         
         <div className="card">
           <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Highest Avg Price
+            Highest Average Value
           </h4>
           <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">
-            {productData.sort((a, b) => b.avgRevenuePerUnit - a.avgRevenuePerUnit)[0]?.name || 'N/A'}
+            {aggregatedData.sort((a, b) => b.average - a.average)[0]?.name || 'N/A'}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {DataProcessor.formatCurrency(productData.sort((a, b) => b.avgRevenuePerUnit - a.avgRevenuePerUnit)[0]?.avgRevenuePerUnit || 0, state.settings.currency)}
+            {DataProcessor.formatCurrency(aggregatedData.sort((a, b) => b.average - a.average)[0]?.average || 0, state.settings.currency)}
           </p>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ChartContainer title="Product Revenue Contribution (Treemap)">
+      <div className="space-y-8">
+        <ChartContainer title={`${primaryValueColumn} Distribution (Treemap)`} className="w-full">
           <Chart
             options={treemapOptions}
             series={treemapSeries}
@@ -304,7 +244,7 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
           />
         </ChartContainer>
 
-        <ChartContainer title="Units vs Revenue Correlation">
+        <ChartContainer title="Count vs Value Correlation" className="w-full">
           <Chart
             options={scatterOptions}
             series={scatterSeries}
@@ -313,15 +253,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
           />
         </ChartContainer>
       </div>
-
-      <ChartContainer title="Monthly Sales Heatmap by Product" className="col-span-full">
-        <Chart
-          options={heatmapOptions}
-          series={heatmapSeries}
-          type="heatmap"
-          height="100%"
-        />
-      </ChartContainer>
     </div>
   );
 }

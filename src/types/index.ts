@@ -1,23 +1,46 @@
-export interface DataRow {
-  Date: string;
-  FactoryID: string;
-  FactoryName: string;
-  PlantID: string;
-  PlantName: string;
-  Latitude: number;
-  Longitude: number;
-  ProductName: string;
-  UnitsSold: number;
-  Revenue: number;
+// Flexible data row interface that can accommodate any column structure
+export interface FlexibleDataRow {
+  [key: string]: string | number | null | undefined;
+}
+
+// Base interfaces for different data types
+export interface SalesDataRow extends FlexibleDataRow {
+  Date?: string;
+  Week?: string | number;
+  Month?: string;
+  Year?: string | number;
+  Name?: string;
+  Address?: string;
+  Adress?: string; // Handle typo in original data
+  'Pin code'?: string | number;
+  Pincode?: string | number;
+  Taluka?: string;
+  District?: string;
+  State?: string;
+  Quantity?: number;
+  Price?: number;
+  'Buyer Type'?: string;
+  Type?: string;
+}
+
+export interface ProductionDataRow extends FlexibleDataRow {
+  Date?: string;
+  'RCF Production'?: number;
+  'Boomi Samrudhi Production'?: number;
+  'RCF Sales'?: number;
+  'Boomi Samrudhi Sales'?: number;
+  'RCF Stock Left'?: number;
+  'Boomi Samrudhi Stock Left'?: number;
 }
 
 export interface ValidationResult {
-  validData: DataRow[];
+  validData: FlexibleDataRow[];
   isValid: boolean;
   totalRows: number;
   validRows: number;
   errors: ValidationError[];
-  missingColumns: string[];
+  detectedColumns: string[];
+  dataType: 'sales' | 'production' | 'stock' | 'unknown';
   summary: ValidationSummary;
 }
 
@@ -38,9 +61,7 @@ export interface FilterState {
     start: string;
     end: string;
   };
-  selectedProducts: string[];
-  selectedPlants: string[];
-  selectedFactories: string[];
+  selectedValues: { [column: string]: string[] };
   drillDownFilters: {
     [key: string]: any;
   };
@@ -94,8 +115,8 @@ export interface ExportOptions {
 export type TabType = 'overview' | 'comparison' | 'deepdive' | 'explorer' | 'datasets' | 'settings';
 
 export interface AppState {
-  data: DataRow[];
-  filteredData: DataRow[];
+  data: FlexibleDataRow[];
+  filteredData: FlexibleDataRow[];
   datasets: Dataset[];
   activeDatasetIds: string[];
   datasetLibraryOpen: boolean;
@@ -116,7 +137,7 @@ export interface AppState {
 export interface Dataset {
   id: string;
   name: string;
-  data: DataRow[];
+  data: FlexibleDataRow[];
   fileName: string;
   fileSize: number;
   uploadDate: string;
@@ -124,14 +145,17 @@ export interface Dataset {
   rowCount: number;
   validationSummary?: string;
   color: string;
-  preview: DataRow[];
+  preview: FlexibleDataRow[];
+  dataType: 'sales' | 'production' | 'stock' | 'unknown';
+  detectedColumns: string[];
 }
 
 export interface MultiDatasetData {
   datasetId: string;
   datasetName: string;
-  data: DataRow[];
+  data: FlexibleDataRow[];
   color: string;
+  dataType: string;
 }
 
 export interface BrushSelection {
@@ -155,7 +179,7 @@ export interface ChartAnnotation {
 export interface DatasetMergeConfig {
   primaryDatasetId: string;
   secondaryDatasetId: string;
-  joinKey: keyof DataRow;
+  joinKey: string;
   joinType: 'inner' | 'left' | 'right' | 'outer';
 }
 
@@ -165,4 +189,15 @@ export interface ChartRecommendation {
   description: string;
   confidence: number;
   reason: string;
+}
+
+// Column mapping for different data types
+export interface ColumnMapping {
+  date: string[];
+  name: string[];
+  location: string[];
+  quantity: string[];
+  price: string[];
+  revenue: string[];
+  category: string[];
 }

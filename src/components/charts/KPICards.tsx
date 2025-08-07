@@ -1,8 +1,8 @@
 import { 
   TrendingUp, 
   TrendingDown, 
-  Building2, 
-  Package, 
+  Database, 
+  BarChart3, 
   DollarSign, 
   Users,
   IndianRupee,
@@ -11,15 +11,15 @@ import {
   JapaneseYen
 } from 'lucide-react';
 import { DataProcessor } from '../../utils/dataProcessing';
-import { DataRow } from '../../types';
+import { FlexibleDataRow } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 
 interface KPICardsProps {
-  data: DataRow[];
+  data: FlexibleDataRow[];
   currency?: string;
 }
 
-export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
+export function KPICards({ data, currency = 'INR' }: KPICardsProps) {
   const { getMultiDatasetData } = useApp();
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
@@ -53,32 +53,32 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
 
   const cards = [
     {
-      title: 'Total Revenue',
-      value: DataProcessor.formatCurrency(kpis.totalRevenue, currency),
+      title: kpis.primaryValueColumn?.includes('price') || kpis.primaryValueColumn?.includes('revenue') ? 'Total Revenue' : 'Total Value',
+      value: DataProcessor.formatCurrency(kpis.totalValue, currency),
       change: 12.5,
       changeType: 'increase' as const,
       icon: getCurrencyIcon(currency),
       color: 'primary',
     },
     {
-      title: 'Units Sold',
-      value: DataProcessor.formatNumber(kpis.totalUnits),
+      title: 'Total Records',
+      value: DataProcessor.formatNumber(kpis.totalRecords),
       change: 8.2,
       changeType: 'increase' as const,
-      icon: Package,
+      icon: Database,
       color: 'secondary',
     },
     {
-      title: 'Active Factories',
-      value: kpis.totalFactories.toString(),
+      title: 'Average Value',
+      value: DataProcessor.formatCurrency(kpis.averageValue, currency),
       change: 0,
       changeType: 'neutral' as const,
-      icon: Building2,
+      icon: BarChart3,
       color: 'accent',
     },
     {
-      title: 'Product Lines',
-      value: kpis.totalProducts.toString(),
+      title: kpis.primaryCategoryColumn ? `Unique ${kpis.primaryCategoryColumn}` : 'Categories',
+      value: kpis.uniqueCategories.toString(),
       change: -2.1,
       changeType: 'decrease' as const,
       icon: Users,
@@ -164,17 +164,17 @@ export function KPICards({ data, currency = 'USD' }: KPICardsProps) {
                   {datasetKPIs.map((dataset) => {
                     let value: string;
                     switch (index) {
-                      case 0: // Revenue
-                        value = DataProcessor.formatCurrency(dataset.kpis.totalRevenue, currency);
+                      case 0: // Total Value
+                        value = DataProcessor.formatCurrency(dataset.kpis.totalValue, currency);
                         break;
-                      case 1: // Units
-                        value = DataProcessor.formatNumber(dataset.kpis.totalUnits);
+                      case 1: // Records
+                        value = DataProcessor.formatNumber(dataset.kpis.totalRecords);
                         break;
-                      case 2: // Factories
-                        value = dataset.kpis.totalFactories.toString();
+                      case 2: // Average
+                        value = DataProcessor.formatCurrency(dataset.kpis.averageValue, currency);
                         break;
-                      case 3: // Products
-                        value = dataset.kpis.totalProducts.toString();
+                      case 3: // Categories
+                        value = dataset.kpis.uniqueCategories.toString();
                         break;
                       default:
                         value = '0';

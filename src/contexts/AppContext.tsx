@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { Dataset, DataRow, FilterState, UserSettings, TabType } from '../types';
+import { Dataset, FlexibleDataRow, FilterState, UserSettings, TabType } from '../types';
 
 // Define the state interface
 interface AppState {
   datasets: Dataset[];
   activeDatasetIds: string[];
-  data: DataRow[];
-  filteredData: DataRow[];
+  data: FlexibleDataRow[];
+  filteredData: FlexibleDataRow[];
   filters: FilterState;
   settings: UserSettings;
   activeTab: TabType;
@@ -22,8 +22,8 @@ type AppAction =
   | { type: 'SET_ACTIVE_DATASETS'; payload: string[] }
   | { type: 'TOGGLE_DATASET_ACTIVE'; payload: string }
   | { type: 'DELETE_DATASET'; payload: string }
-  | { type: 'SET_DATA'; payload: DataRow[] }
-  | { type: 'SET_FILTERED_DATA'; payload: DataRow[] }
+  | { type: 'SET_DATA'; payload: FlexibleDataRow[] }
+  | { type: 'SET_FILTERED_DATA'; payload: FlexibleDataRow[] }
   | { type: 'SET_FILTERS'; payload: FilterState }
   | { type: 'SET_SETTINGS'; payload: UserSettings }
   | { type: 'SET_ACTIVE_TAB'; payload: TabType }
@@ -39,9 +39,7 @@ const initialState: AppState = {
   filteredData: [],
   filters: {
     dateRange: { start: '', end: '' },
-    selectedProducts: [],
-    selectedPlants: [],
-    selectedFactories: [],
+    selectedValues: {},
     drillDownFilters: {},
   },
   settings: {
@@ -60,7 +58,7 @@ const initialState: AppState = {
 };
 
 // Helper function to combine data from active datasets
-function combineActiveDatasets(datasets: Dataset[], activeDatasetIds: string[]): DataRow[] {
+function combineActiveDatasets(datasets: Dataset[], activeDatasetIds: string[]): FlexibleDataRow[] {
   if (activeDatasetIds.length === 0) return [];
   
   const activeDatasets = datasets.filter(d => activeDatasetIds.includes(d.id));
@@ -174,10 +172,14 @@ const AppContext = createContext<{
   getMultiDatasetData: () => Array<{
     datasetId: string;
     datasetName: string;
-    data: DataRow[];
+    data: FlexibleDataRow[];
     color: string;
   }>;
   loadSampleData: () => void;
+  saveFilterSet: (name: string) => void;
+  loadFilterSet: (id: string) => void;
+  deleteFilterSet: (id: string) => void;
+  mergeDatasets: (primaryId: string, secondaryId: string, joinKey: string) => void;
 } | undefined>(undefined);
 
 // Provider component
@@ -185,6 +187,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Initialize state from localStorage/sessionStorage if available
   const loadInitialState = () => {
     try {
+      // Load settings from localStorage
+      const savedSettings = localStorage.getItem('dashboard-settings');
+      let settings = initialState.settings;
+      
+      if (savedSettings) {
+        settings = { ...initialState.settings, ...JSON.parse(savedSettings) };
+      }
+
       // Try to load datasets from sessionStorage
       const savedDatasetsString = sessionStorage.getItem('dashboard-datasets');
       const savedDataString = sessionStorage.getItem('dashboard-data');
@@ -195,11 +205,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         const savedActiveDatasetIdsString = sessionStorage.getItem('dashboard-active-ids');
 
-        // If we have datasets, data, and active IDs, use them to initialize state
         if (savedDatasets.length > 0 && savedData && savedActiveDatasetIdsString) {
           const savedActiveDatasetIds = JSON.parse(savedActiveDatasetIdsString);
           return {
             ...initialState,
+            settings,
             datasets: savedDatasets,
             activeDatasetIds: savedActiveDatasetIds,
             data: savedData,
@@ -207,12 +217,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           };
         }
       }
+      
+      return { ...initialState, settings };
     } catch (error) {
       console.error('Error loading saved state:', error);
+      return initialState;
     }
-    
-    // If no saved state or error, return initial state
-    return initialState;
   };
   
   const [state, dispatch] = useReducer(appReducer, loadInitialState());
@@ -224,40 +234,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Apply date range filter
     const { start, end } = state.filters.dateRange;
     if (start && end) {
-      processedData = processedData.filter(row => {
-        const rowDate = new Date(row.Date);
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-        startDate.setUTCHours(0, 0, 0, 0);
-        endDate.setUTCHours(23, 59, 59, 999);
-        return rowDate >= startDate && rowDate <= endDate;
-      });
+      const dateColumn = state.data.length > 0 ? 
+        Object.keys(state.data[0]).find(col => col.toLowerCase().includes('date')) : null;
+      
+      if (dateColumn) {
+        processedData = processedData.filter(row => {
+          const dateValue = row[dateColumn];
+          if (!dateValue) return false;
+          
+          let dateStr = String(dateValue);
+          // Normalize date format
+          if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+              const [month, day, year] = parts;
+              dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+          }
+          
+          const rowDate = new Date(dateStr);
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          
+          if (isNaN(rowDate.getTime())) return false;
+          
+          return rowDate >= startDate && rowDate <= endDate;
+        });
+      }
     }
 
-    // Apply product filter
-    if (state.filters.selectedProducts.length > 0) {
-      const selectedProductsSet = new Set(state.filters.selectedProducts);
-      processedData = processedData.filter(row => selectedProductsSet.has(row.ProductName));
-    }
-
-    // Apply plant filter
-    if (state.filters.selectedPlants.length > 0) {
-      const selectedPlantsSet = new Set(state.filters.selectedPlants);
-      processedData = processedData.filter(row => selectedPlantsSet.has(row.PlantName));
-    }
-
-    // Apply factory filter
-    if (state.filters.selectedFactories.length > 0) {
-      const selectedFactoriesSet = new Set(state.filters.selectedFactories);
-      processedData = processedData.filter(row => selectedFactoriesSet.has(row.FactoryName));
-    }
+    // Apply column-based filters
+    Object.entries(state.filters.selectedValues).forEach(([column, values]) => {
+      if (values.length > 0) {
+        const valuesSet = new Set(values);
+        processedData = processedData.filter(row => 
+          valuesSet.has(String(row[column] || ''))
+        );
+      }
+    });
 
     // Apply drill-down filters
     const { drillDownFilters } = state.filters;
     if (Object.keys(drillDownFilters).length > 0) {
       processedData = processedData.filter(row => {
         return Object.entries(drillDownFilters).every(([key, value]) => {
-          return (row as any)[key] === value;
+          return String(row[key] || '') === String(value);
         });
       });
     }
@@ -324,9 +345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       payload: {
         ...state.filters,
         dateRange: { start: '', end: '' },
-        selectedProducts: [],
-        selectedPlants: [],
-        selectedFactories: [],
+        selectedValues: {},
       },
     });
   };
@@ -343,33 +362,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const loadSampleData = () => {
-    // Generate sample data
-    const sampleData: DataRow[] = [
+    // Generate flexible sample data
+    const sampleData: FlexibleDataRow[] = [
       {
         Date: '2024-01-15',
-        FactoryID: 'F001',
-        FactoryName: 'TechCorp Manufacturing',
-        PlantID: 'P001',
-        PlantName: 'Plant Alpha',
-        Latitude: 40.7128,
-        Longitude: -74.0060,
-        ProductName: 'Widget Pro',
-        UnitsSold: 150,
-        Revenue: 25000,
+        Name: 'John Doe',
+        Address: 'Mumbai, Maharashtra',
+        Quantity: 150,
+        Price: 25000,
+        'Buyer Type': 'B2C',
       },
       {
         Date: '2024-01-16',
-        FactoryID: 'F002',
-        FactoryName: 'Global Industries',
-        PlantID: 'P002',
-        PlantName: 'Plant Beta',
-        Latitude: 34.0522,
-        Longitude: -118.2437,
-        ProductName: 'Smart Device',
-        UnitsSold: 200,
-        Revenue: 45000,
+        Name: 'Jane Smith',
+        Address: 'Delhi, Delhi',
+        Quantity: 200,
+        Price: 45000,
+        'Buyer Type': 'B2B',
       },
-      // Add more sample data as needed
     ];
 
     const sampleDataset: Dataset = {
@@ -384,15 +394,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
       validationSummary: 'Sample data loaded successfully',
       color: '#3b82f6',
       preview: sampleData.slice(0, 5),
+      dataType: 'sales',
+      detectedColumns: Object.keys(sampleData[0] || {}),
     };
 
     dispatch({ type: 'ADD_DATASET', payload: sampleDataset });
     dispatch({ type: 'LOAD_SAMPLE_DATA' });
   };
 
+  const saveFilterSet = (name: string) => {
+    const newFilterSet = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      filters: state.filters,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedSettings = {
+      ...state.settings,
+      savedFilterSets: [...state.settings.savedFilterSets, newFilterSet],
+    };
+
+    setSettings(updatedSettings);
+  };
+
+  const loadFilterSet = (id: string) => {
+    const filterSet = state.settings.savedFilterSets.find(set => set.id === id);
+    if (filterSet) {
+      setFilters(filterSet.filters);
+    }
+  };
+
+  const deleteFilterSet = (id: string) => {
+    const updatedSettings = {
+      ...state.settings,
+      savedFilterSets: state.settings.savedFilterSets.filter(set => set.id !== id),
+    };
+    setSettings(updatedSettings);
+  };
+
+  const mergeDatasets = (primaryId: string, secondaryId: string, joinKey: string) => {
+    const primaryDataset = state.datasets.find(d => d.id === primaryId);
+    const secondaryDataset = state.datasets.find(d => d.id === secondaryId);
+    
+    if (!primaryDataset || !secondaryDataset) return;
+
+    // Simple merge - combine all data
+    const mergedData = [...primaryDataset.data, ...secondaryDataset.data];
+    
+    const mergedDataset: Dataset = {
+      id: `merged-${Date.now()}`,
+      name: `${primaryDataset.name} + ${secondaryDataset.name}`,
+      data: mergedData,
+      fileName: `merged-${primaryDataset.fileName}-${secondaryDataset.fileName}`,
+      fileSize: primaryDataset.fileSize + secondaryDataset.fileSize,
+      uploadDate: new Date().toISOString(),
+      status: 'valid',
+      rowCount: mergedData.length,
+      validationSummary: `Merged ${primaryDataset.rowCount} + ${secondaryDataset.rowCount} rows`,
+      color: '#6366f1',
+      preview: mergedData.slice(0, 5),
+      dataType: primaryDataset.dataType,
+      detectedColumns: [...new Set([...primaryDataset.detectedColumns, ...secondaryDataset.detectedColumns])],
+    };
+
+    dispatch({ type: 'ADD_DATASET', payload: mergedDataset });
+  };
+
   // Save state to sessionStorage whenever it changes
   useEffect(() => {
-    // Only save if we have datasets
     if (state.datasets.length > 0) {
       try {
         sessionStorage.setItem('dashboard-datasets', JSON.stringify(state.datasets));
@@ -427,6 +497,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearGlobalFilters,
       getMultiDatasetData,
       loadSampleData,
+      saveFilterSet,
+      loadFilterSet,
+      deleteFilterSet,
+      mergeDatasets,
     }}>
       {children}
     </AppContext.Provider>

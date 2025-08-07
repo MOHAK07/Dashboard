@@ -12,13 +12,13 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
   const features = [
     {
       icon: BarChart3,
-      title: 'Interactive Charts',
-      description: 'Multiple chart types with drill-down capabilities and real-time filtering',
+      title: 'Flexible Data Support',
+      description: 'Automatically adapts to any CSV/Excel structure with intelligent column detection',
     },
     {
       icon: Zap,
       title: 'High Performance',
-      description: 'Handles large datasets with virtualization and web workers',
+      description: 'Handles large datasets with virtualization and optimized processing',
     },
     {
       icon: Shield,
@@ -27,13 +27,13 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
     },
     {
       icon: Globe,
-      title: 'Responsive Design',
-      description: 'Works perfectly on desktop, tablet, and mobile devices',
+      title: 'Universal Compatibility',
+      description: 'Works with any CSV, Excel, or JSON file structure',
     },
     {
       icon: TrendingUp,
-      title: 'Advanced Analytics',
-      description: 'KPI tracking, trend analysis, and geographical visualizations',
+      title: 'Smart Analytics',
+      description: 'Automatic chart generation and KPI calculation based on your data',
     },
   ];
 
@@ -51,8 +51,8 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
           </h1>
           
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
-            Transform your data into actionable insights with our powerful, client-side analytics dashboard. 
-            Upload your files or try our sample data to get started.
+            Transform any data into actionable insights with our intelligent, adaptive analytics dashboard. 
+            Upload your files with any structure - we'll handle the rest automatically.
           </p>
 
           {/* Action Buttons */}
@@ -62,7 +62,7 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
               className="btn-primary text-lg px-8 py-4 flex items-center space-x-2 transform hover:scale-105 transition-transform"
             >
               <Upload className="h-5 w-5" />
-              <span>Upload Multiple Datasets</span>
+              <span>Upload Your Data</span>
             </button>
             
             <button
@@ -75,7 +75,7 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
 
           {/* Supported Formats */}
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Supports Excel (.xlsx), CSV (.csv), and JSON (.json) files • Multi-file upload • Drag & drop
+            Supports any Excel (.xlsx), CSV (.csv), and JSON (.json) structure • Multi-file upload • Drag & drop
           </div>
         </div>
 
@@ -106,34 +106,28 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
           })}
         </div>
 
-        {/* Data Schema Info */}
+        {/* Supported Data Types */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
-            Expected Data Format
+            Supported Data Types
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Required Columns
+                📊 Sales Data
               </h3>
               <div className="space-y-2">
                 {[
-                  'Date (YYYY-MM-DD)',
-                  'FactoryID',
-                  'FactoryName', 
-                  'PlantID',
-                  'PlantName',
-                  'Latitude (numeric)',
-                  'Longitude (numeric)',
-                  'ProductName',
-                  'UnitsSold (numeric)',
-                  'Revenue (numeric)'
-                ].map((column) => (
-                  <div key={column} className="flex items-center space-x-2">
+                  'Date, Name, Address',
+                  'Quantity, Price, Revenue',
+                  'Buyer Type, Location',
+                  'Any sales-related columns'
+                ].map((item) => (
+                  <div key={item} className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">
-                      {column}
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {item}
                     </span>
                   </div>
                 ))}
@@ -142,20 +136,43 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
             
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Sample Data Preview
+                🏭 Production Data
               </h3>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-xs font-mono overflow-x-auto">
-                <div className="whitespace-nowrap">
-                  <div className="text-gray-500 dark:text-gray-400 mb-2">
-                    Date,FactoryName,PlantName,ProductName,UnitsSold,Revenue
+              <div className="space-y-2">
+                {[
+                  'Production quantities',
+                  'Sales figures',
+                  'Stock levels',
+                  'Manufacturing metrics'
+                ].map((item) => (
+                  <div key={item} className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-secondary-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {item}
+                    </span>
                   </div>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    2024-01-15,TechCorp,Plant Alpha,Widget Pro,150,25000
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                📈 Any Structure
+              </h3>
+              <div className="space-y-2">
+                {[
+                  'Automatic column detection',
+                  'Flexible data types',
+                  'No predefined schema',
+                  'Intelligent processing'
+                ].map((item) => (
+                  <div key={item} className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-accent-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {item}
+                    </span>
                   </div>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    2024-01-16,Global Inc,Plant Beta,Smart Device,200,45000
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>

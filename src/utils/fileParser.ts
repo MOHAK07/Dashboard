@@ -1,11 +1,6 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { DataRow, ValidationResult, ValidationError } from '../types';
-
-const REQUIRED_COLUMNS = [
-  'Date', 'FactoryID', 'FactoryName', 'PlantID', 'PlantName',
-  'Latitude', 'Longitude', 'ProductName', 'UnitsSold', 'Revenue'
-];
+import { FlexibleDataRow, ValidationResult, ValidationError } from '../types';
 
 export class FileParser {
   static async parseFile(file: File): Promise<{ data: any[], errors: string[] }> {
@@ -31,10 +26,10 @@ export class FileParser {
         skipEmptyLines: true,
         transformHeader: (header: string) => header.trim(),
         transform: (value: string, header: string) => {
-          // Transform numeric columns
-          if (['UnitsSold', 'Revenue', 'Latitude', 'Longitude'].includes(header)) {
+          // Auto-detect and transform numeric columns
+          if (this.isNumericColumn(header) || this.looksLikeNumber(value)) {
             const num = parseFloat(value);
-            return isNaN(num) ? value : num;
+            return isNaN(num) ? value.trim() : num;
           }
           return value.trim();
         },
@@ -77,8 +72,8 @@ export class FileParser {
             const obj: any = {};
             headers.forEach((header, index) => {
               const value = (row as any[])[index];
-              // Transform numeric columns
-              if (['UnitsSold', 'Revenue', 'Latitude', 'Longitude'].includes(header)) {
+              // Auto-detect and transform numeric columns
+              if (this.isNumericColumn(header) || this.looksLikeNumber(String(value))) {
                 obj[header] = typeof value === 'number' ? value : parseFloat(value) || 0;
               } else {
                 obj[header] = value || '';
@@ -137,7 +132,7 @@ export class FileParser {
 
   static validateData(data: any[]): ValidationResult {
     const errors: ValidationError[] = [];
-    const validRowsData: DataRow[] = [];
+    const validRowsData: FlexibleDataRow[] = [];
     
     if (data.length === 0) {
       return {
@@ -145,7 +140,8 @@ export class FileParser {
         totalRows: 0,
         validRows: 0,
         errors: [{ row: 0, column: 'general', message: 'No data found', severity: 'error' }],
-        missingColumns: REQUIRED_COLUMNS,
+        detectedColumns: [],
+        dataType: 'unknown',
         summary: {
           message: '❌ No data found in file',
           type: 'error'
@@ -154,91 +150,45 @@ export class FileParser {
       };
     }
 
-    // Check for missing columns
+    // Detect columns and data type
     const firstRow = data[0];
-    const presentColumns = Object.keys(firstRow);
-    const missingColumns = REQUIRED_COLUMNS.filter(col => !presentColumns.includes(col));
+    const detectedColumns = Object.keys(firstRow);
+    const dataType = this.detectDataType(detectedColumns);
 
-    if (missingColumns.length > 0) {
-      return {
-        isValid: false,
-        totalRows: data.length,
-        validRows: 0,
-        errors: missingColumns.map(col => ({
-          row: 0,
-          column: col,
-          message: `Required column '${col}' not found`,
-          severity: 'error' as const
-        })),
-        missingColumns,
-        summary: {
-          message: `❌ Missing required columns: ${missingColumns.join(', ')}`,
-          type: 'error'
-        },
-        validData: [],
-      };
-    }
-
-    // Validate each row
+    // Flexible validation - no required columns, just clean the data
     data.forEach((row, index) => {
       const rowNumber = index + 1;
-      let isRowValid = true;
+      const cleanedRow: FlexibleDataRow = {};
+      let hasValidData = false;
 
-      // Validate Date
-      if (!row.Date || !this.isValidDate(row.Date)) {
+      // Clean and validate each column
+      Object.keys(row).forEach(column => {
+        const value = row[column];
+        
+        if (value !== null && value !== undefined && value !== '') {
+          hasValidData = true;
+          
+          // Auto-convert numeric values
+          if (this.isNumericColumn(column) || this.looksLikeNumber(String(value))) {
+            const numValue = parseFloat(String(value));
+            cleanedRow[column] = isNaN(numValue) ? value : numValue;
+          } else {
+            cleanedRow[column] = String(value).trim();
+          }
+        } else {
+          cleanedRow[column] = null;
+        }
+      });
+
+      // Only include rows that have at least some valid data
+      if (hasValidData) {
+        validRowsData.push(cleanedRow);
+      } else {
         errors.push({
           row: rowNumber,
-          column: 'Date',
-          message: 'Invalid date format (expected YYYY-MM-DD)',
-          severity: 'error'
-        });
-        isRowValid = false;
-      }
-
-      // Validate numeric fields
-      ['UnitsSold', 'Revenue', 'Latitude', 'Longitude'].forEach(field => {
-        if (row[field] === undefined || row[field] === null || row[field] === '') {
-          errors.push({
-            row: rowNumber,
-            column: field,
-            message: `Missing ${field}`,
-            severity: 'warning'
-          });
-        } else if (isNaN(Number(row[field]))) {
-          errors.push({
-            row: rowNumber,
-            column: field,
-            message: `Invalid numeric value for ${field}`,
-            severity: 'error'
-          });
-          isRowValid = false;
-        }
-      });
-
-      // Validate required text fields
-      ['FactoryID', 'FactoryName', 'PlantID', 'PlantName', 'ProductName'].forEach(field => {
-        if (!row[field] || String(row[field]).trim() === '') {
-          errors.push({
-            row: rowNumber,
-            column: field,
-            message: `Missing ${field}`,
-            severity: 'warning'
-          });
-        }
-      });
-
-      if (isRowValid) {
-        validRowsData.push({
-          Date: row.Date,
-          FactoryID: String(row.FactoryID),
-          FactoryName: String(row.FactoryName),
-          PlantID: String(row.PlantID),
-          PlantName: String(row.PlantName),
-          Latitude: Number(row.Latitude),
-          Longitude: Number(row.Longitude),
-          ProductName: String(row.ProductName),
-          UnitsSold: Number(row.UnitsSold),
-          Revenue: Number(row.Revenue),
+          column: 'general',
+          message: 'Row contains no valid data',
+          severity: 'warning'
         });
       }
     });
@@ -269,15 +219,51 @@ export class FileParser {
       totalRows: data.length,
       validRows: validRowsData.length,
       errors,
-      missingColumns,
+      detectedColumns,
+      dataType,
       summary,
       validData: validRowsData,
     };
   }
 
+  private static detectDataType(columns: string[]): 'sales' | 'production' | 'stock' | 'unknown' {
+    const columnStr = columns.join(' ').toLowerCase();
+    
+    if (columnStr.includes('production') && columnStr.includes('sales') && columnStr.includes('stock')) {
+      return 'production';
+    }
+    
+    if (columnStr.includes('quantity') && columnStr.includes('price') && (columnStr.includes('name') || columnStr.includes('buyer'))) {
+      return 'sales';
+    }
+    
+    if (columnStr.includes('stock') || columnStr.includes('inventory')) {
+      return 'stock';
+    }
+    
+    return 'unknown';
+  }
+
+  private static isNumericColumn(columnName: string): boolean {
+    const numericKeywords = [
+      'quantity', 'price', 'revenue', 'amount', 'total', 'sum', 'count',
+      'production', 'sales', 'stock', 'left', 'units', 'value', 'cost',
+      'latitude', 'longitude', 'week', 'year', 'code'
+    ];
+    
+    const lowerColumn = columnName.toLowerCase();
+    return numericKeywords.some(keyword => lowerColumn.includes(keyword));
+  }
+
+  private static looksLikeNumber(value: string): boolean {
+    if (!value || value.trim() === '') return false;
+    const trimmed = value.trim();
+    return !isNaN(parseFloat(trimmed)) && isFinite(parseFloat(trimmed));
+  }
+
   private static isValidDate(dateString: string): boolean {
+    if (!dateString) return false;
     const date = new Date(dateString);
-    return !isNaN(date.getTime()) && 
-           dateString.match(/^\d{4}-\d{2}-\d{2}$/) !== null;
+    return !isNaN(date.getTime());
   }
 }
