@@ -17,6 +17,29 @@ import { DataProcessor } from '../utils/dataProcessing';
 import { ExportUtils } from '../utils/exportUtils';
 import { SavedFilters } from './SavedFilters';
 
+// Use the same color function as FlexibleChart for consistency
+const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
+  const baseColors = [
+    '#3b82f6', // blue
+    '#7ab839', // green
+    '#f97316', // orange
+    '#ef4444', // red
+    '#1A2885', // dark blue
+    '#06b6d4', // cyan
+    '#f59e0b', // amber
+    '#dc2626', // red variant
+    '#84cc16', // lime
+    '#059669', // emerald
+    '#8b5cf6', // purple
+    '#ec4899', // pink
+    '#14b8a6', // teal
+    '#f97316', // orange variant
+    '#6366f1', // indigo
+  ];
+  
+  return baseColors[datasetIndex % baseColors.length];
+};
+
 interface HeaderProps {
   onMobileMenuToggle: () => void;
   onUploadNewDataset: () => void;
@@ -438,11 +461,11 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
             <div className="flex flex-wrap items-center gap-2">
               {state.datasets
                 .filter(d => state.activeDatasetIds.includes(d.id))
-                .map(dataset => (
+                .map((dataset, index) => (
                 <div key={dataset.id} className="flex items-center space-x-2">
                   <div 
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: dataset.color }}
+                    style={{ backgroundColor: getUniqueDatasetColor(index, state.datasets.filter(d => state.activeDatasetIds.includes(d.id)).length) }}
                   />
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {dataset.name}

@@ -14,6 +14,29 @@ import { DataProcessor } from '../../utils/dataProcessing';
 import { FlexibleDataRow } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 
+// Use the same color function as FlexibleChart for consistency
+const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
+  const baseColors = [
+    '#3b82f6', // blue
+    '#7ab839', // green
+    '#f97316', // orange
+    '#ef4444', // red
+    '#1A2885', // dark blue
+    '#06b6d4', // cyan
+    '#f59e0b', // amber
+    '#dc2626', // red variant
+    '#84cc16', // lime
+    '#059669', // emerald
+    '#8b5cf6', // purple
+    '#ec4899', // pink
+    '#14b8a6', // teal
+    '#f97316', // orange variant
+    '#6366f1', // indigo
+  ];
+  
+  return baseColors[datasetIndex % baseColors.length];
+};
+
 interface KPICardsProps {
   data: FlexibleDataRow[];
   currency?: string;
@@ -185,7 +208,7 @@ export function KPICards({ data, currency = 'INR' }: KPICardsProps) {
                         <div className="flex items-center space-x-2">
                           <div 
                             className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: dataset.color }}
+                            style={{ backgroundColor: getUniqueDatasetColor(multiDatasetData.findIndex(d => d.datasetId === dataset.datasetId), multiDatasetData.length) }}
                           />
                           <span className="text-gray-600 dark:text-gray-400 truncate max-w-20">
                             {dataset.datasetName}
