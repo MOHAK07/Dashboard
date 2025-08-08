@@ -43,11 +43,11 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-100 dark:bg-primary-900/50 rounded-full mb-6">
-            {/* <BarChart3 className="h-10 w-10 text-primary-600 dark:text-primary-400" /> */}
+            <BarChart3 className="h-10 w-10 text-primary-600 dark:text-primary-400" />
           </div>
           
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Welcome to <span className="text-primary-600 dark:text-primary-400">TruAlt Analytics</span>
+            Welcome to <span className="text-primary-600 dark:text-primary-400">DataHub</span>
           </h1>
           
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
