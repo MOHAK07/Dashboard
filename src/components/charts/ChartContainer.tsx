@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart, LineChart, PieChart, MoreHorizontal } from 'lucide-react';
+import { BarChart, LineChart, PieChart, MoreHorizontal, BarChart3 } from 'lucide-react';
 
 interface ChartContainerProps {
   title: string;
@@ -22,7 +22,9 @@ export function ChartContainer({
 
   const chartTypeIcons: { [key: string]: React.ComponentType<any> } = {
     bar: BarChart,
+    horizontalBar: BarChart3,
     line: LineChart,
+    area: LineChart,
     donut: PieChart,
     pie: PieChart,
   };

@@ -27,6 +27,85 @@ export function FlexibleChart({
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
   
+  // For multi-dataset mode, render individual charts for each dataset EXCEPT for time series
+  if (isMultiDataset && !title.toLowerCase().includes('trends') && !title.toLowerCase().includes('time')) {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {title} - Individual Dataset Views
+          </h3>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {multiDatasetData.length} datasets active
+            </span>
+            {/* Add chart type selector for individual charts */}
+            {availableTypes.length > 0 && onChartTypeChange && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  aria-label="Chart options"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+
+                {showOptions && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="py-2">
+                      <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Chart Type
+                      </div>
+                      {availableTypes.map((type) => {
+                        const Icon = chartTypeIcons[type] || BarChart;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => {
+                              onChartTypeChange(type);
+                              setShowOptions(false);
+                            }}
+                            className={`
+                              w-full flex items-center space-x-2 px-3 py-2 text-left text-sm transition-colors
+                              ${currentType === type 
+                                ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300' 
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }
+                            `}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span className="capitalize">
+                              {type === 'horizontalBar' ? 'Horizontal Bar' : type}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {multiDatasetData.map((dataset, index) => (
+            <IndividualDatasetChart
+              key={dataset.datasetId}
+              data={dataset.data}
+              title={`${dataset.datasetName}`}
+              chartType={chartType}
+              isDarkMode={isDarkMode}
+              color={dataset.color}
+              availableTypes={availableTypes}
+              currentType={currentType}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // Process time series data for "Trends Over Time" chart
   const processTimeSeriesData = () => {
     try {
@@ -253,41 +332,56 @@ export function FlexibleChart({
     );
   }
 
-  // For multi-dataset mode, render individual charts for each dataset
-  if (isMultiDataset && !title.toLowerCase().includes('trends') && !title.toLowerCase().includes('time')) {
-    return (
-      <div className={`space-y-6 ${className}`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {title} - Individual Dataset Views
-          </h3>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {multiDatasetData.length} datasets active
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {multiDatasetData.map((dataset, index) => (
-            <IndividualDatasetChart
-              key={dataset.datasetId}
-              data={dataset.data}
-              title={`${dataset.datasetName}`}
-              chartType={chartType}
-              isDarkMode={isDarkMode}
-              color={dataset.color}
-              onChartTypeChange={setChartType}
-              availableTypes={getAvailableTypes()}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // For trends/time charts in multi-dataset mode, prepare combined time series data
+  const prepareMultiDatasetTimeSeries = () => {
+    if (!isMultiDataset || (!title.toLowerCase().includes('trends') && !title.toLowerCase().includes('time'))) {
+      return null;
+    }
+
+    // Get all unique dates across all datasets
+    const allDates = new Set<string>();
+    const datasetSeries: any[] = [];
+
+    multiDatasetData.forEach(dataset => {
+      const datasetTimeSeries = DataProcessor.getTimeSeries(dataset.data, 'month');
+      datasetTimeSeries.forEach(point => allDates.add(point.date));
+    });
+
+    const sortedDates = Array.from(allDates).sort();
+
+    // Create series for each dataset
+    multiDatasetData.forEach(dataset => {
+      const datasetTimeSeries = DataProcessor.getTimeSeries(dataset.data, 'month');
+      const timeSeriesMap = new Map(datasetTimeSeries.map(point => [point.date, point.revenue || point.value]));
+      
+      datasetSeries.push({
+        name: dataset.datasetName,
+        data: sortedDates.map(date => timeSeriesMap.get(date) || 0),
+        color: dataset.color
+      });
+    });
+
+    return {
+      categories: sortedDates.map(date => {
+        const dateObj = new Date(date + '-01');
+        return dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }),
+      series: datasetSeries
+    };
+  };
+
+  // Get multi-dataset time series data if applicable
+  const multiTimeSeriesData = prepareMultiDatasetTimeSeries();
 
   // Single dataset or trends chart - render normally
   const isHorizontalBar = chartType === 'horizontalBar';
   const actualChartType = isHorizontalBar ? 'bar' : chartType;
   const isPieChart = actualChartType === 'pie' || actualChartType === 'donut';
+
+  // Use multi-dataset time series data if available, otherwise use processed data
+  const finalCategories = multiTimeSeriesData ? multiTimeSeriesData.categories : categories;
+  const finalSeries = multiTimeSeriesData ? multiTimeSeriesData.series : 
+    isPieChart ? (chartData || []) : [{ name: 'Value', data: (chartData || []), color: '#3b82f6' }];
 
   // Comprehensive chart options with error prevention
   const chartOptions: ApexOptions = {
@@ -306,17 +400,17 @@ export function FlexibleChart({
     
     // Conditional configuration based on chart type
     ...(isPieChart ? {
-      labels: categories || [],
+      labels: finalCategories || [],
       legend: {
         position: 'bottom',
         labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     } : {
       xaxis: {
-        categories: categories || [],
+        categories: finalCategories || [],
         labels: {
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-          rotate: categories && categories.length > 10 ? -45 : 0
+          rotate: finalCategories && finalCategories.length > 10 ? -45 : 0
         },
         title: {
           text: title.toLowerCase().includes('trends') ? 'Time Period' : 'Categories',
@@ -336,7 +430,7 @@ export function FlexibleChart({
       }
     }),
 
-    colors: [
+    colors: multiTimeSeriesData ? multiTimeSeriesData.series.map(s => s.color) : [
       '#3b82f6', '#22c55e', '#f97316', '#ef4444', 
       '#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899',
       '#84cc16', '#6366f1'
@@ -357,6 +451,8 @@ export function FlexibleChart({
     
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
+      shared: multiTimeSeriesData ? true : false,
+      intersect: multiTimeSeriesData ? false : true,
       y: {
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency)
       }
@@ -415,6 +511,22 @@ export function FlexibleChart({
       } : undefined
     },
 
+    markers: {
+      size: actualChartType === 'line' ? 5 : 0,
+      colors: multiTimeSeriesData ? multiTimeSeriesData.series.map(s => s.color) : ['#3b82f6'],
+      strokeColors: '#ffffff',
+      strokeWidth: 2,
+      hover: {
+        size: 8
+      }
+    },
+
+    legend: multiTimeSeriesData ? {
+      show: true,
+      position: 'top',
+      labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
+    } : { show: false },
+
     // Responsive configuration
     responsive: [{
       breakpoint: 768,
@@ -441,15 +553,6 @@ export function FlexibleChart({
     }]
   };
 
-  // Series data with proper formatting
-  const series = isPieChart 
-    ? (chartData || [])
-    : [{ 
-        name: 'Value', 
-        data: (chartData || []),
-        color: '#3b82f6'
-      }];
-
   return (
     <ChartContainer
       title={title}
@@ -461,7 +564,7 @@ export function FlexibleChart({
       <div className="w-full h-full min-h-[500px]">
         <Chart
           options={chartOptions}
-          series={series}
+          series={finalSeries}
           type={actualChartType === 'donut' ? 'donut' : actualChartType}
           height="500px"
           width="100%"
@@ -478,8 +581,8 @@ interface IndividualDatasetChartProps {
   chartType: string;
   isDarkMode: boolean;
   color: string;
-  onChartTypeChange: (type: string) => void;
   availableTypes: string[];
+  currentType: string;
 }
 
 function IndividualDatasetChart({
@@ -488,8 +591,8 @@ function IndividualDatasetChart({
   chartType,
   isDarkMode,
   color,
-  onChartTypeChange,
-  availableTypes
+  availableTypes,
+  currentType
 }: IndividualDatasetChartProps) {
   const { state } = useApp();
 
@@ -558,8 +661,8 @@ function IndividualDatasetChart({
   const chartOptions: ApexOptions = {
     chart: {
       type: actualChartType === 'donut' ? 'donut' : actualChartType,
-      background: 'transparent',
       toolbar: { show: false },
+      background: 'transparent',
       height: '100%',
       animations: { enabled: true, speed: 600 }
     },
