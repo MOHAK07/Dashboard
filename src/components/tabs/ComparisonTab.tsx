@@ -274,10 +274,10 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
             </div>
             <div>
               <h3 className="font-semibold text-primary-900 dark:text-primary-100">
-                Individual Dataset Comparison
+                Multi-Dataset Comparison Mode
               </h3>
               <p className="text-sm text-primary-700 dark:text-primary-300">
-                Viewing {multiDatasetData.length} datasets separately for accurate comparison
+                Comparing data across {multiDatasetData.length} active datasets
               </p>
             </div>
           </div>
@@ -331,62 +331,57 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
       )}
 
       {/* KPI cards */}
-      <div className={`grid gap-6 ${isMultiDataset ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
+      <div className={`grid gap-6 ${isMultiDataset ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
         {isMultiDataset ? (
-          <div className="card">
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Individual Dataset Metrics
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {multiDatasetData.map((dataset) => {
-                const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
-                const totalValue = datasetAggregated.reduce((sum, item) => sum + item.total, 0);
-                const totalCount = datasetAggregated.reduce((sum, item) => sum + item.count, 0);
-                const avgValue = totalCount > 0 ? totalValue / totalCount : 0;
-                const topCategory = datasetAggregated.length > 0 ? datasetAggregated[0].name : 'N/A';
-                
-                return (
-                  <div key={dataset.datasetId} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div 
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: dataset.color }}
-                      />
-                      <h5 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                        {dataset.datasetName}
-                      </h5>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Total Value</p>
-                        <p className="text-sm font-bold text-primary-600 dark:text-primary-400 break-words">
-                          {DataProcessor.formatCurrency(totalValue, state.settings.currency)}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Count</p>
-                        <p className="text-sm font-bold text-secondary-600 dark:text-secondary-400">
-                          {DataProcessor.formatNumber(totalCount)}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Average</p>
-                        <p className="text-sm font-bold text-accent-600 dark:text-accent-400 break-words">
-                          {DataProcessor.formatCurrency(avgValue, state.settings.currency)}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Top Item</p>
-                        <p className="text-sm font-bold text-gray-700 dark:text-gray-300 truncate">
-                          {topCategory}
-                        </p>
-                      </div>
-                    </div>
+          multiDatasetData.map((dataset) => {
+            const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
+            const totalValue = datasetAggregated.reduce((sum, item) => sum + item.total, 0);
+            const totalCount = datasetAggregated.reduce((sum, item) => sum + item.count, 0);
+            const avgValue = totalCount > 0 ? totalValue / totalCount : 0;
+            const topCategory = datasetAggregated.length > 0 ? datasetAggregated[0].name : 'N/A';
+            
+            return (
+              <div key={dataset.datasetId} className="card">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: dataset.color }}
+                    />
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {dataset.datasetName}
+                    </h4>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Total Value</p>
+                    <p className="text-sm font-bold text-primary-600 dark:text-primary-400 break-words">
+                      {DataProcessor.formatCurrency(totalValue, state.settings.currency)}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Count</p>
+                    <p className="text-sm font-bold text-secondary-600 dark:text-secondary-400">
+                      {DataProcessor.formatNumber(totalCount)}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Average</p>
+                    <p className="text-sm font-bold text-accent-600 dark:text-accent-400 break-words">
+                      {DataProcessor.formatCurrency(avgValue, state.settings.currency)}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Top Item</p>
+                    <p className="text-sm font-bold text-gray-700 dark:text-gray-300 truncate">
+                      {topCategory}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
         ) : (
           filteredData.map((item) => (
           <div key={item.name} className="card">
@@ -427,99 +422,15 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
       </div>
 
       {/* Charts */}
-      {isMultiDataset ? (
-        <div className="space-y-8">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-              Individual Dataset Charts - {primaryValueColumn} by {primaryCategoryColumn}
-            </h3>
-            <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
-              {multiDatasetData.map((dataset) => {
-                const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
-                const limitedData = datasetAggregated.slice(0, 8);
+      <div className="space-y-8">
+        <ChartContainer title={`${primaryValueColumn} by ${primaryCategoryColumn}${isMultiDataset ? ' - Dataset Comparison' : ''}`} className="w-full">
+          <Chart options={comparisonOptions} series={comparisonSeries} type="bar" height="100%" />
+        </ChartContainer>
 
-                const chartOptions: ApexOptions = {
-                  chart: {
-                    type: 'bar',
-                    toolbar: { show: false },
-                    background: 'transparent',
-                  },
-                  plotOptions: {
-                    bar: {
-                      horizontal: false,
-                      columnWidth: '70%',
-                      borderRadius: 4,
-                    },
-                  },
-                  dataLabels: { enabled: false },
-                  xaxis: {
-                    categories: limitedData.map(item => item.name),
-                    labels: {
-                      style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-                      rotate: limitedData.length > 6 ? -45 : 0
-                    },
-                  },
-                  yaxis: {
-                    labels: {
-                      formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-                      style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-                    },
-                  },
-                  colors: [dataset.color],
-                  theme: { mode: isDarkMode ? 'dark' : 'light' },
-                  grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
-                  tooltip: {
-                    theme: isDarkMode ? 'dark' : 'light',
-                    y: {
-                      formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-                    },
-                  },
-                };
-
-                const series = [{
-                  name: primaryValueColumn,
-                  data: limitedData.map(item => item.total),
-                }];
-                
-                return (
-                  <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <div 
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: dataset.color }}
-                      />
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                        {dataset.datasetName}
-                      </h4>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        ({dataset.data.length} rows)
-                      </span>
-                    </div>
-                    <div className="h-80">
-                      <Chart
-                        options={chartOptions}
-                        series={series}
-                        type="bar"
-                        height="100%"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          <ChartContainer title={`${primaryValueColumn} by ${primaryCategoryColumn}`} className="w-full">
-            <Chart options={comparisonOptions} series={comparisonSeries} type="bar" height="100%" />
-          </ChartContainer>
-
-          <ChartContainer title="Multi-Metric Comparison" className="w-full">
-            <Chart options={radarOptions} series={radarSeries} type="radar" height="100%" />
-          </ChartContainer>
-        </div>
-      )}
+        <ChartContainer title={`Multi-Metric Comparison${isMultiDataset ? ' - Dataset Comparison' : ''}`} className="w-full">
+          <Chart options={radarOptions} series={radarSeries} type="radar" height="100%" />
+        </ChartContainer>
+      </div>
     </div>
   );
 }

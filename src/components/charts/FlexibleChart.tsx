@@ -28,13 +28,20 @@ export function FlexibleChart({
   // Multi-dataset detection and data preparation
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
-  const isTimeSeriesChart = title.toLowerCase().includes('trends') || title.toLowerCase().includes('time');
   
-  // Color scheme for datasets
+  // Color scheme for multi-dataset comparison
   const getDatasetColors = () => {
     const baseColors = [
-      '#3b82f6', '#22c55e', '#f97316', '#ef4444', '#8b5cf6',
-      '#06b6d4', '#f59e0b', '#ec4899', '#84cc16', '#6366f1'
+      '#3b82f6', // Blue
+      '#22c55e', // Green
+      '#f97316', // Orange
+      '#ef4444', // Red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#f59e0b', // Amber
+      '#ec4899', // Pink
+      '#84cc16', // Lime
+      '#6366f1'  // Indigo
     ];
     
     if (isMultiDataset) {
@@ -45,13 +52,13 @@ export function FlexibleChart({
     
     return baseColors;
   };
-
+  
   // Process time series data for "Trends Over Time" chart
   const processTimeSeriesData = () => {
     try {
       if (!data || data.length === 0) {
         return { 
-          chartData: [], 
+          chartData: isMultiDataset ? [] : [], 
           categories: [],
           series: [],
           hasData: false, 
@@ -59,8 +66,8 @@ export function FlexibleChart({
         };
       }
 
-      if (isMultiDataset && isTimeSeriesChart) {
-        // Multi-dataset time series comparison - ONLY for trends over time
+      if (isMultiDataset) {
+        // Multi-dataset time series comparison
         const allDates = new Set<string>();
         const datasetSeries: any[] = [];
 
@@ -98,6 +105,7 @@ export function FlexibleChart({
       const timeSeriesData = DataProcessor.getTimeSeries(data, 'month');
       
       if (!timeSeriesData || timeSeriesData.length === 0) {
+        // Fallback to day-based grouping if month fails
         const daySeriesData = DataProcessor.getTimeSeries(data, 'day');
         if (!daySeriesData || daySeriesData.length === 0) {
           return { 
@@ -109,6 +117,7 @@ export function FlexibleChart({
           };
         }
         
+        // Limit to last 30 days for readability
         const limitedDayData = daySeriesData.slice(-30);
         return {
           chartData: limitedDayData.map(point => Math.round(point.value * 100) / 100),
@@ -180,6 +189,74 @@ export function FlexibleChart({
           series: [],
           hasData: false, 
           errorMessage: 'Invalid data structure' 
+        };
+      }
+
+      if (isMultiDataset) {
+        // Multi-dataset comparison for distribution charts
+        const allCategories = new Set<string>();
+        const datasetSeries: any[] = [];
+
+        // Find common columns across datasets
+        const numericColumns = DataProcessor.findNumericColumns(data);
+        const categoricalColumns = DataProcessor.findCategoricalColumns(data);
+        
+        const valueColumn = numericColumns.find(col => 
+          col.toLowerCase().includes('price') || 
+          col.toLowerCase().includes('revenue') ||
+          col.toLowerCase().includes('quantity') ||
+          col.toLowerCase().includes('amount') ||
+          col.toLowerCase().includes('value') ||
+          col.toLowerCase().includes('total')
+        ) || numericColumns[0];
+
+        const categoryColumn = categoricalColumns.find(col =>
+          col.toLowerCase().includes('name') ||
+          col.toLowerCase().includes('product') ||
+          col.toLowerCase().includes('category') ||
+          col.toLowerCase().includes('type') ||
+          col.toLowerCase().includes('item')
+        ) || categoricalColumns[0];
+
+        if (!valueColumn || !categoryColumn) {
+          return { 
+            chartData: [], 
+            categories: [],
+            series: [],
+            hasData: false, 
+            errorMessage: 'Insufficient columns for multi-dataset comparison' 
+          };
+        }
+
+        // Collect all categories across datasets
+        multiDatasetData.forEach(dataset => {
+          const aggregatedData = DataProcessor.aggregateByCategory(dataset.data, categoryColumn, valueColumn);
+          aggregatedData.forEach(item => allCategories.add(item.name));
+        });
+
+        const sortedCategories = Array.from(allCategories).sort();
+
+        // Create series for each dataset
+        multiDatasetData.forEach((dataset, index) => {
+          const aggregatedData = DataProcessor.aggregateByCategory(dataset.data, categoryColumn, valueColumn);
+          const dataMap = new Map(aggregatedData.map(item => [item.name, item.total]));
+          
+          datasetSeries.push({
+            name: dataset.datasetName,
+            data: sortedCategories.map(category => dataMap.get(category) || 0),
+            color: dataset.color
+          });
+        });
+
+        return {
+          chartData: [],
+          categories: sortedCategories.slice(0, 10), // Limit for readability
+          series: datasetSeries.map(s => ({
+            ...s,
+            data: s.data.slice(0, 10)
+          })),
+          hasData: true,
+          errorMessage: null
         };
       }
 
@@ -309,13 +386,13 @@ export function FlexibleChart({
   if (!hasData) {
     return (
       <ChartContainer
-        title={`${title}${isMultiDataset && !isTimeSeriesChart ? ' - Individual Dataset Views' : isMultiDataset ? ' - Dataset Comparison' : ''}`}
+        title={`${title}${isMultiDataset ? ' - Dataset Comparison' : ''}`}
         availableTypes={getAvailableTypes()}
         currentType={chartType}
         onChartTypeChange={setChartType}
         className={className}
       >
-        {isMultiDataset && !isTimeSeriesChart && (
+        {isMultiDataset && (
           <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
@@ -323,10 +400,10 @@ export function FlexibleChart({
               </div>
               <div>
                 <h3 className="font-semibold text-primary-900 dark:text-primary-100">
-                  Individual Dataset View Mode
+                  Multi-Dataset Comparison Mode
                 </h3>
                 <p className="text-sm text-primary-700 dark:text-primary-300">
-                  Viewing {multiDatasetData.length} datasets separately to preserve data integrity
+                  Comparing data across {multiDatasetData.length} active datasets
                 </p>
               </div>
             </div>
@@ -349,219 +426,16 @@ export function FlexibleChart({
     );
   }
 
-  // Multi-dataset individual chart rendering (except for time series)
-  if (isMultiDataset && !isTimeSeriesChart) {
-    return (
-      <ChartContainer
-        title={`${title} - Individual Dataset Views`}
-        availableTypes={getAvailableTypes()}
-        currentType={chartType}
-        onChartTypeChange={setChartType}
-        className={className}
-      >
-        <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 rounded-lg">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
-              <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-primary-900 dark:text-primary-100">
-                Individual Dataset View Mode
-              </h3>
-              <p className="text-sm text-primary-700 dark:text-primary-300">
-                Each dataset is displayed separately to preserve data integrity and context
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {multiDatasetData.map((dataset) => (
-              <div key={dataset.datasetId} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: dataset.color }}
-                />
-                <span className="text-sm text-primary-700 dark:text-primary-300">
-                  {dataset.datasetName}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : multiDatasetData.length === 3 ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
-          {multiDatasetData.map((dataset) => {
-            // Process each dataset individually
-            const numericColumns = DataProcessor.findNumericColumns(dataset.data);
-            const categoricalColumns = DataProcessor.findCategoricalColumns(dataset.data);
-            
-            const valueColumn = numericColumns.find(col => 
-              col.toLowerCase().includes('price') || 
-              col.toLowerCase().includes('revenue') ||
-              col.toLowerCase().includes('quantity') ||
-              col.toLowerCase().includes('amount') ||
-              col.toLowerCase().includes('value') ||
-              col.toLowerCase().includes('total')
-            ) || numericColumns[0];
-
-            const categoryColumn = categoricalColumns.find(col =>
-              col.toLowerCase().includes('name') ||
-              col.toLowerCase().includes('product') ||
-              col.toLowerCase().includes('category') ||
-              col.toLowerCase().includes('type') ||
-              col.toLowerCase().includes('item')
-            ) || categoricalColumns[0];
-
-            if (!valueColumn || !categoryColumn) {
-              return (
-                <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <div 
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: dataset.color }}
-                    />
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                      {dataset.datasetName}
-                    </h4>
-                  </div>
-                  <div className="flex items-center justify-center h-48 text-gray-500 dark:text-gray-400">
-                    <p className="text-sm">Insufficient data for visualization</p>
-                  </div>
-                </div>
-              );
-            }
-
-            const aggregatedData = DataProcessor.aggregateByCategory(dataset.data, categoryColumn, valueColumn);
-            const limitedData = aggregatedData.slice(0, 8); // Limit for individual charts
-
-            const isHorizontalBar = chartType === 'horizontalBar';
-            const actualChartType = isHorizontalBar ? 'bar' : chartType;
-            const isPieChart = actualChartType === 'pie' || actualChartType === 'donut';
-
-            const chartOptions: ApexOptions = {
-              chart: {
-                type: actualChartType === 'donut' ? 'donut' : actualChartType,
-                background: 'transparent',
-                toolbar: { show: false },
-                height: '100%',
-                width: '100%',
-                parentHeightOffset: 0,
-                animations: {
-                  enabled: true,
-                  easing: 'easeinout',
-                  speed: 800
-                }
-              },
-              
-              ...(isPieChart ? {
-                labels: limitedData.map(item => item.name),
-                legend: {
-                  position: 'bottom',
-                  labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-                  show: limitedData.length <= 6
-                }
-              } : {
-                xaxis: {
-                  categories: limitedData.map(item => item.name),
-                  labels: {
-                    style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-                    rotate: limitedData.length > 6 ? -45 : 0
-                  }
-                },
-                yaxis: {
-                  labels: {
-                    formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-                    style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
-                  }
-                }
-              }),
-
-              colors: [dataset.color],
-              theme: { mode: isDarkMode ? 'dark' : 'light' },
-              grid: { 
-                borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-                show: !isPieChart,
-                padding: { top: 0, right: 10, bottom: 0, left: 10 }
-              },
-              
-              tooltip: {
-                theme: isDarkMode ? 'dark' : 'light',
-                y: {
-                  formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency)
-                }
-              },
-              
-              plotOptions: {
-                pie: {
-                  donut: {
-                    size: actualChartType === 'donut' ? '60%' : '0%',
-                  },
-                  expandOnClick: false,
-                  offsetX: 0,
-                  offsetY: 0
-                },
-                bar: {
-                  borderRadius: 4,
-                  columnWidth: '75%',
-                  barHeight: '75%',
-                  horizontal: isHorizontalBar,
-                  dataLabels: { position: 'top' }
-                }
-              },
-              
-              dataLabels: {
-                enabled: isPieChart && limitedData.length <= 6,
-                formatter: isPieChart ? (val: number) => `${val.toFixed(1)}%` : undefined,
-                style: { colors: ['#ffffff'] }
-              }
-            };
-
-            const series = isPieChart ? 
-              limitedData.map(item => item.total) : 
-              [{
-                name: 'Value',
-                data: limitedData.map(item => item.total),
-                color: dataset.color
-              }];
-
-            return (
-              <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div 
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: dataset.color }}
-                  />
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                    {dataset.datasetName}
-                  </h4>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    ({dataset.data.length} rows)
-                  </span>
-                </div>
-                <div className="h-80">
-                  <Chart
-                    options={chartOptions}
-                    series={series}
-                    type={actualChartType === 'donut' ? 'donut' : actualChartType}
-                    height="100%"
-                    width="100%"
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </ChartContainer>
-    );
-  }
-
   // Chart configuration
   const isHorizontalBar = chartType === 'horizontalBar';
   const actualChartType = isHorizontalBar ? 'bar' : chartType;
   const isPieChart = actualChartType === 'pie' || actualChartType === 'donut';
+  const isTimeSeriesChart = title.toLowerCase().includes('trends') || title.toLowerCase().includes('time');
   
   // Determine series data
   const finalSeries = isTimeSeriesChart && timeSeriesSeries ? timeSeriesSeries : 
     isPieChart ? (chartData || []) : 
+    isMultiDataset && timeSeriesSeries ? timeSeriesSeries :
     [{
       name: 'Value',
       data: (chartData || []),
@@ -576,7 +450,6 @@ export function FlexibleChart({
       toolbar: { show: false },
       height: '100%',
       width: '100%',
-      parentHeightOffset: 0,
       animations: {
         enabled: true,
         easing: 'easeinout',
@@ -590,7 +463,7 @@ export function FlexibleChart({
       legend: {
         position: 'bottom',
         labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-        show: categories.length <= 8
+        show: !isMultiDataset || categories.length <= 8
       }
     } : {
       xaxis: {
@@ -632,7 +505,7 @@ export function FlexibleChart({
       }
     },
     
-    legend: isMultiDataset && isTimeSeriesChart && !isPieChart ? {
+    legend: isMultiDataset && !isPieChart ? {
       show: true,
       position: 'top',
       labels: {
@@ -647,7 +520,7 @@ export function FlexibleChart({
     
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      shared: isMultiDataset && isTimeSeriesChart && !isPieChart,
+      shared: isMultiDataset && !isPieChart,
       intersect: false,
       y: {
         formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency)
@@ -677,7 +550,7 @@ export function FlexibleChart({
       bar: {
         borderRadius: 4,
         columnWidth: '75%',
-        barHeight: '75%',
+        barHeight: '85%',
         horizontal: isHorizontalBar,
         dataLabels: { position: 'top' },
         distributed: false,
@@ -741,7 +614,6 @@ export function FlexibleChart({
     chartType,
     hasData,
     isMultiDataset,
-    isTimeSeriesChart,
     categoriesLength: categories?.length,
     chartDataLength: chartData?.length,
     series: finalSeries
@@ -749,13 +621,13 @@ export function FlexibleChart({
 
   return (
     <ChartContainer
-      title={`${title}${isMultiDataset && isTimeSeriesChart ? ' - Dataset Comparison' : ''}`}
+      title={`${title}${isMultiDataset ? ' - Dataset Comparison' : ''}`}
       availableTypes={getAvailableTypes()}
       onChartTypeChange={setChartType}
       currentType={chartType}
       className={className}
     >
-      {isMultiDataset && isTimeSeriesChart && (
+      {isMultiDataset && (
         <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 rounded-lg">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
@@ -766,7 +638,7 @@ export function FlexibleChart({
                 Multi-Dataset Comparison Mode
               </h3>
               <p className="text-sm text-primary-700 dark:text-primary-300">
-                Comparing trends across {multiDatasetData.length} active datasets
+                Comparing data across {multiDatasetData.length} active datasets
               </p>
             </div>
           </div>
