@@ -43,7 +43,15 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-100 dark:bg-primary-900/50 rounded-full mb-6">
-            <BarChart3 className="h-10 w-10 text-primary-600 dark:text-primary-400" />
+            {/* <BarChart3 className="h-10 w-10 text-primary-600 dark:text-primary-400" /> */}
+            <img 
+              src="https://trualtbioenergy.com/public/Admin/SideSetting/logo/6853f23a2d3d7.png"
+              alt="Company Logo"
+              className="h-10 w-auto"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
           
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6">
