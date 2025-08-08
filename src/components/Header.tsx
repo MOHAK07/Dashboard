@@ -191,7 +191,7 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
             <img 
               src="https://trualtbioenergy.com/public/Admin/SideSetting/logo/6853f23a2d3d7.png"
               alt="Company Logo"
-              className="h-8 w-auto"
+              className="h-10 w-auto"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
