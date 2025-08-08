@@ -37,7 +37,7 @@ function Row({ index, style, data }: RowProps) {
       style={style}
       className={`flex border-b border-gray-200 dark:border-gray-700 ${
         index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
-      } hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors`}
+      } hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors overflow-hidden`}
     >
       {data.columns.map((column) => {
         const value = row[column.key];
@@ -55,7 +55,7 @@ function Row({ index, style, data }: RowProps) {
           <div
             key={column.key}
             style={{ width: column.width }}
-            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap"
+            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 truncate"
           >
             {displayValue}
           </div>
@@ -226,18 +226,18 @@ export function DataTable({ data, className = '' }: DataTableProps) {
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
         {/* Header */}
-        <div className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-x-auto">
-          <div className="flex min-w-max">
+        <div className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+          <div className="flex overflow-x-auto">
           {columns.map((column) => (
             <div
               key={column.key}
               style={{ width: column.width }}
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0"
             >
               {column.sortable ? (
                 <button
                   onClick={() => handleSort(column.key)}
-                  className="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:text-gray-700 dark:focus:text-gray-200"
+                  className="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:text-gray-700 dark:focus:text-gray-200 whitespace-nowrap"
                 >
                   <span>{column.label}</span>
                   {getSortIcon(column.key)}
@@ -256,7 +256,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
             No data matches your current filters
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-hidden">
             <List
               height={400}
               itemCount={filteredAndSortedData.length}
@@ -266,7 +266,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
                 columns,
                 currency: state.settings.currency
               }}
-              width={columns.reduce((total, col) => total + col.width, 0)}
+              width="100%"
             >
               {Row}
             </List>

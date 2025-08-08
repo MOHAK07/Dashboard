@@ -17,6 +17,29 @@ const generateDatasetColors = (baseColor: string, dataCount: number) => {
   return colors;
 };
 
+// Ensure unique colors for each dataset
+const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
+  const baseColors = [
+    '#3b82f6', // blue
+    '#7ab839', // green
+    '#f97316', // orange
+    '#ef4444', // red
+    '#1A2885', // dark blue
+    '#06b6d4', // cyan
+    '#f59e0b', // amber
+    '#dc2626', // red variant
+    '#84cc16', // lime
+    '#059669', // emerald
+    '#8b5cf6', // purple
+    '#ec4899', // pink
+    '#14b8a6', // teal
+    '#f97316', // orange variant
+    '#6366f1', // indigo
+  ];
+  
+  return baseColors[datasetIndex % baseColors.length];
+};
+
 interface FlexibleChartProps {
   data: FlexibleDataRow[];
   title: string;
@@ -134,7 +157,7 @@ export function FlexibleChart({
               title={`${dataset.datasetName}`}
               chartType={chartType}
               isDarkMode={isDarkMode}
-              color={dataset.color}
+              color={getUniqueDatasetColor(index, multiDatasetData.length)}
             />
           ))}
         </div>
@@ -375,14 +398,14 @@ export function FlexibleChart({
     const sortedDates = Array.from(allDates).sort();
 
     // Create series for each dataset
-    multiDatasetData.forEach(dataset => {
+    multiDatasetData.forEach((dataset, index) => {
       const datasetTimeSeries = DataProcessor.getTimeSeries(dataset.data, 'month');
       const timeSeriesMap = new Map(datasetTimeSeries.map(point => [point.date, point.revenue || point.value]));
       
       datasetSeries.push({
         name: dataset.datasetName,
         data: sortedDates.map(date => timeSeriesMap.get(date) || 0),
-        color: dataset.color
+        color: getUniqueDatasetColor(index, multiDatasetData.length)
       });
     });
 
