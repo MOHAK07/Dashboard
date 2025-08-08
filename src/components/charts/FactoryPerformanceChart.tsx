@@ -113,13 +113,15 @@ export function FactoryPerformanceChart({
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
         formatter: isHorizontal
           ? (value: string) => DataProcessor.formatCurrency(Number(value), state.settings.currency)
-          : undefined,
+          : (value: string) => value.toString(),
       },
     },
     yaxis: {
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-        formatter: !isHorizontal ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
+        formatter: !isHorizontal 
+          ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) 
+          : (val: number) => val.toString(),
       },
     },
     colors: series.map(s => s.color),

@@ -736,8 +736,9 @@ export function FlexibleChart({
   };
 
   // Debug logging
-  console.log('FlexibleChart render:', {
-    title,
+            formatter: isHorizontalBar 
+              ? (val: number) => val.toString()
+              : (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
     chartType,
     hasData,
     isMultiDataset,
