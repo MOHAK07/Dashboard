@@ -251,21 +251,6 @@ export class DataProcessor {
     
     const localeMap: { [key: string]: string } = {
       'USD': 'en-US',
-
-  static findColumnByKeywords(data: FlexibleDataRow[], keywords: string[]): string | null {
-    if (!data || data.length === 0) return null;
-    
-    const columns = Object.keys(data[0]);
-    
-    for (const keyword of keywords) {
-      const found = columns.find(col => 
-        col.toLowerCase().includes(keyword.toLowerCase())
-      );
-      if (found) return found;
-    }
-    
-    return null;
-  }
       'EUR': 'de-DE',
       'GBP': 'en-GB', 
       'JPY': 'ja-JP',
