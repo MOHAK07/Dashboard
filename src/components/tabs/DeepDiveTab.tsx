@@ -28,62 +28,23 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
     );
   }
 
-  // Enhanced data processing for multi-dataset deep dive
-  const processDeepDiveData = () => {
-    const categoricalColumns = DataProcessor.findCategoricalColumns(data);
-    const numericColumns = DataProcessor.findNumericColumns(data);
-    
-    const primaryCategoryColumn = categoricalColumns.find(col =>
-      col.toLowerCase().includes('name') ||
-      col.toLowerCase().includes('product') ||
-      col.toLowerCase().includes('category')
-    ) || categoricalColumns[0];
+  const categoricalColumns = DataProcessor.findCategoricalColumns(data);
+  const numericColumns = DataProcessor.findNumericColumns(data);
+  
+  const primaryCategoryColumn = categoricalColumns.find(col =>
+    col.toLowerCase().includes('name') ||
+    col.toLowerCase().includes('product') ||
+    col.toLowerCase().includes('category')
+  ) || categoricalColumns[0];
 
-    const primaryValueColumn = numericColumns.find(col => 
-      col.toLowerCase().includes('price') || 
-      col.toLowerCase().includes('revenue') ||
-      col.toLowerCase().includes('quantity') ||
-      col.toLowerCase().includes('amount')
-    ) || numericColumns[0];
+  const primaryValueColumn = numericColumns.find(col => 
+    col.toLowerCase().includes('price') || 
+    col.toLowerCase().includes('revenue') ||
+    col.toLowerCase().includes('quantity') ||
+    col.toLowerCase().includes('amount')
+  ) || numericColumns[0];
 
-    if (!primaryCategoryColumn || !primaryValueColumn) {
-      return null;
-    }
-
-    if (isMultiDataset) {
-      // Multi-dataset deep dive analysis
-      const datasetAnalysis = multiDatasetData.map(dataset => {
-        const aggregatedData = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
-        return {
-          ...dataset,
-          aggregatedData,
-          topPerformer: aggregatedData[0] || null,
-          mostFrequent: aggregatedData.sort((a, b) => b.count - a.count)[0] || null,
-          highestAverage: aggregatedData.sort((a, b) => b.average - a.average)[0] || null
-        };
-      });
-
-      return {
-        primaryCategoryColumn,
-        primaryValueColumn,
-        aggregatedData: DataProcessor.aggregateByCategory(data, primaryCategoryColumn, primaryValueColumn),
-        datasetAnalysis
-      };
-    } else {
-      // Single dataset analysis
-      const aggregatedData = DataProcessor.aggregateByCategory(data, primaryCategoryColumn, primaryValueColumn);
-      return {
-        primaryCategoryColumn,
-        primaryValueColumn,
-        aggregatedData,
-        datasetAnalysis: []
-      };
-    }
-  };
-
-  const deepDiveData = processDeepDiveData();
-
-  if (!deepDiveData) {
+  if (!primaryCategoryColumn || !primaryValueColumn) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
         <div className="text-center">
@@ -94,14 +55,13 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
     );
   }
 
-  const { primaryCategoryColumn, primaryValueColumn, aggregatedData, datasetAnalysis } = deepDiveData;
+  const aggregatedData = DataProcessor.aggregateByCategory(data, primaryCategoryColumn, primaryValueColumn);
 
   // Treemap Data
   const treemapOptions: ApexOptions = {
     chart: {
       type: 'treemap',
       background: 'transparent',
-      toolbar: { show: false }
     },
     dataLabels: {
       enabled: true,
@@ -115,7 +75,7 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
         return [text, DataProcessor.formatCurrency(value, state.settings.currency)];
       },
     },
-    colors: isMultiDataset ? multiDatasetData.map(d => d.color) : [
+    colors: [
       '#3b82f6', '#22c55e', '#f97316', '#ef4444', '#8b5cf6', 
       '#06b6d4', '#f59e0b', '#ec4899', '#84cc16', '#6366f1'
     ],
@@ -131,31 +91,16 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
         enableShades: false,
       },
     },
-    legend: isMultiDataset ? {
-      show: true,
-      position: 'bottom',
-      labels: {
-        colors: isDarkMode ? '#9ca3af' : '#6b7280',
-      },
-    } : { show: false },
   };
 
-  const treemapSeries = isMultiDataset ? 
-    multiDatasetData.map(dataset => ({
-      name: dataset.datasetName,
-      data: DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn)
-        .slice(0, 8)
-        .map(item => ({
-          x: item.name,
-          y: item.total,
-        })),
-    })) :
-    [{
+  const treemapSeries = [
+    {
       data: aggregatedData.map(item => ({
         x: item.name,
         y: item.total,
       })),
-    }];
+    },
+  ];
 
   // Scatter Plot Data
   const scatterOptions: ApexOptions = {
@@ -166,7 +111,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
         type: 'xy',
       },
       background: 'transparent',
-      toolbar: { show: false }
     },
     xaxis: {
       title: {
@@ -196,57 +140,38 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
         },
       },
     },
-    colors: isMultiDataset ? multiDatasetData.map(d => d.color) : ['#3b82f6'],
+    colors: ['#3b82f6'],
     theme: {
       mode: isDarkMode ? 'dark' : 'light',
     },
     grid: {
       borderColor: isDarkMode ? '#374151' : '#e5e7eb',
     },
-    legend: isMultiDataset ? {
-      show: true,
-      position: 'top',
-      labels: {
-        colors: isDarkMode ? '#9ca3af' : '#6b7280',
-      },
-    } : { show: false },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      shared: isMultiDataset,
-      intersect: false,
-      custom: isMultiDataset ? undefined : ({ dataPointIndex }: any) => {
-        if (dataPointIndex >= 0 && dataPointIndex < aggregatedData.length) {
-          const item = aggregatedData[dataPointIndex];
-          return `
-            <div class="p-3">
-              <div class="font-semibold">${item.name}</div>
-              <div>Count: ${DataProcessor.formatNumber(item.count)}</div>
-              <div>Total: ${DataProcessor.formatCurrency(item.total, state.settings.currency)}</div>
-              <div>Average: ${DataProcessor.formatCurrency(item.average, state.settings.currency)}</div>
-            </div>
-          `;
-        }
-        return '';
+      custom: ({ dataPointIndex }: any) => {
+        const item = aggregatedData[dataPointIndex];
+        return `
+          <div class="p-3">
+            <div class="font-semibold">${item.name}</div>
+            <div>Count: ${DataProcessor.formatNumber(item.count)}</div>
+            <div>Total: ${DataProcessor.formatCurrency(item.total, state.settings.currency)}</div>
+            <div>Average: ${DataProcessor.formatCurrency(item.average, state.settings.currency)}</div>
+          </div>
+        `;
       },
     },
   };
 
-  const scatterSeries = isMultiDataset ?
-    multiDatasetData.map(dataset => ({
-      name: dataset.datasetName,
-      data: DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn)
-        .map(item => ({
-          x: item.count,
-          y: item.total,
-        })),
-    })) :
-    [{
+  const scatterSeries = [
+    {
       name: primaryCategoryColumn,
       data: aggregatedData.map(item => ({
         x: item.count,
         y: item.total,
       })),
-    }];
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -266,111 +191,51 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
               </p>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {multiDatasetData.map((dataset) => (
-              <div key={dataset.datasetId} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: dataset.color }}
-                />
-                <span className="text-sm text-primary-700 dark:text-primary-300">
-                  {dataset.datasetName}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
       {/* Performance Summary */}
-      {isMultiDataset ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {datasetAnalysis.map((dataset) => (
-            <div key={dataset.datasetId} className="card">
-              <div className="flex items-center space-x-2 mb-4">
-                <div 
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: dataset.color }}
-                />
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                  {dataset.datasetName}
-                </h4>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Top by Value</p>
-                  <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                    {dataset.topPerformer?.name || 'N/A'}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {DataProcessor.formatCurrency(dataset.topPerformer?.total || 0, state.settings.currency)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Most Frequent</p>
-                  <p className="text-sm font-bold text-secondary-600 dark:text-secondary-400">
-                    {dataset.mostFrequent?.name || 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {DataProcessor.formatNumber(dataset.mostFrequent?.count || 0)} records
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Highest Average</p>
-                  <p className="text-sm font-bold text-accent-600 dark:text-accent-400">
-                    {dataset.highestAverage?.name || 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {DataProcessor.formatCurrency(dataset.highestAverage?.average || 0, state.settings.currency)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="card">
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Top {primaryCategoryColumn} by Value
+          </h4>
+          <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+            {aggregatedData[0]?.name || 'N/A'}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {DataProcessor.formatCurrency(aggregatedData[0]?.total || 0, state.settings.currency)}
+          </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card">
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Top {primaryCategoryColumn} by Value
-            </h4>
-            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              {aggregatedData[0]?.name || 'N/A'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {DataProcessor.formatCurrency(aggregatedData[0]?.total || 0, state.settings.currency)}
-            </p>
-          </div>
-          
-          <div className="card">
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Most Frequent {primaryCategoryColumn}
-            </h4>
-            <p className="text-2xl font-bold text-secondary-600 dark:text-secondary-400">
-              {aggregatedData.sort((a, b) => b.count - a.count)[0]?.name || 'N/A'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {DataProcessor.formatNumber(aggregatedData.sort((a, b) => b.count - a.count)[0]?.count || 0)} records
-            </p>
-          </div>
-          
-          <div className="card">
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Highest Average Value
-            </h4>
-            <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">
-              {aggregatedData.sort((a, b) => b.average - a.average)[0]?.name || 'N/A'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {DataProcessor.formatCurrency(aggregatedData.sort((a, b) => b.average - a.average)[0]?.average || 0, state.settings.currency)}
-            </p>
-          </div>
+        
+        <div className="card">
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Most Frequent {primaryCategoryColumn}
+          </h4>
+          <p className="text-2xl font-bold text-secondary-600 dark:text-secondary-400">
+            {aggregatedData.sort((a, b) => b.count - a.count)[0]?.name || 'N/A'}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {DataProcessor.formatNumber(aggregatedData.sort((a, b) => b.count - a.count)[0]?.count || 0)} records
+          </p>
         </div>
-      )}
+        
+        <div className="card">
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Highest Average Value
+          </h4>
+          <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">
+            {aggregatedData.sort((a, b) => b.average - a.average)[0]?.name || 'N/A'}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {DataProcessor.formatCurrency(aggregatedData.sort((a, b) => b.average - a.average)[0]?.average || 0, state.settings.currency)}
+          </p>
+        </div>
+      </div>
 
       {/* Charts */}
       <div className="space-y-8">
-        <ChartContainer title={`${primaryValueColumn} Distribution (Treemap)${isMultiDataset ? ' - Dataset Comparison' : ''}`} className="w-full">
+        <ChartContainer title={`${primaryValueColumn} Distribution (Treemap)`} className="w-full">
           <Chart
             options={treemapOptions}
             series={treemapSeries}
@@ -379,7 +244,7 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
           />
         </ChartContainer>
 
-        <ChartContainer title={`Count vs Value Correlation${isMultiDataset ? ' - Dataset Comparison' : ''}`} className="w-full">
+        <ChartContainer title="Count vs Value Correlation" className="w-full">
           <Chart
             options={scatterOptions}
             series={scatterSeries}
