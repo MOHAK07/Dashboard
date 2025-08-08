@@ -354,7 +354,9 @@ export function FlexibleChart({
         barHeight: '85%',
         horizontal: isHorizontalBar,
         dataLabels: { position: 'top' },
-        distributed: false
+        distributed: false,
+        rangeBarOverlap: true,
+        rangeBarGroupRows: false
       }
     },
     
@@ -388,8 +390,8 @@ export function FlexibleChart({
         plotOptions: {
           bar: { 
             horizontal: true,
-            columnWidth: '90%',
-            barHeight: '90%'
+            columnWidth: '80%',
+            barHeight: '80%'
           }
         },
         legend: {
@@ -399,6 +401,9 @@ export function FlexibleChart({
           labels: {
             rotate: -90
           }
+        },
+        chart: {
+          height: 400
         }
       }
     }]
