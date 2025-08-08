@@ -51,40 +51,6 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
   const uniqueProducts = state.data.length > 0 ? DataProcessor.getUniqueValues(state.data, 'ProductName') : [];
   const dateRange = state.data.length > 0 ? DataProcessor.getDateRange(state.data) : { start: '', end: '' };
 
-  // Get dynamic filter options based on active datasets
-  const getFilterOptions = () => {
-    if (state.data.length === 0) return { products: [], locations: [], categories: [] };
-    
-    const categoricalColumns = DataProcessor.findCategoricalColumns(state.data);
-    const productColumn = categoricalColumns.find(col =>
-      col.toLowerCase().includes('name') ||
-      col.toLowerCase().includes('product') ||
-      col.toLowerCase().includes('item')
-    );
-    const locationColumn = categoricalColumns.find(col =>
-      col.toLowerCase().includes('address') ||
-      col.toLowerCase().includes('location') ||
-      col.toLowerCase().includes('state') ||
-      col.toLowerCase().includes('city')
-    );
-    const categoryColumn = categoricalColumns.find(col =>
-      col.toLowerCase().includes('category') ||
-      col.toLowerCase().includes('type') ||
-      col.toLowerCase().includes('buyer')
-    );
-
-    return {
-      products: productColumn ? DataProcessor.getUniqueValues(state.data, productColumn) : [],
-      locations: locationColumn ? DataProcessor.getUniqueValues(state.data, locationColumn) : [],
-      categories: categoryColumn ? DataProcessor.getUniqueValues(state.data, categoryColumn) : [],
-      productColumn,
-      locationColumn,
-      categoryColumn
-    };
-  };
-
-  const filterOptions = getFilterOptions();
-
   const toggleTheme = () => {
     const newTheme = state.settings.theme === 'light' ? 'dark' : 'light';
     const newSettings = { ...state.settings, theme: newTheme as 'light' | 'dark' | 'system' };
@@ -370,14 +336,16 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
                 </span>
               )}
               
-              {state.filters.selectedProducts.map(product => (
-                <span
-                  key={product}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300"
-                >
-                  {product}
-                </span>
-              ))}
+              {Object.entries(state.filters.selectedValues).map(([column, values]) =>
+                values.map(value => (
+                  <span
+                    key={`${column}-${value}`}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300"
+                  >
+                    {column}: {value}
+                  </span>
+                ))
+              )}
             </div>
             
             <button
