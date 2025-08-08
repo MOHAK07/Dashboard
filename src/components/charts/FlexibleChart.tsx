@@ -606,8 +606,9 @@ export function FlexibleChart({
       },
       yaxis: {
         labels: {
-          formatter: isHorizontalBar ? undefined : (val: number) => 
-            DataProcessor.formatCurrency(val, state.settings.currency),
+          formatter: isHorizontalBar ? 
+            (val: number) => val.toString() :
+            (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
         },
         title: {
@@ -736,9 +737,7 @@ export function FlexibleChart({
   };
 
   // Debug logging
-            formatter: isHorizontalBar 
-              ? (val: number) => val.toString()
-              : (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+  console.log('FlexibleChart Final Debug:', {
     chartType,
     hasData,
     isMultiDataset,
