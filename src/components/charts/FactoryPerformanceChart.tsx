@@ -41,44 +41,45 @@ export function FactoryPerformanceChart({
     );
   }
   
-  // Prepare data for multi-dataset comparison
-  const prepareChartData = () => {
-    if (!isMultiDataset) {
-      return {
-        categories: factoryData.map((f) => f.name),
-        series: [{
-          name: 'Revenue',
-          data: factoryData.map((f) => f.totalRevenue),
-          color: '#3b82f6'
-        }]
-      };
-    }
+  // For multi-dataset mode, show individual charts for each dataset
+  if (isMultiDataset) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Factory Performance - Individual Dataset Views
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {multiDatasetData.length} datasets active
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {multiDatasetData.map((dataset) => (
+            <IndividualFactoryChart
+              key={dataset.datasetId}
+              data={dataset.data}
+              title={dataset.datasetName}
+              chartType={chartType}
+              isDarkMode={isDarkMode}
+              color={dataset.color}
+              currency={state.settings.currency}
+              enableDrillDown={enableDrillDown}
+              addDrillDownFilter={addDrillDownFilter}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    // For multi-dataset, create series for each dataset
-    const allFactories = new Set<string>();
-    const datasetSeries: any[] = [];
-
-    multiDatasetData.forEach(dataset => {
-      const datasetFactoryData = DataProcessor.aggregateByFactory(dataset.data);
-      datasetFactoryData.forEach(factory => allFactories.add(factory.name));
-      
-      datasetSeries.push({
-        name: dataset.datasetName,
-        data: Array.from(allFactories).map(factoryName => {
-          const factory = datasetFactoryData.find(f => f.name === factoryName);
-          return factory ? factory.totalRevenue : 0;
-        }),
-        color: dataset.color
-      });
-    });
-
-    return {
-      categories: Array.from(allFactories),
-      series: datasetSeries
-    };
-  };
-
-  const { categories, series } = prepareChartData();
+  // Single dataset chart
+  const categories = factoryData.map((f) => f.name);
+  const series = [{
+    name: 'Revenue',
+    data: factoryData.map((f) => f.totalRevenue),
+    color: '#3b82f6'
+  }];
 
   const chartOptions: ApexOptions = {
     chart: {
@@ -98,7 +99,7 @@ export function FactoryPerformanceChart({
       bar: {
         horizontal: isHorizontal,
         borderRadius: 8,
-        columnWidth: isMultiDataset ? '60%' : '70%',
+        columnWidth: '70%',
         dataLabels: { 
           position: isHorizontal ? 'center' : 'top' 
         },
@@ -122,40 +123,27 @@ export function FactoryPerformanceChart({
         formatter: !isHorizontal ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
       },
     },
-    colors: series.map(s => s.color),
+    colors: ['#3b82f6'],
     theme: { mode: isDarkMode ? 'dark' : 'light' },
     grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
-    legend: isMultiDataset ? {
-      show: true,
-      position: 'top',
-      labels: {
-        colors: isDarkMode ? '#9ca3af' : '#6b7280',
-      },
-    } : { show: false },
+    legend: { show: false },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
-      custom: ({ series: tooltipSeries, seriesIndex, dataPointIndex, w }: any) => {
+      custom: ({ dataPointIndex }: any) => {
         if (dataPointIndex === undefined || !factoryData[dataPointIndex]) return '';
         
         const factoryName = categories[dataPointIndex];
-        const value = tooltipSeries[seriesIndex][dataPointIndex];
-        const seriesName = w.globals.seriesNames[seriesIndex];
+        const factory = factoryData[dataPointIndex];
         
         return `
           <div style="padding: 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             <div style="font-weight: 600; color: ${isDarkMode ? '#f3f4f6' : '#374151'}; margin-bottom: 8px;">
               ${factoryName}
             </div>
-            ${isMultiDataset ? `
-            <div style="margin-bottom: 6px;">
-              <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Dataset: </span>
-              <span style="font-weight: 600;">${seriesName}</span>
-            </div>
-            ` : ''}
             <div style="margin-bottom: 6px;">
               <span style="color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Revenue: </span>
-              <span style="font-weight: 600; color: ${series[seriesIndex]?.color || '#3b82f6'};">
-                ${DataProcessor.formatCurrency(value, state.settings.currency)}
+              <span style="font-weight: 600; color: #3b82f6;">
+                ${DataProcessor.formatCurrency(factory.totalRevenue, state.settings.currency)}
               </span>
             </div>
           </div>
@@ -176,7 +164,7 @@ export function FactoryPerformanceChart({
 
   return (
     <ChartContainer
-      title={`Factory Performance${isMultiDataset ? ' Comparison' : ''}`}
+      title="Factory Performance"
       onChartTypeChange={(type) => setChartType(type as 'bar' | 'horizontal')}
       availableTypes={['bar', 'horizontal']}
       currentType={chartType}
@@ -188,5 +176,129 @@ export function FactoryPerformanceChart({
         height="100%"
       />
     </ChartContainer>
+  );
+}
+
+// Individual Factory Chart Component
+interface IndividualFactoryChartProps {
+  data: FlexibleDataRow[];
+  title: string;
+  chartType: 'bar' | 'horizontal';
+  isDarkMode: boolean;
+  color: string;
+  currency: string;
+  enableDrillDown: boolean;
+  addDrillDownFilter: (key: string, value: any) => void;
+}
+
+function IndividualFactoryChart({
+  data,
+  title,
+  chartType,
+  isDarkMode,
+  color,
+  currency,
+  enableDrillDown,
+  addDrillDownFilter
+}: IndividualFactoryChartProps) {
+  const factoryData = DataProcessor.aggregateByFactory(data);
+  
+  if (factoryData.length === 0) {
+    return (
+      <div className="card">
+        <div className="flex items-center space-x-3 mb-4">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+        </div>
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <p className="text-sm">No factory data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isHorizontal = chartType === 'horizontal';
+  const categories = factoryData.map(f => f.name);
+
+  const chartOptions: ApexOptions = {
+    chart: {
+      type: 'bar',
+      toolbar: { show: false },
+      background: 'transparent',
+      events: enableDrillDown ? {
+        dataPointSelection: (event: any, chartContext: any, config: any) => {
+          const factoryName = categories[config.dataPointIndex];
+          addDrillDownFilter('FactoryName', factoryName);
+        },
+      } : {},
+    },
+    plotOptions: {
+      bar: {
+        horizontal: isHorizontal,
+        borderRadius: 4,
+        columnWidth: '70%',
+        dataLabels: { position: isHorizontal ? 'center' : 'top' }
+      }
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories,
+      labels: {
+        style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+        formatter: isHorizontal
+          ? (value: string) => DataProcessor.formatCurrency(Number(value), currency)
+          : undefined,
+      }
+    },
+    yaxis: {
+      labels: {
+        style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+        formatter: !isHorizontal ? (val: number) => DataProcessor.formatCurrency(val, currency) : undefined,
+      }
+    },
+    colors: [color],
+    theme: { mode: isDarkMode ? 'dark' : 'light' },
+    grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
+    tooltip: {
+      theme: isDarkMode ? 'dark' : 'light',
+      y: {
+        formatter: (val: number) => DataProcessor.formatCurrency(val, currency)
+      }
+    }
+  };
+
+  const series = [{
+    name: 'Revenue',
+    data: factoryData.map(f => f.totalRevenue),
+    color
+  }];
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {data.length} records
+        </div>
+      </div>
+      
+      <div className="h-80">
+        <Chart
+          options={chartOptions}
+          series={series}
+          type="bar"
+          height="100%"
+        />
+      </div>
+    </div>
   );
 }

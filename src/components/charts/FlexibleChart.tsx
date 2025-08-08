@@ -21,8 +21,11 @@ export function FlexibleChart({
   isDarkMode = false,
   className = ''
 }: FlexibleChartProps) {
-  const { state } = useApp();
+  const { state, getMultiDatasetData } = useApp();
   const [chartType, setChartType] = useState<string>(initialChartType);
+  
+  const multiDatasetData = getMultiDatasetData();
+  const isMultiDataset = multiDatasetData.length > 1;
   
   // Process time series data for "Trends Over Time" chart
   const processTimeSeriesData = () => {
@@ -250,7 +253,38 @@ export function FlexibleChart({
     );
   }
 
-  // Chart configuration
+  // For multi-dataset mode, render individual charts for each dataset
+  if (isMultiDataset && !title.toLowerCase().includes('trends') && !title.toLowerCase().includes('time')) {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {title} - Individual Dataset Views
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {multiDatasetData.length} datasets active
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {multiDatasetData.map((dataset, index) => (
+            <IndividualDatasetChart
+              key={dataset.datasetId}
+              data={dataset.data}
+              title={`${dataset.datasetName}`}
+              chartType={chartType}
+              isDarkMode={isDarkMode}
+              color={dataset.color}
+              onChartTypeChange={setChartType}
+              availableTypes={getAvailableTypes()}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Single dataset or trends chart - render normally
   const isHorizontalBar = chartType === 'horizontalBar';
   const actualChartType = isHorizontalBar ? 'bar' : chartType;
   const isPieChart = actualChartType === 'pie' || actualChartType === 'donut';
@@ -315,7 +349,7 @@ export function FlexibleChart({
       show: !isPieChart,
       padding: {
         top: 0,
-        right: 30,
+        right: 10,
         bottom: 0,
         left: 10
       }
@@ -350,13 +384,11 @@ export function FlexibleChart({
       },
       bar: {
         borderRadius: 4,
-        columnWidth: '85%',
-        barHeight: '85%',
+        columnWidth: '75%',
+        barHeight: '75%',
         horizontal: isHorizontalBar,
         dataLabels: { position: 'top' },
-        distributed: false,
-        rangeBarOverlap: true,
-        rangeBarGroupRows: false
+        distributed: false
       }
     },
     
@@ -418,16 +450,6 @@ export function FlexibleChart({
         color: '#3b82f6'
       }];
 
-  // Debug logging
-  console.log('FlexibleChart render:', {
-    title,
-    chartType,
-    hasData,
-    categoriesLength: categories?.length,
-    chartDataLength: chartData?.length,
-    series
-  });
-
   return (
     <ChartContainer
       title={title}
@@ -446,5 +468,185 @@ export function FlexibleChart({
         />
       </div>
     </ChartContainer>
+  );
+}
+
+// Individual Dataset Chart Component
+interface IndividualDatasetChartProps {
+  data: FlexibleDataRow[];
+  title: string;
+  chartType: string;
+  isDarkMode: boolean;
+  color: string;
+  onChartTypeChange: (type: string) => void;
+  availableTypes: string[];
+}
+
+function IndividualDatasetChart({
+  data,
+  title,
+  chartType,
+  isDarkMode,
+  color,
+  onChartTypeChange,
+  availableTypes
+}: IndividualDatasetChartProps) {
+  const { state } = useApp();
+
+  // Process data for individual dataset
+  const processedData = useMemo(() => {
+    try {
+      if (!data || data.length === 0) {
+        return { chartData: [], categories: [], hasData: false };
+      }
+
+      const numericColumns = DataProcessor.findNumericColumns(data);
+      const categoricalColumns = DataProcessor.findCategoricalColumns(data);
+
+      let valueColumn = numericColumns.find(col => 
+        col.toLowerCase().includes('price') || 
+        col.toLowerCase().includes('revenue') ||
+        col.toLowerCase().includes('quantity') ||
+        col.toLowerCase().includes('amount')
+      ) || numericColumns[0];
+
+      let categoryColumn = categoricalColumns.find(col =>
+        col.toLowerCase().includes('name') ||
+        col.toLowerCase().includes('product') ||
+        col.toLowerCase().includes('category')
+      ) || categoricalColumns[0];
+
+      if (!valueColumn || !categoryColumn) {
+        return { chartData: [], categories: [], hasData: false };
+      }
+
+      const aggregatedData = DataProcessor.aggregateByCategory(data, categoryColumn, valueColumn);
+      const limitedData = aggregatedData.slice(0, 8); // Limit for individual charts
+
+      return {
+        chartData: limitedData.map(item => Math.round(item.total * 100) / 100),
+        categories: limitedData.map(item => item.name || 'Unknown'),
+        hasData: true
+      };
+    } catch (error) {
+      console.error('Individual chart processing error:', error);
+      return { chartData: [], categories: [], hasData: false };
+    }
+  }, [data]);
+
+  if (!processedData.hasData) {
+    return (
+      <div className="card">
+        <div className="flex items-center space-x-3 mb-4">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+        </div>
+        <div className="flex items-center justify-center h-48 text-gray-500 dark:text-gray-400">
+          <p className="text-sm">No suitable data for visualization</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isHorizontalBar = chartType === 'horizontalBar';
+  const actualChartType = isHorizontalBar ? 'bar' : chartType;
+  const isPieChart = actualChartType === 'pie' || actualChartType === 'donut';
+
+  const chartOptions: ApexOptions = {
+    chart: {
+      type: actualChartType === 'donut' ? 'donut' : actualChartType,
+      background: 'transparent',
+      toolbar: { show: false },
+      height: '100%',
+      animations: { enabled: true, speed: 600 }
+    },
+    
+    ...(isPieChart ? {
+      labels: processedData.categories,
+      legend: {
+        position: 'bottom',
+        labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
+      }
+    } : {
+      xaxis: {
+        categories: processedData.categories,
+        labels: {
+          style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+          rotate: processedData.categories.length > 6 ? -45 : 0
+        }
+      },
+      yaxis: {
+        labels: {
+          formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+          style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
+        }
+      }
+    }),
+
+    colors: [color],
+    theme: { mode: isDarkMode ? 'dark' : 'light' },
+    grid: { 
+      borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+      show: !isPieChart
+    },
+    
+    plotOptions: {
+      pie: {
+        donut: {
+          size: actualChartType === 'donut' ? '60%' : '0%'
+        },
+        expandOnClick: false
+      },
+      bar: {
+        borderRadius: 4,
+        columnWidth: '70%',
+        horizontal: isHorizontalBar
+      }
+    },
+    
+    dataLabels: {
+      enabled: isPieChart,
+      formatter: isPieChart ? (val: number) => `${val.toFixed(1)}%` : undefined
+    },
+    
+    tooltip: {
+      theme: isDarkMode ? 'dark' : 'light',
+      y: {
+        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency)
+      }
+    }
+  };
+
+  const series = isPieChart 
+    ? processedData.chartData
+    : [{ name: 'Value', data: processedData.chartData, color }];
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {data.length} records
+        </div>
+      </div>
+      
+      <div className="h-80">
+        <Chart
+          options={chartOptions}
+          series={series}
+          type={actualChartType === 'donut' ? 'donut' : actualChartType}
+          height="100%"
+        />
+      </div>
+    </div>
   );
 }

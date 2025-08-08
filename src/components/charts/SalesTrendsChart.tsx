@@ -39,7 +39,8 @@ export function SalesTrendsChart({ data, isDarkMode = false }: SalesTrendsChartP
     );
   }
 
-  // Prepare data for multi-dataset comparison
+  // For multi-dataset mode, combine all datasets into one time series chart
+  // This is different from other charts because time series comparison is meaningful
   const prepareTimeSeriesData = () => {
     if (!isMultiDataset) {
       return {

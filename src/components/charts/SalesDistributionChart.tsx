@@ -36,123 +36,37 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     );
   }
 
-  const totalRevenue = plantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
-
-  // For multi-dataset comparison, we'll show multiple pie charts side by side
+  // For multi-dataset mode, show individual charts for each dataset
   if (isMultiDataset) {
     return (
-      <ChartContainer
-        title="Sales Distribution by Plant - Dataset Comparison"
-        onChartTypeChange={(type) => setChartType(type as 'donut' | 'pie')}
-        availableTypes={['donut', 'pie']}
-        currentType={chartType}
-      >
-        <div className="grid grid-cols-2 gap-8 h-full p-4 overflow-visible">
-          {multiDatasetData.map((dataset, index) => {
-            const datasetPlantData = DataProcessor.aggregateByPlant(dataset.data);
-            const datasetTotalRevenue = datasetPlantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
-            
-            if (datasetPlantData.length === 0) return null;
-
-            const chartOptions: ApexOptions = {
-              chart: {
-                type: chartType,
-                background: 'transparent',
-                fontFamily: 'inherit',
-                animations: {
-                  enabled: true,
-                  speed: 300
-                }
-              },
-              labels: datasetPlantData.map(plant => plant.name),
-              colors: [
-                dataset.color,
-                `${dataset.color}CC`,
-                `${dataset.color}99`,
-                `${dataset.color}66`,
-                `${dataset.color}33`
-              ],
-              legend: {
-                show: false, // Hide individual legends to save space
-              },
-              plotOptions: {
-                pie: {
-                  donut: {
-                    size: chartType === 'donut' ? '50%' : '0%',
-                    labels: {
-                      show: chartType === 'donut',
-                      name: {
-                        show: true,
-                        fontSize: '10px',
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      },
-                      value: {
-                        show: true,
-                        fontSize: '12px',
-                        formatter: (val: string) => DataProcessor.formatCurrency(Number(val), state.settings.currency),
-                        color: isDarkMode ? '#f3f4f6' : '#374151',
-                      },
-                      total: {
-                        show: true,
-                        label: 'Total',
-                        fontSize: '10px',
-                        formatter: () => DataProcessor.formatCurrency(datasetTotalRevenue, state.settings.currency),
-                        color: isDarkMode ? '#f3f4f6' : '#374151',
-                      },
-                    },
-                  },
-                },
-              },
-              dataLabels: {
-                enabled: true,
-                style: {
-                  fontSize: '10px',
-                  colors: ['#ffffff'],
-                },
-                formatter: (val: number) => val > 5 ? `${val.toFixed(0)}%` : '', // Only show if > 5%
-              },
-              tooltip: {
-                theme: isDarkMode ? 'dark' : 'light',
-                y: {
-                  formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-                },
-              },
-            };
-
-            const series = datasetPlantData.map(plant => plant.totalRevenue);
-
-            return (
-              <div key={dataset.datasetId} className="flex flex-col items-center justify-center bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm h-[400px]">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: dataset.color }}
-                  />
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 text-center">
-                    {dataset.datasetName}
-                  </h4>
-                </div>
-                <div className="w-full h-full flex items-center justify-center">
-                  <Chart
-                    options={chartOptions}
-                    series={series}
-                    type={chartType}
-                    height="100%"
-                    width="100%"
-                  />
-                </div>
-                <div className="mt-2 text-center">
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Total: {DataProcessor.formatCurrency(datasetTotalRevenue, state.settings.currency)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Sales Distribution by Plant - Individual Dataset Views
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {multiDatasetData.length} datasets active
+          </div>
         </div>
-      </ChartContainer>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {multiDatasetData.map((dataset) => (
+            <IndividualPlantChart
+              key={dataset.datasetId}
+              data={dataset.data}
+              title={dataset.datasetName}
+              chartType={chartType}
+              isDarkMode={isDarkMode}
+              color={dataset.color}
+              currency={state.settings.currency}
+            />
+          ))}
+        </div>
+      </div>
     );
   }
+
+  const totalRevenue = plantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
 
   const chartOptions: ApexOptions = {
     chart: {
@@ -277,5 +191,134 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
         </div>
       </div>
     </ChartContainer>
+  );
+}
+
+// Individual Plant Chart Component
+interface IndividualPlantChartProps {
+  data: FlexibleDataRow[];
+  title: string;
+  chartType: 'donut' | 'pie';
+  isDarkMode: boolean;
+  color: string;
+  currency: string;
+}
+
+function IndividualPlantChart({
+  data,
+  title,
+  chartType,
+  isDarkMode,
+  color,
+  currency
+}: IndividualPlantChartProps) {
+  const plantData = DataProcessor.aggregateByPlant(data);
+  
+  if (plantData.length === 0) {
+    return (
+      <div className="card">
+        <div className="flex items-center space-x-3 mb-4">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+        </div>
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <p className="text-sm">No plant data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalRevenue = plantData.reduce((sum, plant) => sum + plant.totalRevenue, 0);
+  
+  // Generate color variations based on the dataset color
+  const generateColorVariations = (baseColor: string) => {
+    return [
+      baseColor,
+      `${baseColor}E6`, // 90% opacity
+      `${baseColor}CC`, // 80% opacity
+      `${baseColor}B3`, // 70% opacity
+      `${baseColor}99`, // 60% opacity
+      `${baseColor}80`, // 50% opacity
+      `${baseColor}66`, // 40% opacity
+      `${baseColor}4D`, // 30% opacity
+    ];
+  };
+
+  const chartOptions: ApexOptions = {
+    chart: {
+      type: chartType,
+      background: 'transparent',
+      animations: { enabled: true, speed: 600 }
+    },
+    labels: plantData.map(plant => plant.name),
+    colors: generateColorVariations(color),
+    legend: {
+      position: 'bottom',
+      labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: chartType === 'donut' ? '60%' : '0%',
+          labels: {
+            show: chartType === 'donut',
+            total: {
+              show: true,
+              label: 'Total',
+              formatter: () => DataProcessor.formatCurrency(totalRevenue, currency)
+            }
+          }
+        },
+        expandOnClick: false
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => val > 5 ? `${val.toFixed(1)}%` : '',
+      style: { colors: ['#ffffff'] }
+    },
+    tooltip: {
+      theme: isDarkMode ? 'dark' : 'light',
+      y: {
+        formatter: (val: number) => DataProcessor.formatCurrency(val, currency)
+      }
+    }
+  };
+
+  const series = plantData.map(plant => plant.totalRevenue);
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div 
+            className="w-4 h-4 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {data.length} records
+        </div>
+      </div>
+      
+      <div className="h-80">
+        <Chart
+          options={chartOptions}
+          series={series}
+          type={chartType}
+          height="100%"
+        />
+      </div>
+      
+      <div className="mt-4 text-center">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Total Revenue: {DataProcessor.formatCurrency(totalRevenue, currency)}
+        </p>
+      </div>
+    </div>
   );
 }
