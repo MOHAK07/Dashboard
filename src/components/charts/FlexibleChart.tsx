@@ -312,7 +312,13 @@ export function FlexibleChart({
     
     grid: { 
       borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-      show: !isPieChart
+      show: !isPieChart,
+      padding: {
+        top: 0,
+        right: 30,
+        bottom: 0,
+        left: 10
+      }
     },
     
     tooltip: {
@@ -348,9 +354,7 @@ export function FlexibleChart({
         barHeight: '85%',
         horizontal: isHorizontalBar,
         dataLabels: { position: 'top' },
-        distributed: false,
-        rangeBarOverlap: true,
-        rangeBarGroupRows: false
+        distributed: false
       }
     },
     
