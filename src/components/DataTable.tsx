@@ -277,7 +277,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
       <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
         <div className="overflow-hidden">
           Showing {filteredAndSortedData.length} of {data.length} rows
-        </span>
+        </div>
         
         {searchTerm || Object.values(columnFilters).some(Boolean) ? (
           <button
