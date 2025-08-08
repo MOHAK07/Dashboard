@@ -1,11 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import App from './App'
 import './index.css'
 
-initializeTheme();
-
 // Initialize theme on app start
-const initializeTheme = () => {
+function initializeTheme() {
   const savedSettings = localStorage.getItem('dashboard-settings');
   let theme = 'light';
   
@@ -31,8 +30,11 @@ const initializeTheme = () => {
       document.documentElement.classList.remove('dark');
     }
   }
+}
+
+// Call initializeTheme after function definition
 initializeTheme();
-};
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
