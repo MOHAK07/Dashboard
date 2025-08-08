@@ -29,6 +29,15 @@ export function FlexibleChart({
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
 
+  // Enhanced color generation for individual charts
+  const generateDatasetColors = (baseColor: string, dataCount: number) => {
+    const colors = [];
+    for (let i = 0; i < dataCount; i++) {
+      const opacity = Math.max(0.3, 1 - (i * 0.1));
+      colors.push(`${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
+    }
+    return colors;
+  };
   // Chart type icons mapping
   const chartTypeIcons = {
     bar: BarChart,
@@ -450,9 +459,9 @@ export function FlexibleChart({
     }),
 
     colors: multiTimeSeriesData ? multiTimeSeriesData.series.map(s => s.color) : [
-      '#3b82f6', '#22c55e', '#f97316', '#ef4444', 
-      '#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899',
-      '#84cc16', '#6366f1'
+      '#3b82f6', '#7ab839', '#f97316', '#ef4444', 
+      '#1A2885', '#06b6d4', '#f59e0b', '#dc2626',
+      '#84cc16', '#059669'
     ],
     
     theme: { mode: isDarkMode ? 'dark' : 'light' },
@@ -673,6 +682,10 @@ function IndividualDatasetChart({
   const actualChartType = isHorizontalBar ? 'bar' : chartType;
   const isPieChart = actualChartType === 'pie' || actualChartType === 'donut';
 
+  // Generate colors based on dataset color
+  const chartColors = isPieChart 
+    ? generateDatasetColors(color, processedData.chartData.length)
+    : [color];
   const chartOptions: ApexOptions = {
     chart: {
       type: actualChartType === 'donut' ? 'donut' : actualChartType,
@@ -704,7 +717,7 @@ function IndividualDatasetChart({
       }
     }),
 
-    colors: [color],
+    colors: chartColors,
     theme: { mode: isDarkMode ? 'dark' : 'light' },
     grid: { 
       borderColor: isDarkMode ? '#374151' : '#e5e7eb',

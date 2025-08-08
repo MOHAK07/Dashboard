@@ -112,6 +112,26 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
           >
             <Menu className="h-5 w-5" />
           </button>
+          
+          {/* Logo and Title */}
+          <div className="hidden lg:flex items-center space-x-3">
+            <img 
+              src="https://trualtbioenergy.com/public/Admin/SideSetting/logo/6853f23a2d3d7.png"
+              alt="Company Logo"
+              className="h-8 w-auto"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                DataHub Analytics
+              </h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Business Intelligence Platform
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Right side */}

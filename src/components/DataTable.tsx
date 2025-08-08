@@ -224,9 +224,10 @@ export function DataTable({ data, className = '' }: DataTableProps) {
         </div>
       )}
 
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
         {/* Header */}
-        <div className="flex bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-x-auto">
+        <div className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-x-auto">
+          <div className="flex min-w-max">
           {columns.map((column) => (
             <div
               key={column.key}
@@ -246,6 +247,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
               )}
             </div>
           ))}
+          </div>
         </div>
 
         {/* Data Rows */}
@@ -273,7 +275,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
       </div>
 
       <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-        <span>
+        <div className="overflow-hidden">
           Showing {filteredAndSortedData.length} of {data.length} rows
         </span>
         
@@ -283,7 +285,8 @@ export function DataTable({ data, className = '' }: DataTableProps) {
               setSearchTerm('');
               setColumnFilters({});
             }}
-            className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+            width="100%"
+            style={{ overflowX: 'auto', overflowY: 'auto' }}
           >
             Clear filters
           </button>
