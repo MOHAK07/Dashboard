@@ -274,7 +274,7 @@ export function SettingsTab() {
           About
         </h3>
         <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          <p><strong>DataHub Analytics Dashboard</strong></p>
+          <p><strong>TruAlt Analytics Dashboard</strong></p>
           <p>Version 1.0.0</p>
           <p>Built with React, TypeScript, and Tailwind CSS</p>
           <p>© 2025 Analytics Dashboard. All rights reserved.</p>
