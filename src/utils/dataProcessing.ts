@@ -127,7 +127,12 @@ export class DataProcessor {
     
     data.forEach(row => {
       const key = String(row[column] || 'Unknown');
-      const value = this.findNumericValue(row);
+      let value = this.findNumericValue(row);
+      
+      // If no numeric value found, use count of 1
+      if (value === 0) {
+        value = 1;
+      }
       
       if (aggregationMap.has(key)) {
         aggregationMap.set(key, aggregationMap.get(key)! + value);
@@ -136,10 +141,13 @@ export class DataProcessor {
       }
     });
     
-    return Array.from(aggregationMap.entries()).map(([name, value]) => ({
+    return Array.from(aggregationMap.entries())
+      .map(([name, value]) => ({
       name,
       value,
-    }));
+    }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 20); // Limit to top 20 for performance
   }
 
   static findNumericValue(row: FlexibleDataRow): number {
