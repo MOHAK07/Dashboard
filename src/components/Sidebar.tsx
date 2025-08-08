@@ -97,7 +97,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileToggle }:
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             {!isCollapsed && (
               <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                TruAltlytics
+                TruAlt Analytics
               </h1>
             )}
             <button
@@ -164,7 +164,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileToggle }:
           {!isCollapsed && (
             <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                <p>TruAltlytics v1.0</p>
+                <p>TruAlt Analytics v1.0</p>
                 <p>© 2025 Analytics Dashboard</p>
               </div>
             </div>
