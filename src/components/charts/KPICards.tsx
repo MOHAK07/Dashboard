@@ -109,7 +109,40 @@ export function KPICards({ data, currency = 'INR' }: KPICardsProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <>
+      {/* Multi-dataset indicator */}
+      {isMultiDataset && (
+        <div className="card bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-700 mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
+              <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-primary-900 dark:text-primary-100">
+                Multi-Dataset Overview
+              </h3>
+              <p className="text-sm text-primary-700 dark:text-primary-300">
+                Aggregated metrics across {multiDatasetData.length} active datasets
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {multiDatasetData.map((dataset) => (
+              <div key={dataset.datasetId} className="flex items-center space-x-2">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: dataset.color }}
+                />
+                <span className="text-sm text-primary-700 dark:text-primary-300">
+                  {dataset.datasetName} ({dataset.data.length} rows)
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {cards.map((card, index) => {
         const Icon = card.icon;
         
@@ -203,6 +236,7 @@ export function KPICards({ data, currency = 'INR' }: KPICardsProps) {
           </div>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
