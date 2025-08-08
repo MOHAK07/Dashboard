@@ -97,19 +97,19 @@ export function FlexibleChart({
       toolbar: { show: false },
     },
     labels: actualChartType === 'pie' || actualChartType === 'donut' ? categories : undefined,
-    xaxis: actualChartType !== 'pie' && actualChartType !== 'donut' ? {
+    xaxis: actualChartType === 'pie' || actualChartType === 'donut' ? {} : {
       categories: categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
         formatter: isHorizontalBar ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
       },
-    } : undefined,
-    yaxis: actualChartType !== 'pie' && actualChartType !== 'donut' ? {
+    },
+    yaxis: actualChartType === 'pie' || actualChartType === 'donut' ? {} : {
       labels: {
         formatter: isHorizontalBar ? undefined : (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
       },
-    } : undefined,
+    },
     colors: [
       '#3b82f6', '#22c55e', '#f97316', '#ef4444', 
       '#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899'

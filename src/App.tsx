@@ -53,9 +53,9 @@ function DashboardContent() {
       case 'settings':
         return <SettingsTab />;
       default:
+        setActiveTab('overview');
+        return <OverviewTab data={filteredData} />;
     }
-    // Switch to overview tab after upload
-    setActiveTab('overview');
   };
 
   // Show welcome screen when no datasets are loaded and not uploading
