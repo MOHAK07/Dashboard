@@ -282,24 +282,18 @@ export function FlexibleChart({
         categories: categories || [],
         labels: {
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-          rotate: categories && categories.length > 10 ? -45 : 0,
-        height: 500,
-        width: '100%',
+          rotate: categories && categories.length > 10 ? -45 : 0
         },
         title: {
           text: title.toLowerCase().includes('trends') ? 'Time Period' : 'Categories',
           style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
-        },
-        parentHeightOffset: 0,
-        sparkline: {
-          enabled: false
         }
       },
       yaxis: {
         labels: {
           formatter: isHorizontalBar ? undefined : (val: number) => 
             DataProcessor.formatCurrency(val, state.settings.currency),
-          style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+          style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
         },
         title: {
           text: title.toLowerCase().includes('trends') ? 'Sales Value' : 'Value',
@@ -318,20 +312,14 @@ export function FlexibleChart({
     
     grid: { 
       borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-      show: !isPieChart,
-      padding: {
-        top: 0,
-        right: 30,
-        bottom: 0,
-        left: 10
-      }
+      show: !isPieChart
     },
     
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
       y: {
-        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-      },
+        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency)
+      }
     },
     
     plotOptions: {
@@ -341,20 +329,18 @@ export function FlexibleChart({
           labels: {
             show: actualChartType === 'donut',
             total: {
-          expandOnClick: false,
-          offsetX: 0,
-          offsetY: 0
               show: true,
               label: 'Total',
               formatter: () => DataProcessor.formatCurrency(
-          columnWidth: '75%',
-          barHeight: '75%',
+                chartData.reduce((sum, val) => sum + val, 0), 
+                state.settings.currency
               )
             }
-          distributed: false,
-          rangeBarOverlap: true,
-          rangeBarGroupRows: false
+          }
         },
+        expandOnClick: false,
+        offsetX: 0,
+        offsetY: 0
       },
       bar: {
         borderRadius: 4,
@@ -362,8 +348,10 @@ export function FlexibleChart({
         barHeight: '85%',
         horizontal: isHorizontalBar,
         dataLabels: { position: 'top' },
-        distributed: false
-      },
+        distributed: false,
+        rangeBarOverlap: true,
+        rangeBarGroupRows: false
+      }
     },
     
     dataLabels: {
@@ -374,7 +362,7 @@ export function FlexibleChart({
     
     stroke: {
       curve: 'smooth',
-      width: actualChartType === 'line' || actualChartType === 'area' ? 4 : 0,
+      width: actualChartType === 'line' || actualChartType === 'area' ? 4 : 0
     },
     
     fill: {
@@ -396,8 +384,8 @@ export function FlexibleChart({
         plotOptions: {
           bar: { 
             horizontal: true,
-            columnWidth: '80%',
-            barHeight: '80%'
+            columnWidth: '90%',
+            barHeight: '90%'
           }
         },
         legend: {
@@ -407,9 +395,6 @@ export function FlexibleChart({
           labels: {
             rotate: -90
           }
-        },
-        chart: {
-          height: 400
         }
       }
     }]
