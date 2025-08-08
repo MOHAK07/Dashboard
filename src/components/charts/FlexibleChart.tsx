@@ -7,6 +7,16 @@ import { DataProcessor } from '../../utils/dataProcessing';
 import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
 
+// Enhanced color generation for individual charts - moved to top level
+const generateDatasetColors = (baseColor: string, dataCount: number) => {
+  const colors = [];
+  for (let i = 0; i < dataCount; i++) {
+    const opacity = Math.max(0.3, 1 - (i * 0.1));
+    colors.push(`${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
+  }
+  return colors;
+};
+
 interface FlexibleChartProps {
   data: FlexibleDataRow[];
   title: string;
@@ -29,15 +39,6 @@ export function FlexibleChart({
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
 
-  // Enhanced color generation for individual charts
-  const generateDatasetColors = (baseColor: string, dataCount: number) => {
-    const colors = [];
-    for (let i = 0; i < dataCount; i++) {
-      const opacity = Math.max(0.3, 1 - (i * 0.1));
-      colors.push(`${baseColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`);
-    }
-    return colors;
-  };
   // Chart type icons mapping
   const chartTypeIcons = {
     bar: BarChart,
