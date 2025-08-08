@@ -196,14 +196,6 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <div className="flex flex-col">
-              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                TruAlt Analytics
-              </h1>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Business Intelligence Platform
-              </p>
-            </div>
           </div>
         </div>
 
