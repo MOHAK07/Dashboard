@@ -279,7 +279,3 @@ export function SalesDistributionChart({ data, isDarkMode = false }: SalesDistri
     </ChartContainer>
   );
 }
-
-function addDrillDownFilter(arg0: string, plantName: any) {
-  throw new Error('Function not implemented.');
-}

@@ -222,10 +222,12 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
                       <button
                         onClick={() => {
                           setFilters({
+                            ...state.filters,
                             dateRange: { start: '', end: '' },
                             selectedProducts: [],
                             selectedPlants: [],
                             selectedFactories: [],
+                            selectedValues: {},
                             drillDownFilters: {},
                           });
                         }}

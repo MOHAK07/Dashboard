@@ -141,7 +141,7 @@ export function FlexibleChart({
     <ChartContainer
       title={title}
       onChartTypeChange={(type) => setChartType(type as any)}
-      availableTypes={['bar', 'line', 'area', 'pie', 'donut']}
+        series={chartType === 'pie' || chartType === 'donut' ? chartData.series : chartData.series}
       currentType={chartType}
       className={className}
     >
