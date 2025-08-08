@@ -151,8 +151,8 @@ export function FlexibleChart({
   };
 
   const series = actualChartType === 'pie' || actualChartType === 'donut' 
-    ? chartData 
-    : [{ name: 'Value', data: chartData }];
+    ? (chartData || [])
+    : [{ name: 'Value', data: (chartData || []) }];
 
   return (
     <ChartContainer
