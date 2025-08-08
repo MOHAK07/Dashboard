@@ -533,6 +533,15 @@ export function FlexibleChart({
           size: actualChartType === 'donut' ? '70%' : '0%',
           labels: {
             show: actualChartType === 'donut',
+            name: {
+              show: true,
+              color: isDarkMode ? '#9ca3af' : '#6b7280',
+            },
+            value: {
+              show: true,
+              formatter: (val: string) => DataProcessor.formatCurrency(Number(val), state.settings.currency),
+              color: isDarkMode ? '#f3f4f6' : '#374151',
+            },
             total: {
               show: true,
               label: 'Total',
