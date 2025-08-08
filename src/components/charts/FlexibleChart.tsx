@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
+import { BarChart, LineChart, PieChart, MoreHorizontal, BarChart3 } from 'lucide-react';
 import { FlexibleDataRow } from '../../types';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { ChartContainer } from './ChartContainer';
@@ -23,12 +24,39 @@ export function FlexibleChart({
 }: FlexibleChartProps) {
   const { state, getMultiDatasetData } = useApp();
   const [chartType, setChartType] = useState<string>(initialChartType);
+  const [showOptions, setShowOptions] = useState(false);
   
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
+
+  // Chart type icons mapping
+  const chartTypeIcons = {
+    bar: BarChart,
+    horizontalBar: BarChart3,
+    line: LineChart,
+    area: LineChart,
+    pie: PieChart,
+    donut: PieChart
+  };
+
+  // Get available chart types
+  const getAvailableTypes = () => {
+    if (initialChartType === 'bar' || title.toLowerCase().includes('distribution')) {
+      return ['bar', 'horizontalBar'];
+    } else if (initialChartType === 'line' || title.toLowerCase().includes('trends')) {
+      return ['line', 'area', 'bar'];
+    } else if (initialChartType === 'donut') {
+      return ['donut', 'pie'];
+    }
+    return [initialChartType];
+  };
   
   // For multi-dataset mode, render individual charts for each dataset EXCEPT for time series
   if (isMultiDataset && !title.toLowerCase().includes('trends') && !title.toLowerCase().includes('time')) {
+    const availableTypes = getAvailableTypes();
+    const currentType = chartType;
+    const onChartTypeChange = setChartType;
+
     return (
       <div className={`space-y-6 ${className}`}>
         <div className="flex items-center justify-between mb-4">
@@ -97,8 +125,6 @@ export function FlexibleChart({
               chartType={chartType}
               isDarkMode={isDarkMode}
               color={dataset.color}
-              availableTypes={availableTypes}
-              currentType={currentType}
             />
           ))}
         </div>
@@ -294,17 +320,6 @@ export function FlexibleChart({
   }, [data, title]);
 
   // Chart type configuration
-  const getAvailableTypes = () => {
-    if (initialChartType === 'bar' || title.toLowerCase().includes('distribution')) {
-      return ['bar', 'horizontalBar'];
-    } else if (initialChartType === 'line' || title.toLowerCase().includes('trends')) {
-      return ['line', 'area', 'bar'];
-    } else if (initialChartType === 'donut') {
-      return ['donut', 'pie'];
-    }
-    return [initialChartType];
-  };
-
   // Error state rendering
   if (!hasData) {
     return (
@@ -581,8 +596,6 @@ interface IndividualDatasetChartProps {
   chartType: string;
   isDarkMode: boolean;
   color: string;
-  availableTypes: string[];
-  currentType: string;
 }
 
 function IndividualDatasetChart({
@@ -590,9 +603,7 @@ function IndividualDatasetChart({
   title,
   chartType,
   isDarkMode,
-  color,
-  availableTypes,
-  currentType
+  color
 }: IndividualDatasetChartProps) {
   const { state } = useApp();
 
