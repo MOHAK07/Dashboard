@@ -479,7 +479,7 @@ export function FlexibleChart({
       },
       yaxis: {
         labels: {
-          formatter: isHorizontalBar ? undefined : (val: number) => 
+          formatter: isHorizontalBar ? null : (val: number) => 
             DataProcessor.formatCurrency(val, state.settings.currency),
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
         },
@@ -561,7 +561,7 @@ export function FlexibleChart({
     
     dataLabels: {
       enabled: isPieChart,
-      formatter: isPieChart ? (val: number) => `${val.toFixed(1)}%` : undefined,
+      formatter: isPieChart ? (val: number) => `${val.toFixed(1)}%` : null,
       style: { colors: ['#ffffff'] }
     },
     
