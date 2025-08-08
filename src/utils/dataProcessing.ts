@@ -171,7 +171,9 @@ export class DataProcessor {
     const primaryValueColumn = numericColumns.find(col => 
       col.toLowerCase().includes('price') || 
       col.toLowerCase().includes('revenue') ||
-      col.toLowerCase().includes('amount')
+      col.toLowerCase().includes('amount') ||
+      col.toLowerCase().includes('quantity') ||
+      col.toLowerCase().includes('value')
     ) || numericColumns[0];
     
     if (!primaryValueColumn) return [];
@@ -225,6 +227,7 @@ export class DataProcessor {
         timeMap.set(timeKey, {
           date: timeKey,
           value: 0,
+          revenue: 0,
           count: 0,
         });
       }
@@ -232,6 +235,7 @@ export class DataProcessor {
       const timePoint = timeMap.get(timeKey);
       const value = parseFloat(String(row[primaryValueColumn] || '0')) || 0;
       timePoint.value += value;
+      timePoint.revenue += value;
       timePoint.count += 1;
     });
     

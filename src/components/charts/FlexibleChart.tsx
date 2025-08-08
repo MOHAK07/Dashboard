@@ -27,6 +27,11 @@ export function FlexibleChart({
   // Comprehensive data processing with error handling
   const { chartData, categories, hasData, errorMessage } = useMemo(() => {
     try {
+      // Special handling for "Trends Over Time" chart
+      if (title.toLowerCase().includes('trends') || title.toLowerCase().includes('time')) {
+        return processTimeSeriesData();
+      }
+      
       // Early return for empty data
       if (!data || !Array.isArray(data) || data.length === 0) {
         return { 
@@ -146,11 +151,71 @@ export function FlexibleChart({
     }
   }, [data]);
 
+  // Process time series data for "Trends Over Time" chart
+  const processTimeSeriesData = () => {
+    try {
+      if (!data || data.length === 0) {
+        return { 
+          chartData: [], 
+          categories: [], 
+          hasData: false, 
+          errorMessage: 'No time series data available' 
+        };
+      }
+
+      // Get time series data with proper grouping
+      const timeSeriesData = DataProcessor.getTimeSeries(data, 'month');
+      
+      if (!timeSeriesData || timeSeriesData.length === 0) {
+        // Fallback to day-based grouping if month fails
+        const daySeriesData = DataProcessor.getTimeSeries(data, 'day');
+        if (!daySeriesData || daySeriesData.length === 0) {
+          return { 
+            chartData: [], 
+            categories: [], 
+            hasData: false, 
+            errorMessage: 'No valid date data found for time series' 
+          };
+        }
+        
+        // Limit to last 30 days for readability
+        const limitedDayData = daySeriesData.slice(-30);
+        return {
+          chartData: limitedDayData.map(point => Math.round(point.value * 100) / 100),
+          categories: limitedDayData.map(point => {
+            const date = new Date(point.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }),
+          hasData: true,
+          errorMessage: null
+        };
+      }
+
+      return {
+        chartData: timeSeriesData.map(point => Math.round(point.value * 100) / 100),
+        categories: timeSeriesData.map(point => {
+          const date = new Date(point.date + '-01');
+          return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }),
+        hasData: true,
+        errorMessage: null
+      };
+    } catch (error) {
+      console.error('Time series processing error:', error);
+      return { 
+        chartData: [], 
+        categories: [], 
+        hasData: false, 
+        errorMessage: `Time series error: ${error.message}` 
+      };
+    }
+  };
+
   // Chart type configuration
   const getAvailableTypes = () => {
-    if (initialChartType === 'bar') {
+    if (initialChartType === 'bar' || title.toLowerCase().includes('distribution')) {
       return ['bar', 'horizontalBar'];
-    } else if (initialChartType === 'line') {
+    } else if (initialChartType === 'line' || title.toLowerCase().includes('trends')) {
       return ['line', 'area', 'bar'];
     } else if (initialChartType === 'donut') {
       return ['donut', 'pie'];
@@ -196,6 +261,8 @@ export function FlexibleChart({
       type: actualChartType === 'donut' ? 'donut' : actualChartType,
       background: 'transparent',
       toolbar: { show: false },
+      height: '100%',
+      width: '100%',
       animations: {
         enabled: true,
         easing: 'easeinout',
@@ -215,9 +282,14 @@ export function FlexibleChart({
         categories: categories || [],
         labels: {
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+          rotate: categories && categories.length > 10 ? -45 : 0,
           formatter: isHorizontalBar ? (val: number) => 
             DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
         },
+        title: {
+          text: title.toLowerCase().includes('trends') ? 'Time Period' : 'Categories',
+          style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
+        }
       },
       yaxis: {
         labels: {
@@ -225,6 +297,10 @@ export function FlexibleChart({
             DataProcessor.formatCurrency(val, state.settings.currency),
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
         },
+        title: {
+          text: title.toLowerCase().includes('trends') ? 'Sales Value' : 'Value',
+          style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
+        }
       }
     }),
 
@@ -267,9 +343,11 @@ export function FlexibleChart({
       },
       bar: {
         borderRadius: 4,
-        columnWidth: '70%',
+        columnWidth: '85%',
+        barHeight: '85%',
         horizontal: isHorizontalBar,
-        dataLabels: { position: 'top' }
+        dataLabels: { position: 'top' },
+        distributed: false
       },
     },
     
@@ -281,7 +359,7 @@ export function FlexibleChart({
     
     stroke: {
       curve: 'smooth',
-      width: actualChartType === 'line' || actualChartType === 'area' ? 3 : 0,
+      width: actualChartType === 'line' || actualChartType === 'area' ? 4 : 0,
     },
     
     fill: {
@@ -301,10 +379,19 @@ export function FlexibleChart({
       breakpoint: 768,
       options: {
         plotOptions: {
-          bar: { horizontal: true }
+          bar: { 
+            horizontal: true,
+            columnWidth: '90%',
+            barHeight: '90%'
+          }
         },
         legend: {
           position: 'bottom'
+        },
+        xaxis: {
+          labels: {
+            rotate: -90
+          }
         }
       }
     }]
@@ -337,12 +424,12 @@ export function FlexibleChart({
       currentType={chartType}
       className={className}
     >
-      <div className="w-full h-full min-h-[320px] flex items-center justify-center">
+      <div className="w-full h-full min-h-[400px] flex items-center justify-center">
         <Chart
           options={chartOptions}
           series={series}
           type={actualChartType === 'donut' ? 'donut' : actualChartType}
-          height="100%"
+          height="400px"
           width="100%"
         />
       </div>

@@ -68,7 +68,9 @@ export function ChartContainer({
                         `}
                       >
                         <Icon className="h-4 w-4" />
-                        <span className="capitalize">{type}</span>
+                        <span className="capitalize">
+                          {type === 'horizontalBar' ? 'Horizontal Bar' : type}
+                        </span>
                       </button>
                     );
                   })}
@@ -79,7 +81,7 @@ export function ChartContainer({
         )}
       </div>
       
-      <div className="h-auto min-h-[320px]">
+      <div className="h-auto min-h-[400px] w-full">
         {children}
       </div>
     </div>
