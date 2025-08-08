@@ -24,6 +24,66 @@ export function FlexibleChart({
   const { state } = useApp();
   const [chartType, setChartType] = useState<string>(initialChartType);
   
+  // Process time series data for "Trends Over Time" chart
+  const processTimeSeriesData = () => {
+    try {
+      if (!data || data.length === 0) {
+        return { 
+          chartData: [], 
+          categories: [], 
+          hasData: false, 
+          errorMessage: 'No time series data available' 
+        };
+      }
+
+      // Get time series data with proper grouping
+      const timeSeriesData = DataProcessor.getTimeSeries(data, 'month');
+      
+      if (!timeSeriesData || timeSeriesData.length === 0) {
+        // Fallback to day-based grouping if month fails
+        const daySeriesData = DataProcessor.getTimeSeries(data, 'day');
+        if (!daySeriesData || daySeriesData.length === 0) {
+          return { 
+            chartData: [], 
+            categories: [], 
+            hasData: false, 
+            errorMessage: 'No valid date data found for time series' 
+          };
+        }
+        
+        // Limit to last 30 days for readability
+        const limitedDayData = daySeriesData.slice(-30);
+        return {
+          chartData: limitedDayData.map(point => Math.round(point.value * 100) / 100),
+          categories: limitedDayData.map(point => {
+            const date = new Date(point.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }),
+          hasData: true,
+          errorMessage: null
+        };
+      }
+
+      return {
+        chartData: timeSeriesData.map(point => Math.round(point.value * 100) / 100),
+        categories: timeSeriesData.map(point => {
+          const date = new Date(point.date + '-01');
+          return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }),
+        hasData: true,
+        errorMessage: null
+      };
+    } catch (error) {
+      console.error('Time series processing error:', error);
+      return { 
+        chartData: [], 
+        categories: [], 
+        hasData: false, 
+        errorMessage: `Time series error: ${error.message}` 
+      };
+    }
+  };
+
   // Comprehensive data processing with error handling
   const { chartData, categories, hasData, errorMessage } = useMemo(() => {
     try {
@@ -149,67 +209,7 @@ export function FlexibleChart({
         errorMessage: `Processing error: ${error.message}` 
       };
     }
-  }, [data]);
-
-  // Process time series data for "Trends Over Time" chart
-  const processTimeSeriesData = () => {
-    try {
-      if (!data || data.length === 0) {
-        return { 
-          chartData: [], 
-          categories: [], 
-          hasData: false, 
-          errorMessage: 'No time series data available' 
-        };
-      }
-
-      // Get time series data with proper grouping
-      const timeSeriesData = DataProcessor.getTimeSeries(data, 'month');
-      
-      if (!timeSeriesData || timeSeriesData.length === 0) {
-        // Fallback to day-based grouping if month fails
-        const daySeriesData = DataProcessor.getTimeSeries(data, 'day');
-        if (!daySeriesData || daySeriesData.length === 0) {
-          return { 
-            chartData: [], 
-            categories: [], 
-            hasData: false, 
-            errorMessage: 'No valid date data found for time series' 
-          };
-        }
-        
-        // Limit to last 30 days for readability
-        const limitedDayData = daySeriesData.slice(-30);
-        return {
-          chartData: limitedDayData.map(point => Math.round(point.value * 100) / 100),
-          categories: limitedDayData.map(point => {
-            const date = new Date(point.date);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          }),
-          hasData: true,
-          errorMessage: null
-        };
-      }
-
-      return {
-        chartData: timeSeriesData.map(point => Math.round(point.value * 100) / 100),
-        categories: timeSeriesData.map(point => {
-          const date = new Date(point.date + '-01');
-          return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        }),
-        hasData: true,
-        errorMessage: null
-      };
-    } catch (error) {
-      console.error('Time series processing error:', error);
-      return { 
-        chartData: [], 
-        categories: [], 
-        hasData: false, 
-        errorMessage: `Time series error: ${error.message}` 
-      };
-    }
-  };
+  }, [data, title]);
 
   // Chart type configuration
   const getAvailableTypes = () => {
