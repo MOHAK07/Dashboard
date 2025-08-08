@@ -110,11 +110,11 @@ function DashboardContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <Router>
+    <Router>
+      <AppProvider>
         <DashboardContent />
-      </Router>
-    </AppProvider>
+      </AppProvider>
+    </Router>
   );
 }
 

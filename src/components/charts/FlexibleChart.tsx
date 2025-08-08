@@ -434,8 +434,12 @@ export function FlexibleChart({
       },
       yaxis: {
         labels: {
-          formatter: isHorizontalBar ? undefined : (val: number) => 
-            DataProcessor.formatCurrency(val, state.settings.currency) : String(val || ''),
+          formatter: isHorizontalBar ? undefined : (val: number) => {
+            if (isNaN(val) || val === null || val === undefined) {
+              return String(val || '');
+            }
+            return DataProcessor.formatCurrency(val, state.settings.currency);
+          },
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
         },
         title: {
