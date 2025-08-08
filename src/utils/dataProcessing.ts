@@ -122,6 +122,39 @@ export class DataProcessor {
     return Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
   }
 
+  static aggregateByColumn(data: FlexibleDataRow[], column: string): { name: string; value: number }[] {
+    const aggregationMap = new Map<string, number>();
+    
+    data.forEach(row => {
+      const key = String(row[column] || 'Unknown');
+      const value = this.findNumericValue(row);
+      
+      if (aggregationMap.has(key)) {
+        aggregationMap.set(key, aggregationMap.get(key)! + value);
+      } else {
+        aggregationMap.set(key, value);
+      }
+    });
+    
+    return Array.from(aggregationMap.entries()).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }
+
+  static findNumericValue(row: FlexibleDataRow): number {
+    const numericColumns = ['price', 'revenue', 'amount', 'value', 'quantity', 'units', 'count'];
+    
+    for (const col of Object.keys(row)) {
+      if (numericColumns.some(keyword => col.toLowerCase().includes(keyword))) {
+        const value = Number(row[col]);
+        if (!isNaN(value)) return value;
+      }
+    }
+    
+    return 1; // Default count value
+  }
+
   static getTimeSeries(data: FlexibleDataRow[], groupBy: 'day' | 'week' | 'month' = 'month') {
     const dateColumn = this.findDateColumn(data);
     if (!dateColumn) return [];
