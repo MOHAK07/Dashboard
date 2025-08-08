@@ -385,6 +385,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     ];
 
+    // Define the same color palette used in MultiFileUpload
+    const DATASET_COLORS = [
+      '#3b82f6', '#7ab839', '#f97316', '#ef4444', '#1A2885',
+      '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
+    ];
+
     const sampleDataset: Dataset = {
       id: 'sample-dataset',
       name: 'Sample Dataset',
@@ -395,7 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       status: 'valid',
       rowCount: sampleData.length,
       validationSummary: 'Sample data loaded successfully',
-      color: '#3b82f6',
+      color: DATASET_COLORS[0],
       preview: sampleData.slice(0, 5),
       dataType: 'sales',
       detectedColumns: Object.keys(sampleData[0] || {}),

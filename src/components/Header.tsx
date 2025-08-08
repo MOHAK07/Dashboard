@@ -112,12 +112,6 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
           >
             <Menu className="h-5 w-5" />
           </button>
-
-          <div className="hidden sm:block">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Analytics Dashboard
-            </h2>
-          </div>
         </div>
 
         {/* Right side */}

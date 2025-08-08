@@ -435,7 +435,7 @@ export function FlexibleChart({
       yaxis: {
         labels: {
           formatter: isHorizontalBar ? undefined : (val: number) => 
-            DataProcessor.formatCurrency(val, state.settings.currency),
+            DataProcessor.formatCurrency(val, state.settings.currency) : String(val || ''),
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
         },
         title: {

@@ -22,8 +22,8 @@ interface UploadingFile {
 }
 
 const DATASET_COLORS = [
-  '#3b82f6', '#22c55e', '#f97316', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#f59e0b', '#ec4899', '#84cc16', '#6366f1'
+  '#3b82f6', '#7ab839', '#f97316', '#ef4444', '#1A2885',
+  '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
 ];
 
 export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFileUploadProps) {
