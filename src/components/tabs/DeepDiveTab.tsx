@@ -259,10 +259,10 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
             </div>
             <div>
               <h3 className="font-semibold text-primary-900 dark:text-primary-100">
-                Multi-Dataset Deep Dive
+                Individual Dataset Deep Dive
               </h3>
               <p className="text-sm text-primary-700 dark:text-primary-300">
-                Analyzing performance across {multiDatasetData.length} datasets
+                Analyzing {multiDatasetData.length} datasets separately for detailed insights
               </p>
             </div>
           </div>
@@ -284,49 +284,54 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
 
       {/* Performance Summary */}
       {isMultiDataset ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {datasetAnalysis.map((dataset) => (
-            <div key={dataset.datasetId} className="card">
-              <div className="flex items-center space-x-2 mb-4">
-                <div 
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: dataset.color }}
-                />
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                  {dataset.datasetName}
-                </h4>
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+            Individual Dataset Performance Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {datasetAnalysis.map((dataset) => (
+              <div key={dataset.datasetId} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div 
+                    className="w-4 h-4 rounded-full"
+                    style={{ backgroundColor: dataset.color }}
+                  />
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                    {dataset.datasetName}
+                  </h4>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Top by Value</p>
+                    <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                      {dataset.topPerformer?.name || 'N/A'}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {DataProcessor.formatCurrency(dataset.topPerformer?.total || 0, state.settings.currency)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Most Frequent</p>
+                    <p className="text-sm font-bold text-secondary-600 dark:text-secondary-400">
+                      {dataset.mostFrequent?.name || 'N/A'}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {DataProcessor.formatNumber(dataset.mostFrequent?.count || 0)} records
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Highest Average</p>
+                    <p className="text-sm font-bold text-accent-600 dark:text-accent-400">
+                      {dataset.highestAverage?.name || 'N/A'}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {DataProcessor.formatCurrency(dataset.highestAverage?.average || 0, state.settings.currency)}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Top by Value</p>
-                  <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                    {dataset.topPerformer?.name || 'N/A'}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {DataProcessor.formatCurrency(dataset.topPerformer?.total || 0, state.settings.currency)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Most Frequent</p>
-                  <p className="text-sm font-bold text-secondary-600 dark:text-secondary-400">
-                    {dataset.mostFrequent?.name || 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {DataProcessor.formatNumber(dataset.mostFrequent?.count || 0)} records
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Highest Average</p>
-                  <p className="text-sm font-bold text-accent-600 dark:text-accent-400">
-                    {dataset.highestAverage?.name || 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {DataProcessor.formatCurrency(dataset.highestAverage?.average || 0, state.settings.currency)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -369,25 +374,202 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
       )}
 
       {/* Charts */}
-      <div className="space-y-8">
-        <ChartContainer title={`${primaryValueColumn} Distribution (Treemap)${isMultiDataset ? ' - Dataset Comparison' : ''}`} className="w-full">
-          <Chart
-            options={treemapOptions}
-            series={treemapSeries}
-            type="treemap"
-            height="100%"
-          />
-        </ChartContainer>
-
-        <ChartContainer title={`Count vs Value Correlation${isMultiDataset ? ' - Dataset Comparison' : ''}`} className="w-full">
-          <Chart
-            options={scatterOptions}
-            series={scatterSeries}
-            type="scatter"
-            height="100%"
-          />
-        </ChartContainer>
-      </div>
+      {isMultiDataset ? (
+        <div className="space-y-8">
+          <div className="card">
+                const treemapOptions: ApexOptions = {
+                  chart: {
+                    type: 'treemap',
+                    background: 'transparent',
+                    toolbar: { show: false }
+                  },
+                  dataLabels: {
+                    enabled: true,
+                    style: {
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      colors: ['#ffffff'],
+                    },
+                    formatter: (text: string, opts: any) => {
+                      const value = opts.value;
+                      return [text, DataProcessor.formatCurrency(value, state.settings.currency)];
+                    },
+                  },
+                  colors: [dataset.color],
+                  tooltip: {
+                    theme: isDarkMode ? 'dark' : 'light',
+                    y: {
+                      formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+                    },
+                  },
+                  plotOptions: {
+                    treemap: {
+                      distributed: true,
+                      enableShades: false,
+                    },
+                  },
+                  legend: { show: false },
+                };
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                const treemapSeries = [{
+                  data: limitedData.map(item => ({
+                    x: item.name,
+                    y: item.total,
+                  })),
+                }];
+              Individual Dataset Treemaps - {primaryValueColumn} Distribution
+                return (
+                  <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: dataset.color }}
+                      />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                        {dataset.datasetName}
+                      </h4>
+                    </div>
+                    <div className="h-80">
+                      <Chart
+                        options={treemapOptions}
+                        series={treemapSeries}
+                        type="treemap"
+                        height="100%"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+            </h3>
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+              Individual Dataset Scatter Plots - Count vs Value Correlation
+            </h3>
+            <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
+              {multiDatasetData.map((dataset) => {
+                const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
+            <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
+                const scatterOptions: ApexOptions = {
+                  chart: {
+                    type: 'scatter',
+                    zoom: {
+                      enabled: true,
+                      type: 'xy',
+                    },
+                    background: 'transparent',
+                    toolbar: { show: false }
+                  },
+                  xaxis: {
+                    title: {
+                      text: 'Count',
+                      style: {
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
+                      },
+                    },
+                    labels: {
+                      formatter: (val: number) => DataProcessor.formatNumber(val),
+                      style: {
+                        colors: isDarkMode ? '#9ca3af' : '#6b7280',
+                      },
+                    },
+                  },
+                  yaxis: {
+                    title: {
+                      text: 'Total Value',
+                      style: {
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
+                      },
+                    },
+                    labels: {
+                      formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+                      style: {
+                        colors: isDarkMode ? '#9ca3af' : '#6b7280',
+                      },
+                    },
+                  },
+                  colors: [dataset.color],
+                  theme: {
+                    mode: isDarkMode ? 'dark' : 'light',
+                  },
+                  grid: {
+                    borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+                  },
+                  legend: { show: false },
+                  tooltip: {
+                    theme: isDarkMode ? 'dark' : 'light',
+                    custom: ({ dataPointIndex }: any) => {
+                      if (dataPointIndex >= 0 && dataPointIndex < datasetAggregated.length) {
+                        const item = datasetAggregated[dataPointIndex];
+                        return `
+                          <div class="p-3">
+                            <div class="font-semibold">${item.name}</div>
+                            <div>Count: ${DataProcessor.formatNumber(item.count)}</div>
+                            <div>Total: ${DataProcessor.formatCurrency(item.total, state.settings.currency)}</div>
+                            <div>Average: ${DataProcessor.formatCurrency(item.average, state.settings.currency)}</div>
+                          </div>
+                        `;
+                      }
+                      return '';
+                    },
+                  },
+                };
+              {multiDatasetData.map((dataset) => {
+                const scatterSeries = [{
+                  name: primaryCategoryColumn,
+                  data: datasetAggregated.map(item => ({
+                    x: item.count,
+                    y: item.total,
+                  })),
+                }];
+                const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
+                return (
+                  <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: dataset.color }}
+                      />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                        {dataset.datasetName}
+                      </h4>
+                    </div>
+                    <div className="h-80">
+                      <Chart
+                        options={scatterOptions}
+                        series={scatterSeries}
+                        type="scatter"
+                        height="100%"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <ChartContainer title={`${primaryValueColumn} Distribution (Treemap)`} className="w-full">
+            <Chart
+              options={treemapOptions}
+              series={treemapSeries}
+              type="treemap"
+              height="100%"
+            />
+          </ChartContainer>
+                const limitedData = datasetAggregated.slice(0, 8);
+          <ChartContainer title="Count vs Value Correlation" className="w-full">
+            <Chart
+              options={scatterOptions}
+              series={scatterSeries}
+              type="scatter"
+              height="100%"
+            />
+          </ChartContainer>
+        </div>
+      )}
     </div>
   );
 }

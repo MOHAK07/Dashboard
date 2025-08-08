@@ -119,10 +119,10 @@ export function KPICards({ data, currency = 'INR' }: KPICardsProps) {
             </div>
             <div>
               <h3 className="font-semibold text-primary-900 dark:text-primary-100">
-                Multi-Dataset Overview
+                Combined Dataset Overview
               </h3>
               <p className="text-sm text-primary-700 dark:text-primary-300">
-                Aggregated metrics across {multiDatasetData.length} active datasets
+                Aggregated metrics from {multiDatasetData.length} active datasets
               </p>
             </div>
           </div>
@@ -193,6 +193,9 @@ export function KPICards({ data, currency = 'INR' }: KPICardsProps) {
             {/* Multi-dataset breakdown */}
             {isMultiDataset && (
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                  Individual Dataset Values:
+                </h5>
                 <div className="space-y-2">
                   {datasetKPIs.map((dataset) => {
                     let value: string;
