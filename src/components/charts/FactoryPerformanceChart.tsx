@@ -171,18 +171,6 @@ export function FactoryPerformanceChart({
           bar: {
             horizontal: true,
           }
-        },
-        xaxis: {
-          labels: {
-            formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-            style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
-          }
-        },
-        yaxis: {
-          labels: {
-            formatter: (val: string) => val.toString(),
-            style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
-          }
         }
       }
     }]

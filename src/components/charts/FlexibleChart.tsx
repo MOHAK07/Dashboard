@@ -727,20 +727,13 @@ export function FlexibleChart({
             barHeight: '80%'
           }
         },
-        xaxis: {
-          labels: {
-            formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
-            style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
-          }
-        },
-        yaxis: {
-          labels: {
-            formatter: (val: string) => val.toString(),
-            style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
-          }
-        },
         legend: {
           position: 'bottom'
+        },
+        xaxis: {
+          labels: {
+            rotate: -90
+          }
         },
         chart: {
           height: 400
