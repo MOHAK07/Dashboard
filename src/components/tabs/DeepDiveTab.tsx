@@ -377,6 +377,12 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
       {isMultiDataset ? (
         <div className="space-y-8">
           <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+              Individual Dataset Treemaps - {primaryValueColumn} Distribution
+            </h3>
+            <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
+              {multiDatasetData.map((dataset) => {
+                const limitedData = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn).slice(0, 8);
                 const treemapOptions: ApexOptions = {
                   chart: {
                     type: 'treemap',
@@ -410,14 +416,12 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
                   },
                   legend: { show: false },
                 };
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
                 const treemapSeries = [{
                   data: limitedData.map(item => ({
                     x: item.name,
                     y: item.total,
                   })),
                 }];
-              Individual Dataset Treemaps - {primaryValueColumn} Distribution
                 return (
                   <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center space-x-2 mb-4">
@@ -442,7 +446,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
               })}
             </div>
           </div>
-            </h3>
           <div className="card">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
               Individual Dataset Scatter Plots - Count vs Value Correlation
@@ -450,7 +453,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
             <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
               {multiDatasetData.map((dataset) => {
                 const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
-            <div className={`grid gap-6 ${multiDatasetData.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
                 const scatterOptions: ApexOptions = {
                   chart: {
                     type: 'scatter',
@@ -515,7 +517,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
                     },
                   },
                 };
-              {multiDatasetData.map((dataset) => {
                 const scatterSeries = [{
                   name: primaryCategoryColumn,
                   data: datasetAggregated.map(item => ({
@@ -523,7 +524,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
                     y: item.total,
                   })),
                 }];
-                const datasetAggregated = DataProcessor.aggregateByCategory(dataset.data, primaryCategoryColumn, primaryValueColumn);
                 return (
                   <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center space-x-2 mb-4">
@@ -559,7 +559,6 @@ export function DeepDiveTab({ data }: DeepDiveTabProps) {
               height="100%"
             />
           </ChartContainer>
-                const limitedData = datasetAggregated.slice(0, 8);
           <ChartContainer title="Count vs Value Correlation" className="w-full">
             <Chart
               options={scatterOptions}
