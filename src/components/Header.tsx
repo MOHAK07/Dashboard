@@ -27,6 +27,10 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [tempFilters, setTempFilters] = useState({
+    dateRange: { start: '', end: '' },
+    selectedValues: {} as { [column: string]: string[] }
+  });
   const uploadMenuRef = useRef<HTMLDivElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -48,8 +52,43 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUploadMenu, showFilterMenu, showExportMenu]);
 
-  const uniqueProducts = state.data.length > 0 ? DataProcessor.getUniqueValues(state.data, 'ProductName') : [];
-  const dateRange = state.data.length > 0 ? DataProcessor.getDateRange(state.data) : { start: '', end: '' };
+  // Initialize temp filters when filter menu opens
+  useEffect(() => {
+    if (showFilterMenu) {
+      setTempFilters({
+        dateRange: state.filters.dateRange,
+        selectedValues: { ...state.filters.selectedValues }
+      });
+    }
+  }, [showFilterMenu, state.filters]);
+
+  // Get dynamic filter options based on active datasets
+  const getFilterOptions = () => {
+    if (state.data.length === 0) return { columns: [], dateRange: { start: '', end: '' } };
+
+    const categoricalColumns = DataProcessor.findCategoricalColumns(state.data);
+    const dateRange = DataProcessor.getDateRange(state.data);
+    
+    // Filter out address columns and get meaningful columns for filtering
+    const filterableColumns = categoricalColumns.filter(col => {
+      const lowerCol = col.toLowerCase();
+      return !lowerCol.includes('address') && 
+             !lowerCol.includes('adress') &&
+             !lowerCol.includes('pin') &&
+             !lowerCol.includes('code') &&
+             lowerCol !== 'date';
+    });
+
+    const columnOptions = filterableColumns.map(column => ({
+      column,
+      label: column,
+      values: DataProcessor.getUniqueValues(state.data, column).slice(0, 50) // Limit to 50 options
+    })).filter(option => option.values.length > 0 && option.values.length <= 100); // Only show columns with reasonable number of options
+
+    return { columns: columnOptions, dateRange };
+  };
+
+  const { columns: filterColumns, dateRange } = getFilterOptions();
 
   const toggleTheme = () => {
     const newTheme = state.settings.theme === 'light' ? 'dark' : 'light';
@@ -57,22 +96,36 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
     setSettings(newSettings);
   };
 
-  const handleDateRangeChange = (start: string, end: string) => {
-    setFilters({
-      ...state.filters,
+  const handleTempDateRangeChange = (start: string, end: string) => {
+    setTempFilters(prev => ({
+      ...prev,
       dateRange: { start, end }
-    });
+    }));
   };
 
-  const handleProductChange = (products: string[]) => {
-    const productColumn = DataProcessor.findColumnByKeywords(state.data, ['product', 'name', 'item']);
+  const handleTempColumnFilterChange = (column: string, values: string[]) => {
+    setTempFilters(prev => ({
+      ...prev,
+      selectedValues: {
+        ...prev.selectedValues,
+        [column]: values
+      }
+    }));
+  };
+
+  const applyFilters = () => {
     setFilters({
       ...state.filters,
-      selectedProducts: products,
-      selectedValues: {
-        ...state.filters.selectedValues,
-        [productColumn || 'Name']: products,
-      },
+      dateRange: tempFilters.dateRange,
+      selectedValues: tempFilters.selectedValues
+    });
+    setShowFilterMenu(false);
+  };
+
+  const clearTempFilters = () => {
+    setTempFilters({
+      dateRange: { start: '', end: '' },
+      selectedValues: {}
     });
   };
 
@@ -95,9 +148,6 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
   
   const hasGlobalFilters =
     (state.filters.dateRange.start && state.filters.dateRange.end) ||
-    state.filters.selectedProducts.length > 0 ||
-    state.filters.selectedPlants.length > 0 ||
-    state.filters.selectedFactories.length > 0 ||
     Object.values(state.filters.selectedValues).some(values => values.length > 0);
 
   return (
@@ -182,75 +232,92 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
               {showFilterMenu && (
                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                   <div className="p-4 space-y-4">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">Global Filters</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Global Filters</h3>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {state.data.length.toLocaleString()} records
+                      </span>
+                    </div>
                     
                     {/* Date Range */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Date Range
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="date"
-                          value={state.filters.dateRange.start}
-                          min={dateRange.start}
-                          max={dateRange.end}
-                          onChange={(e) => handleDateRangeChange(e.target.value, state.filters.dateRange.end)}
-                          className="input-field text-sm"
-                        />
-                        <input
-                          type="date"
-                          value={state.filters.dateRange.end}
-                          min={dateRange.start}
-                          max={dateRange.end}
-                          onChange={(e) => handleDateRangeChange(state.filters.dateRange.start, e.target.value)}
-                          className="input-field text-sm"
-                        />
+                    {dateRange.start && dateRange.end && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Date Range
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            value={tempFilters.dateRange.start}
+                            min={dateRange.start}
+                            max={dateRange.end}
+                            onChange={(e) => handleTempDateRangeChange(e.target.value, tempFilters.dateRange.end)}
+                            className="input-field text-sm"
+                            placeholder="Start date"
+                          />
+                          <input
+                            type="date"
+                            value={tempFilters.dateRange.end}
+                            min={dateRange.start}
+                            max={dateRange.end}
+                            onChange={(e) => handleTempDateRangeChange(tempFilters.dateRange.start, e.target.value)}
+                            className="input-field text-sm"
+                            placeholder="End date"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Available: {dateRange.start} to {dateRange.end}
+                        </p>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Product Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Products
-                      </label>
-                      <select
-                        multiple
-                        value={state.filters.selectedProducts}
-                        onChange={(e) => {
-                          const selected = Array.from(e.target.selectedOptions, option => option.value);
-                          handleProductChange(selected);
-                        }}
-                        className="input-field text-sm h-24"
-                      >
-                        {uniqueProducts.map(product => (
-                          <option key={product} value={product}>
-                            {product}
-                          </option>
+                    {/* Dynamic Column Filters */}
+                    {filterColumns.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          No filterable columns found in the current dataset
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-64 overflow-y-auto">
+                        {filterColumns.map(({ column, label, values }) => (
+                          <div key={column}>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              {label} ({values.length} options)
+                            </label>
+                            <select
+                              multiple
+                              value={tempFilters.selectedValues[column] || []}
+                              onChange={(e) => {
+                                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                handleTempColumnFilterChange(column, selected);
+                              }}
+                              className="input-field text-sm h-20 w-full"
+                              size={Math.min(values.length, 4)}
+                            >
+                              {values.map(value => (
+                                <option key={value} value={value} className="py-1">
+                                  {value}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Hold Ctrl/Cmd to select multiple • {(tempFilters.selectedValues[column] || []).length} selected
+                            </p>
+                          </div>
                         ))}
-                      </select>
-                      <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
-                    </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-end space-x-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                       <button
-                        onClick={() => {
-                          setFilters({
-                            ...state.filters,
-                            dateRange: { start: '', end: '' },
-                            selectedProducts: [],
-                            selectedPlants: [],
-                            selectedFactories: [],
-                            selectedValues: {},
-                            drillDownFilters: {},
-                          });
-                        }}
+                        onClick={clearTempFilters}
                         className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                       >
-                        Clear All
+                        Clear
                       </button>
                       <button
-                        onClick={() => setShowFilterMenu(false)}
+                        onClick={applyFilters}
                         className="btn-primary text-sm"
                       >
                         Apply
@@ -342,7 +409,7 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
                     key={`${column}-${value}`}
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300"
                   >
-                    {column}: {value}
+                    {column}: {String(value).length > 15 ? `${String(value).substring(0, 15)}...` : value}
                   </span>
                 ))
               )}
