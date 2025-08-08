@@ -323,6 +323,98 @@ export class DataProcessor {
     }).format(value / 100);
   }
 
+  static findColumnByKeywords(data: FlexibleDataRow[], keywords: string[]): string | null {
+    if (data.length === 0) return null;
+    
+    const columns = Object.keys(data[0]);
+    return columns.find(col => 
+      keywords.some(keyword => col.toLowerCase().includes(keyword.toLowerCase()))
+    ) || null;
+  }
+
+  static aggregateByPlant(data: FlexibleDataRow[]) {
+    if (data.length === 0) return [];
+    
+    // Try to find plant column
+    const plantColumn = this.findColumnByKeywords(data, ['plant', 'facility', 'location']) || 
+                       Object.keys(data[0]).find(col => col.toLowerCase().includes('plant')) ||
+                       'PlantName';
+    
+    // Try to find revenue/value column
+    const revenueColumn = this.findColumnByKeywords(data, ['revenue', 'price', 'amount', 'value']) ||
+                         this.findNumericColumns(data)[0] ||
+                         'Revenue';
+    
+    const plantMap = new Map();
+    
+    data.forEach(row => {
+      const plantName = String(row[plantColumn] || 'Unknown Plant');
+      const revenue = parseFloat(String(row[revenueColumn] || '0')) || 0;
+      
+      if (!plantMap.has(plantName)) {
+        plantMap.set(plantName, {
+          name: plantName,
+          totalRevenue: 0,
+          totalUnits: 0,
+          count: 0,
+        });
+      }
+      
+      const plant = plantMap.get(plantName);
+      plant.totalRevenue += revenue;
+      plant.totalUnits += 1;
+      plant.count += 1;
+    });
+    
+    return Array.from(plantMap.values()).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  }
+
+  static aggregateByFactory(data: FlexibleDataRow[]) {
+    if (data.length === 0) return [];
+    
+    // Try to find factory column
+    const factoryColumn = this.findColumnByKeywords(data, ['factory', 'plant', 'facility', 'location']) || 
+                         Object.keys(data[0]).find(col => col.toLowerCase().includes('factory')) ||
+                         'FactoryName';
+    
+    // Try to find revenue/value column
+    const revenueColumn = this.findColumnByKeywords(data, ['revenue', 'price', 'amount', 'value']) ||
+                         this.findNumericColumns(data)[0] ||
+                         'Revenue';
+    
+    // Try to find latitude/longitude columns
+    const latColumn = this.findColumnByKeywords(data, ['latitude', 'lat']) || 'Latitude';
+    const lngColumn = this.findColumnByKeywords(data, ['longitude', 'lng', 'lon']) || 'Longitude';
+    
+    const factoryMap = new Map();
+    
+    data.forEach(row => {
+      const factoryName = String(row[factoryColumn] || 'Unknown Factory');
+      const revenue = parseFloat(String(row[revenueColumn] || '0')) || 0;
+      const latitude = parseFloat(String(row[latColumn] || '0')) || 0;
+      const longitude = parseFloat(String(row[lngColumn] || '0')) || 0;
+      
+      if (!factoryMap.has(factoryName)) {
+        factoryMap.set(factoryName, {
+          name: factoryName,
+          totalRevenue: 0,
+          totalUnits: 0,
+          latitude: latitude,
+          longitude: longitude,
+          products: 0,
+          plants: 1,
+        });
+      }
+      
+      const factory = factoryMap.get(factoryName);
+      factory.totalRevenue += revenue;
+      factory.totalUnits += 1;
+      factory.products += 1;
+    });
+    
+    return Array.from(factoryMap.values()).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  }
+
   // Helper method to check if a value looks like a number
   private static looksLikeNumber(value: string): boolean {
     if (!value || value.trim() === '') return false;
