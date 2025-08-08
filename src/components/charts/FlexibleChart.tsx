@@ -22,7 +22,7 @@ export function FlexibleChart({
   className = ''
 }: FlexibleChartProps) {
   const { state } = useApp();
-  const [chartType, setChartType] = useState(initialChartType);
+  const [chartType, setChartType] = useState<string>(initialChartType);
   
   const { chartData, categories, hasData } = useMemo(() => {
     if (data.length === 0) {
@@ -59,10 +59,23 @@ export function FlexibleChart({
     };
   }, [data]);
 
+  const getAvailableTypes = () => {
+    if (initialChartType === 'bar') {
+      return ['bar', 'horizontalBar'];
+    } else if (initialChartType === 'line') {
+      return ['line', 'area', 'bar'];
+    } else if (initialChartType === 'donut') {
+      return ['donut', 'pie'];
+    }
+    return [initialChartType];
+  };
   if (!hasData) {
     return (
       <ChartContainer
         title={title}
+        availableTypes={getAvailableTypes()}
+        currentType={chartType}
+        onChartTypeChange={setChartType}
         className={className}
       >
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
@@ -75,22 +88,25 @@ export function FlexibleChart({
     );
   }
 
+  const isHorizontalBar = chartType === 'horizontalBar';
+  const actualChartType = isHorizontalBar ? 'bar' : chartType;
   const chartOptions: ApexOptions = {
     chart: {
-      type: chartType === 'donut' ? 'donut' : chartType,
+      type: actualChartType === 'donut' ? 'donut' : actualChartType,
       background: 'transparent',
       toolbar: { show: false },
     },
-    labels: chartType === 'pie' || chartType === 'donut' ? categories : undefined,
-    xaxis: chartType !== 'pie' && chartType !== 'donut' ? {
+    labels: actualChartType === 'pie' || actualChartType === 'donut' ? categories : undefined,
+    xaxis: actualChartType !== 'pie' && actualChartType !== 'donut' ? {
       categories: categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
+        formatter: isHorizontalBar ? (val: number) => DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
       },
     } : undefined,
-    yaxis: chartType !== 'pie' && chartType !== 'donut' ? {
+    yaxis: actualChartType !== 'pie' && actualChartType !== 'donut' ? {
       labels: {
-        formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
+        formatter: isHorizontalBar ? undefined : (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
       },
     } : undefined,
@@ -112,43 +128,44 @@ export function FlexibleChart({
     plotOptions: {
       pie: {
         donut: {
-          size: chartType === 'donut' ? '70%' : '0%',
+          size: actualChartType === 'donut' ? '70%' : '0%',
         },
       },
       bar: {
         borderRadius: 4,
         columnWidth: '70%',
+        horizontal: isHorizontalBar,
       },
     },
     dataLabels: {
-      enabled: chartType === 'pie' || chartType === 'donut',
+      enabled: actualChartType === 'pie' || actualChartType === 'donut',
       formatter: (val: number) => `${val.toFixed(1)}%`,
     },
     stroke: {
       curve: 'smooth',
-      width: chartType === 'line' || chartType === 'area' ? 3 : 0,
+      width: actualChartType === 'line' || actualChartType === 'area' ? 3 : 0,
     },
     fill: {
-      type: chartType === 'area' ? 'gradient' : 'solid',
+      type: actualChartType === 'area' ? 'gradient' : 'solid',
     },
   };
 
-  const series = chartType === 'pie' || chartType === 'donut' 
+  const series = actualChartType === 'pie' || actualChartType === 'donut' 
     ? chartData 
     : [{ name: 'Value', data: chartData }];
 
   return (
     <ChartContainer
       title={title}
-      onChartTypeChange={(type) => setChartType(type as any)}
-        series={chartType === 'pie' || chartType === 'donut' ? chartData.series : chartData.series}
+      availableTypes={getAvailableTypes()}
+      onChartTypeChange={setChartType}
       currentType={chartType}
       className={className}
     >
       <Chart
         options={chartOptions}
         series={series}
-        type={chartType === 'donut' ? 'donut' : chartType}
+        type={actualChartType === 'donut' ? 'donut' : actualChartType}
         height="100%"
       />
     </ChartContainer>
