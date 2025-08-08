@@ -68,7 +68,7 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
     const productColumn = DataProcessor.findColumnByKeywords(state.data, ['product', 'name', 'item']);
     setFilters({
       ...state.filters,
-      selectedProducts: products
+      selectedProducts: products,
       selectedValues: {
         ...state.filters.selectedValues,
         [productColumn || 'Name']: products,
