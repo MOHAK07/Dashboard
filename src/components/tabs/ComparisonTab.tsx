@@ -473,11 +473,14 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
                     y: {
                       formatter: (val: number) => DataProcessor.formatCurrency(val, state.settings.currency),
                     },
+                  },
+                };
+
                 const series = [{
                   name: primaryValueColumn,
                   data: limitedData.map(item => item.total),
                 }];
-                  },
+                
                 return (
                   <div key={dataset.datasetId} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center space-x-2 mb-4">
@@ -511,7 +514,7 @@ export function ComparisonTab({ data }: ComparisonTabProps) {
           <ChartContainer title={`${primaryValueColumn} by ${primaryCategoryColumn}`} className="w-full">
             <Chart options={comparisonOptions} series={comparisonSeries} type="bar" height="100%" />
           </ChartContainer>
-                };
+
           <ChartContainer title="Multi-Metric Comparison" className="w-full">
             <Chart options={radarOptions} series={radarSeries} type="radar" height="100%" />
           </ChartContainer>
