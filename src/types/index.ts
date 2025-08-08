@@ -62,6 +62,9 @@ export interface FilterState {
     end: string;
   };
   selectedValues: { [column: string]: string[] };
+  selectedProducts: string[];
+  selectedPlants: string[];
+  selectedFactories: string[];
   drillDownFilters: {
     [key: string]: any;
   };

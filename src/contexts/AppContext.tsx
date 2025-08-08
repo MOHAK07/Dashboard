@@ -40,6 +40,9 @@ const initialState: AppState = {
   filters: {
     dateRange: { start: '', end: '' },
     selectedValues: {},
+    selectedProducts: [],
+    selectedPlants: [],
+    selectedFactories: [],
     drillDownFilters: {},
   },
   settings: {

@@ -65,9 +65,14 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
   };
 
   const handleProductChange = (products: string[]) => {
+    const productColumn = DataProcessor.findColumnByKeywords(state.data, ['product', 'name', 'item']);
     setFilters({
       ...state.filters,
       selectedProducts: products
+      selectedValues: {
+        ...state.filters.selectedValues,
+        [productColumn || 'Name']: products,
+      },
     });
   };
 
@@ -92,7 +97,8 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
     (state.filters.dateRange.start && state.filters.dateRange.end) ||
     state.filters.selectedProducts.length > 0 ||
     state.filters.selectedPlants.length > 0 ||
-    state.filters.selectedFactories.length > 0;
+    state.filters.selectedFactories.length > 0 ||
+    Object.values(state.filters.selectedValues).some(values => values.length > 0);
 
   return (
     <header className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 lg:px-6 transition-all duration-300`}>
