@@ -283,12 +283,16 @@ export function FlexibleChart({
         labels: {
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
           rotate: categories && categories.length > 10 ? -45 : 0,
-          formatter: isHorizontalBar ? (val: number) => 
-            DataProcessor.formatCurrency(val, state.settings.currency) : undefined,
+        height: 500,
+        width: '100%',
         },
         title: {
           text: title.toLowerCase().includes('trends') ? 'Time Period' : 'Categories',
           style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
+        },
+        parentHeightOffset: 0,
+        sparkline: {
+          enabled: false
         }
       },
       yaxis: {
@@ -314,7 +318,13 @@ export function FlexibleChart({
     
     grid: { 
       borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-      show: !isPieChart
+      show: !isPieChart,
+      padding: {
+        top: 0,
+        right: 30,
+        bottom: 0,
+        left: 10
+      }
     },
     
     tooltip: {
@@ -331,14 +341,19 @@ export function FlexibleChart({
           labels: {
             show: actualChartType === 'donut',
             total: {
+          expandOnClick: false,
+          offsetX: 0,
+          offsetY: 0
               show: true,
               label: 'Total',
               formatter: () => DataProcessor.formatCurrency(
-                chartData.reduce((sum, val) => sum + val, 0), 
-                state.settings.currency
+          columnWidth: '75%',
+          barHeight: '75%',
               )
             }
-          }
+          distributed: false,
+          rangeBarOverlap: true,
+          rangeBarGroupRows: false
         },
       },
       bar: {
@@ -381,8 +396,8 @@ export function FlexibleChart({
         plotOptions: {
           bar: { 
             horizontal: true,
-            columnWidth: '90%',
-            barHeight: '90%'
+            columnWidth: '80%',
+            barHeight: '80%'
           }
         },
         legend: {
@@ -392,6 +407,9 @@ export function FlexibleChart({
           labels: {
             rotate: -90
           }
+        },
+        chart: {
+          height: 400
         }
       }
     }]
@@ -424,12 +442,12 @@ export function FlexibleChart({
       currentType={chartType}
       className={className}
     >
-      <div className="w-full h-full min-h-[400px] flex items-center justify-center">
+      <div className="w-full h-full min-h-[500px]">
         <Chart
           options={chartOptions}
           series={series}
           type={actualChartType === 'donut' ? 'donut' : actualChartType}
-          height="400px"
+          height="500px"
           width="100%"
         />
       </div>
