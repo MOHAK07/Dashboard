@@ -70,35 +70,56 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
     let totalRevenue = 0;
 
     allowedDatasets.forEach((dataset, index) => {
-      // Find price/revenue column (prefer Price over other columns)
-      const priceColumn = Object.keys(dataset.data[0] || {}).find(col => 
-        col.toLowerCase() === 'price'
-      ) || Object.keys(dataset.data[0] || {}).find(col => 
-        col.toLowerCase().includes('revenue') || 
-        col.toLowerCase().includes('amount') ||
-        col.toLowerCase().includes('value')
-      );
+      // Determine which column to use based on dataset type
+      const name = dataset.name.toLowerCase();
+      let revenueColumn: string | undefined;
+      
+      // For POS datasets, use Revenue column
+      if (name.includes('pos')) {
+        revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
+          col.toLowerCase() === 'revenue' ||
+          col.toLowerCase().includes('revenue')
+        );
+      }
+      
+      // For FOM and LFOM datasets, use Price column
+      if (!revenueColumn) {
+        revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
+          col.toLowerCase() === 'price'
+        );
+      }
+      
+      // Fallback to any revenue/amount/value column
+      if (!revenueColumn) {
+        revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
+          col.toLowerCase().includes('revenue') || 
+          col.toLowerCase().includes('amount') ||
+          col.toLowerCase().includes('value')
+        );
+      }
 
-      if (!priceColumn) {
+      if (!revenueColumn) {
         return;
       }
 
       // Calculate total revenue for this dataset
       const datasetRevenue = dataset.data.reduce((sum, row) => {
-        const price = parseFloat(String(row[priceColumn] || '0')) || 0;
-        return sum + price;
+        const value = parseFloat(String(row[revenueColumn!] || '0')) || 0;
+        return sum + value;
       }, 0);
 
       if (datasetRevenue > 0) {
-        // Determine corrected dataset display name
+        // Determine corrected dataset display name with case-insensitive matching
         let displayName = dataset.name;
-        if (dataset.name.toLowerCase().includes('lfom') && !dataset.name.toLowerCase().includes('pos')) {
+        const lowerName = dataset.name.toLowerCase();
+        
+        if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
           displayName = 'LFOM';
-        } else if (dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('pos') && !dataset.name.toLowerCase().includes('lfom')) {
+        } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
           displayName = 'FOM';
-        } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('lfom')) {
+        } else if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
           displayName = 'POS FOM';
-        } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('lfom')) {
+        } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
           displayName = 'POS LFOM';
         }
 

@@ -34,7 +34,7 @@ interface WeeklyDataDistributionChartProps {
 
 export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistributionChartProps) {
   const { state, getMultiDatasetData } = useApp();
-  const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar');
+  const [chartType, setChartType] = useState<'bar' | 'horizontalBar'>('bar');
   const isDarkMode = state.settings.theme === 'dark';
   
   const multiDatasetData = getMultiDatasetData();
@@ -159,9 +159,9 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     return (
       <ChartContainer
         title="Data Distribution - Weekly Quantity Analysis"
-        availableTypes={['bar', 'line', 'area']}
+        availableTypes={['bar', 'horizontalBar']}
         currentType={chartType}
-        onChartTypeChange={(type) => setChartType(type as 'bar' | 'line' | 'area')}
+        onChartTypeChange={(type) => setChartType(type as 'bar' | 'horizontalBar')}
         className={className}
       >
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
@@ -176,9 +176,12 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     );
   }
 
+  const isHorizontalBar = chartType === 'horizontalBar';
+  const actualChartType = isHorizontalBar ? 'bar' : chartType;
+
   const chartOptions: ApexOptions = {
     chart: {
-      type: chartType,
+      type: actualChartType,
       background: 'transparent',
       toolbar: { show: false },
       animations: {
@@ -190,19 +193,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     
     stroke: {
       curve: 'smooth',
-      width: chartType === 'line' ? 4 : chartType === 'area' ? 3 : 0,
-    },
-    
-    fill: {
-      type: chartType === 'area' ? 'gradient' : 'solid',
-      gradient: chartType === 'area' ? {
-        shadeIntensity: 1,
-        type: 'vertical',
-        colorStops: processWeeklyData.series.map((series, index) => [
-          { offset: 0, color: series.color, opacity: 0.8 },
-          { offset: 100, color: series.color, opacity: 0.1 }
-        ]).flat()
-      } : undefined
+      width: 0,
     },
     
     dataLabels: { enabled: false },
@@ -211,10 +202,10 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       categories: processWeeklyData.categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-        rotate: processWeeklyData.categories.length > 8 ? -45 : 0
+        rotate: !isHorizontalBar && processWeeklyData.categories.length > 8 ? -45 : 0
       },
       title: {
-        text: 'Week (Month)',
+        text: isHorizontalBar ? 'Quantity' : 'Week (Month)',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
@@ -230,7 +221,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
       },
       title: {
-        text: 'Quantity',
+        text: isHorizontalBar ? 'Week (Month)' : 'Quantity',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
@@ -275,7 +266,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     },
     
     markers: {
-      size: chartType === 'line' ? 6 : 0,
+      size: 0,
       colors: processWeeklyData.series.map(s => s.color),
       strokeColors: '#ffffff',
       strokeWidth: 2,
@@ -286,7 +277,8 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       bar: {
         borderRadius: 4,
         columnWidth: '75%',
-        dataLabels: { position: 'top' }
+        horizontal: isHorizontalBar,
+        dataLabels: { position: isHorizontalBar ? 'center' : 'top' }
       }
     },
     
@@ -295,7 +287,12 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       options: {
         legend: { position: 'bottom' },
         xaxis: {
-          labels: { rotate: -90 }
+          labels: { rotate: isHorizontalBar ? 0 : -90 }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true
+          }
         }
       }
     }]
@@ -303,17 +300,17 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
 
   return (
     <ChartContainer
-      title={`Data Distribution - Weekly Quantity Analysis${isMultiDataset ? ' (Dataset Comparison)' : ''}`}
-      availableTypes={['bar', 'line', 'area']}
+      title={`Data Distribution - Weekly Quantity Analysis${isMultiDataset ? ' - Dataset Comparison' : ''}`}
+      availableTypes={['bar', 'horizontalBar']}
       currentType={chartType}
-      onChartTypeChange={(type) => setChartType(type as 'bar' | 'line' | 'area')}
+      onChartTypeChange={(type) => setChartType(type as 'bar' | 'horizontalBar')}
       className={className}
     >
       <div className="w-full h-full min-h-[500px]">
         <Chart
           options={chartOptions}
           series={processWeeklyData.series}
-          type={chartType}
+          type={actualChartType}
           height="500px"
           width="100%"
         />
