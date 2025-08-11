@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlexibleDataRow } from '../../types';
-import { KPICards } from '../charts/KPICards';
+import { DatasetSpecificKPIs } from '../charts/DatasetSpecificKPIs';
+import { DatasetTimeSeriesChart } from '../charts/DatasetTimeSeriesChart';
 import { FlexibleChart } from '../charts/FlexibleChart';
 import { useApp } from '../../contexts/AppContext';
 import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
@@ -34,8 +35,11 @@ export function OverviewTab({ data }: OverviewTabProps) {
       {/* Drill-down Breadcrumb */}
       <DrillDownBreadcrumb />
 
-      {/* KPI Cards */}
-      <KPICards data={data} currency={state.settings.currency} />
+      {/* Dataset-Specific KPI Cards */}
+      <DatasetSpecificKPIs />
+
+      {/* Dataset Time Series Chart */}
+      <DatasetTimeSeriesChart />
 
       {/* Data Overview */}
       <div className="card">
@@ -99,17 +103,6 @@ export function OverviewTab({ data }: OverviewTabProps) {
           />
         )}
       </div>
-      
-      {dateColumn && numericColumns.length > 0 && (
-        <div className="grid grid-cols-1 gap-8">
-          <FlexibleChart
-            data={data}
-            title="Trends Over Time"
-            chartType="line"
-            isDarkMode={isDarkMode}
-          />
-        </div>
-      )}
 
       {categoricalColumns.length > 0 && numericColumns.length > 0 && (
         <div className="grid grid-cols-1 gap-8">
