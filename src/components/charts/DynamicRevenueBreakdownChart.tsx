@@ -126,9 +126,9 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
 
       if (datasetRevenue > 0) {
         revenueData.push({
-          name: getDatasetDisplayName(dataset.name),
+          name: DataProcessor.getDatasetDisplayName(dataset.name),
           revenue: Math.round(datasetRevenue * 100) / 100,
-          color: getDatasetColorByName(dataset.name)
+          color: DataProcessor.getDatasetColorByName(dataset.name)
         });
 
         totalRevenue += datasetRevenue;

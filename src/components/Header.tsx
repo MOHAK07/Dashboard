@@ -457,7 +457,7 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
                 <div key={dataset.id} className="flex items-center space-x-2">
                   <div 
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: getDatasetColorByName(dataset.name) }}
+                    style={{ backgroundColor: DataProcessor.getDatasetColorByName(dataset.name) }}
                   />
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {dataset.name}

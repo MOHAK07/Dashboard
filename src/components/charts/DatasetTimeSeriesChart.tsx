@@ -97,9 +97,9 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
 
         // Determine dataset display name
         datasetSeries.push({
-          name: getDatasetDisplayName(dataset.name),
+          name: DataProcessor.getDatasetDisplayName(dataset.name),
           data: monthlyData,
-          color: getDatasetColorByName(dataset.name),
+          color: DataProcessor.getDatasetColorByName(dataset.name),
           datasetId: dataset.id
         });
       });

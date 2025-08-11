@@ -370,6 +370,44 @@ export class DataProcessor {
     }).format(value / 100);
   }
 
+  static getDatasetColorByName(datasetName: string): string {
+    const lowerName = datasetName.toLowerCase();
+    
+    // Fixed color mapping based on dataset type
+    if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
+      return '#3b82f6'; // Blue for POS FOM
+    } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
+      return '#7ab839'; // Green for POS LFOM
+    } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
+      return '#7ab839'; // Green for LFOM
+    } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
+      return '#f97316'; // Orange for FOM
+    }
+    
+    // Fallback colors for other datasets
+    const baseColors = [
+      '#ef4444', '#8b5cf6', '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
+    ];
+    
+    return baseColors[Math.abs(datasetName.length) % baseColors.length];
+  }
+
+  static getDatasetDisplayName(datasetName: string): string {
+    const lowerName = datasetName.toLowerCase();
+    
+    if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
+      return 'POS FOM';
+    } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
+      return 'POS LFOM';
+    } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
+      return 'LFOM';
+    } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
+      return 'FOM';
+    }
+    
+    return datasetName;
+  }
+
   static findColumnByKeywords(data: FlexibleDataRow[], keywords: string[]): string | null {
     if (data.length === 0) return null;
     

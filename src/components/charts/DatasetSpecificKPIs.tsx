@@ -129,10 +129,10 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
               <div className="flex items-center space-x-2 mb-1">
                 <div 
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: dataset.color }}
+                  style={{ backgroundColor: DataProcessor.getDatasetColorByName(dataset.name) }}
                 />
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  {dataset.name}
+                  {DataProcessor.getDatasetDisplayName(dataset.name)} Sales
                 </p>
               </div>
               

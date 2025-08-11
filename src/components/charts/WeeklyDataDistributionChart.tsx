@@ -108,9 +108,9 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
 
         // Determine dataset display name with corrected color mapping
         datasetSeries.push({
-          name: getDatasetDisplayName(dataset.name),
+          name: DataProcessor.getDatasetDisplayName(dataset.name),
           data: weeklyData,
-          color: getDatasetColorByName(dataset.name),
+          color: DataProcessor.getDatasetColorByName(dataset.name),
           datasetId: dataset.id
         });
       });

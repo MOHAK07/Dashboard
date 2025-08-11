@@ -296,7 +296,84 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // Apply column-based filters
+    let filtered = state.data;
+    
+    // Apply date range filter
+    if (state.filters.dateRange.start && state.filters.dateRange.end) {
+      const dateColumn = DataProcessor.findDateColumn(state.data);
+      if (dateColumn) {
+        filtered = filtered.filter(row => {
+          const dateValue = row[dateColumn];
+          if (!dateValue) return false;
+          
+          // Parse date with multiple format support
+          let dateStr = String(dateValue);
+          
+          // Handle MM/DD/YYYY and DD/MM/YYYY formats
+          if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+              let month, day, year;
+              
+              // Detect format based on first part
+              if (parseInt(parts[0]) > 12) {
+                // DD/MM/YYYY format
+                [day, month, year] = parts;
+              } else {
+                // MM/DD/YYYY format
+                [month, day, year] = parts;
+              }
+              
+              // Ensure 4-digit year
+              if (year.length === 2) {
+                year = '20' + year;
+              }
+              
+              dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+          }
+          
+          // Handle DD-MM-YYYY format
+          if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+              const [day, month, year] = parts;
+              // Ensure 4-digit year
+              const fullYear = year.length === 2 ? '20' + year : year;
+              dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+          }
+          
+          const rowDate = new Date(dateStr);
+          if (isNaN(rowDate.getTime())) return false;
+          
+          const startDate = new Date(state.filters.dateRange.start);
+          const endDate = new Date(state.filters.dateRange.end);
+          
+          return rowDate >= startDate && rowDate <= endDate;
+        });
+      }
+    }
+    
+    // Apply column-based filters
     Object.entries(state.filters.selectedValues).forEach(([column, values]) => {
+      if (values.length > 0) {
+        filtered = filtered.filter(row => {
+          const rowValue = String(row[column] || '').toLowerCase().trim();
+          return values.some(filterValue => 
+            String(filterValue).toLowerCase().trim() === rowValue
+          );
+        });
+      }
+    });
+    
+    return filtered;
+  }, [state.data, state.filters]);
+  
+  const filteredDataLegacy = React.useMemo(() => {
+    if (!state.data || state.data.length === 0) return [];
+    
+    return state.data.filter(row => {
       if (values.length > 0) {
         const valuesSet = new Set(values.map(v => String(v).toLowerCase()));
         processedData = processedData.filter(row => 
