@@ -39,9 +39,6 @@ export function OverviewTab({ data }: OverviewTabProps) {
       {/* Dataset-Specific KPI Cards */}
       <DatasetSpecificKPIs />
 
-      {/* Dataset Time Series Chart */}
-      <DatasetTimeSeriesChart />
-
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-8">
         <WeeklyDataDistributionChart />
