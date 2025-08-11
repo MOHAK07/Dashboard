@@ -428,7 +428,7 @@ export function DatasetsTab() {
                   />
                   <div 
                     className="w-4 h-4 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: getUniqueDatasetColor(filteredDatasets.findIndex(d => d.id === dataset.id), filteredDatasets.length) }}
+                    style={{ backgroundColor: getDatasetColorByName(dataset.name) }}
                   />
                   <div className={viewMode === 'list' ? 'w-48' : ''}>
                     <div className="flex items-center justify-between">

@@ -6,26 +6,42 @@ import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
 
 // Use the same color function for consistency
-const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
+const getDatasetColorByName = (datasetName: string) => {
+  const lowerName = datasetName.toLowerCase();
+  
+  // Fixed color mapping based on dataset type
+  if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
+    return '#3b82f6'; // Blue for POS FOM
+  } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
+    return '#7ab839'; // Green for POS LFOM
+  } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
+    return '#7ab839'; // Green for LFOM
+  } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
+    return '#f97316'; // Orange for FOM
+  }
+  
+  // Fallback colors for other datasets
   const baseColors = [
-    '#3b82f6', // blue
-    '#7ab839', // green
-    '#f97316', // orange
-    '#ef4444', // red
-    '#1A2885', // dark blue
-    '#06b6d4', // cyan
-    '#f59e0b', // amber
-    '#dc2626', // red variant
-    '#84cc16', // lime
-    '#059669', // emerald
-    '#8b5cf6', // purple
-    '#ec4899', // pink
-    '#14b8a6', // teal
-    '#f97316', // orange variant
-    '#6366f1', // indigo
+    '#ef4444', '#8b5cf6', '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
   ];
   
-  return baseColors[datasetIndex % baseColors.length];
+  return baseColors[Math.abs(datasetName.length) % baseColors.length];
+};
+
+const getDatasetDisplayName = (datasetName: string) => {
+  const lowerName = datasetName.toLowerCase();
+  
+  if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
+    return 'POS FOM';
+  } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
+    return 'POS LFOM';
+  } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
+    return 'LFOM';
+  } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
+    return 'FOM';
+  }
+  
+  return datasetName;
 };
 
 interface DatasetTimeSeriesChartProps {
@@ -80,21 +96,10 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
         });
 
         // Determine dataset display name
-        let displayName = dataset.name;
-        if (dataset.name.toLowerCase().includes('lfom') && !dataset.name.toLowerCase().includes('pos')) {
-          displayName = 'LFOM';
-        } else if (dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('pos') && !dataset.name.toLowerCase().includes('lfom')) {
-          displayName = 'FOM';
-        } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('fom')) {
-          displayName = 'POS FOM';
-        } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('lfom')) {
-          displayName = 'POS LFOM';
-        }
-
         datasetSeries.push({
-          name: displayName,
+          name: getDatasetDisplayName(dataset.name),
           data: monthlyData,
-          color: getUniqueDatasetColor(index, state.datasets.filter(d => state.activeDatasetIds.includes(d.id)).length),
+          color: getDatasetColorByName(dataset.name),
           datasetId: dataset.id
         });
       });

@@ -24,11 +24,26 @@ export class DataProcessor {
         // Handle different date formats
         let dateStr = String(dateValue);
         
-        // Convert MM/DD/YYYY to YYYY-MM-DD
+        // Handle MM/DD/YYYY and DD/MM/YYYY formats
         if (dateStr.includes('/')) {
           const parts = dateStr.split('/');
           if (parts.length === 3) {
-            const [month, day, year] = parts;
+            let month, day, year;
+            
+            // Detect format based on first part
+            if (parseInt(parts[0]) > 12) {
+              // DD/MM/YYYY format
+              [day, month, year] = parts;
+            } else {
+              // MM/DD/YYYY format  
+              [month, day, year] = parts;
+            }
+            
+            // Ensure 4-digit year
+            if (year.length === 2) {
+              year = '20' + year;
+            }
+            
             dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
         }
@@ -38,7 +53,9 @@ export class DataProcessor {
           const parts = dateStr.split('-');
           if (parts.length === 3) {
             const [day, month, year] = parts;
-            dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            // Ensure 4-digit year
+            const fullYear = year.length === 2 ? '20' + year : year;
+            dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
         }
         
@@ -187,20 +204,38 @@ export class DataProcessor {
       let timeKey: string;
       let dateStr = String(dateValue);
       
-      // Normalize date format
+      // Handle MM/DD/YYYY and DD/MM/YYYY formats
       if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
         if (parts.length === 3) {
-          const [month, day, year] = parts;
+          let month, day, year;
+          
+          // Detect format based on first part
+          if (parseInt(parts[0]) > 12) {
+            // DD/MM/YYYY format
+            [day, month, year] = parts;
+          } else {
+            // MM/DD/YYYY format
+            [month, day, year] = parts;
+          }
+          
+          // Ensure 4-digit year
+          if (year.length === 2) {
+            year = '20' + year;
+          }
+          
           dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         }
       }
       
+      // Handle DD-MM-YYYY format
       if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
         const parts = dateStr.split('-');
         if (parts.length === 3) {
           const [day, month, year] = parts;
-          dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          // Ensure 4-digit year
+          const fullYear = year.length === 2 ? '20' + year : year;
+          dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         }
       }
       

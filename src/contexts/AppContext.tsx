@@ -238,7 +238,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const { start, end } = state.filters.dateRange;
     if (start && end) {
       const dateColumn = state.data.length > 0 ? 
-        Object.keys(state.data[0]).find(col => col.toLowerCase().includes('date')) : null;
+        Object.keys(state.data[0]).find(col => 
+          col.toLowerCase() === 'date' || 
+          col.toLowerCase().includes('date')
+        ) : null;
       
       if (dateColumn) {
         processedData = processedData.filter(row => {
@@ -246,12 +249,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (!dateValue) return false;
           
           let dateStr = String(dateValue);
-          // Normalize date format
+          
+          // Handle MM/DD/YYYY format
           if (dateStr.includes('/')) {
             const parts = dateStr.split('/');
             if (parts.length === 3) {
-              const [month, day, year] = parts;
+              // Check if it's MM/DD/YYYY or DD/MM/YYYY
+              let month, day, year;
+              if (parseInt(parts[0]) > 12) {
+                // DD/MM/YYYY format
+                [day, month, year] = parts;
+              } else {
+                // MM/DD/YYYY format
+                [month, day, year] = parts;
+              }
+              
+              // Ensure 4-digit year
+              if (year.length === 2) {
+                year = '20' + year;
+              }
+              
               dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+          }
+          
+          // Handle DD-MM-YYYY format
+          if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+              const [day, month, year] = parts;
+              // Ensure 4-digit year
+              const fullYear = year.length === 2 ? '20' + year : year;
+              dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
             }
           }
           
@@ -269,9 +298,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Apply column-based filters
     Object.entries(state.filters.selectedValues).forEach(([column, values]) => {
       if (values.length > 0) {
-        const valuesSet = new Set(values);
+        const valuesSet = new Set(values.map(v => String(v).toLowerCase()));
         processedData = processedData.filter(row => 
-          valuesSet.has(String(row[column] || ''))
+          valuesSet.has(String(row[column] || '').toLowerCase())
         );
       }
     });

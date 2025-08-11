@@ -6,26 +6,42 @@ import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
 
 // Use the same color function for consistency
-const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
+const getDatasetColorByName = (datasetName: string) => {
+  const lowerName = datasetName.toLowerCase();
+  
+  // Fixed color mapping based on dataset type
+  if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
+    return '#3b82f6'; // Blue for POS FOM
+  } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
+    return '#7ab839'; // Green for POS LFOM
+  } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
+    return '#7ab839'; // Green for LFOM
+  } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
+    return '#f97316'; // Orange for FOM
+  }
+  
+  // Fallback colors for other datasets
   const baseColors = [
-    '#3b82f6', // blue
-    '#7ab839', // green
-    '#f97316', // orange
-    '#ef4444', // red
-    '#1A2885', // dark blue
-    '#06b6d4', // cyan
-    '#f59e0b', // amber
-    '#dc2626', // red variant
-    '#84cc16', // lime
-    '#059669', // emerald
-    '#8b5cf6', // purple
-    '#ec4899', // pink
-    '#14b8a6', // teal
-    '#f97316', // orange variant
-    '#6366f1', // indigo
+    '#ef4444', '#8b5cf6', '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
   ];
   
-  return baseColors[datasetIndex % baseColors.length];
+  return baseColors[Math.abs(datasetName.length) % baseColors.length];
+};
+
+const getDatasetDisplayName = (datasetName: string) => {
+  const lowerName = datasetName.toLowerCase();
+  
+  if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
+    return 'POS FOM';
+  } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
+    return 'POS LFOM';
+  } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
+    return 'LFOM';
+  } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
+    return 'FOM';
+  }
+  
+  return datasetName;
 };
 
 interface DynamicRevenueBreakdownChartProps {
@@ -70,19 +86,19 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
     let totalRevenue = 0;
 
     allowedDatasets.forEach((dataset, index) => {
-      // Determine which column to use based on dataset type
-      const name = dataset.name.toLowerCase();
+      // Determine which column to use based on dataset type with case-insensitive matching
+      const lowerName = dataset.name.toLowerCase();
       let revenueColumn: string | undefined;
       
-      // For POS datasets, use Revenue column
-      if (name.includes('pos')) {
+      // For POS datasets (POS FOM and POS LFOM), use Revenue column
+      if (lowerName.includes('pos') && (lowerName.includes('fom') || lowerName.includes('lfom'))) {
         revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
           col.toLowerCase() === 'revenue' ||
           col.toLowerCase().includes('revenue')
         );
       }
       
-      // For FOM and LFOM datasets, use Price column
+      // For FOM and LFOM datasets (non-POS), use Price column
       if (!revenueColumn) {
         revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
           col.toLowerCase() === 'price'
@@ -109,24 +125,10 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
       }, 0);
 
       if (datasetRevenue > 0) {
-        // Determine corrected dataset display name with case-insensitive matching
-        let displayName = dataset.name;
-        const lowerName = dataset.name.toLowerCase();
-        
-        if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
-          displayName = 'LFOM';
-        } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
-          displayName = 'FOM';
-        } else if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
-          displayName = 'POS FOM';
-        } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
-          displayName = 'POS LFOM';
-        }
-
         revenueData.push({
-          name: displayName,
+          name: getDatasetDisplayName(dataset.name),
           revenue: Math.round(datasetRevenue * 100) / 100,
-          color: getUniqueDatasetColor(index, allowedDatasets.length)
+          color: getDatasetColorByName(dataset.name)
         });
 
         totalRevenue += datasetRevenue;
