@@ -4,6 +4,7 @@ import { ApexOptions } from 'apexcharts';
 import { FlexibleDataRow } from '../../types';
 import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
+import { DataProcessor } from '../../utils/dataProcessing';
 
 // Use the same color function for consistency
 const getDatasetColorByName = (datasetName: string) => {

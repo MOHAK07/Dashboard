@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, Database, BarChart3, Package } from 'lucide-react';
 import { FlexibleDataRow } from '../../types';
 import { useApp } from '../../contexts/AppContext';
+import { DataProcessor } from '../../utils/dataProcessing';
 
 // Use the same color function for consistency
 const getDatasetColorByName = (datasetName: string) => {
