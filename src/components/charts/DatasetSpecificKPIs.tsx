@@ -51,10 +51,10 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
 
       // Determine dataset type based on name
       let displayName = dataset.name;
-      if (dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('pos')) {
-        displayName = 'FOM Sales';
-      } else if (dataset.name.toLowerCase().includes('lfom') && !dataset.name.toLowerCase().includes('pos')) {
+      if (dataset.name.toLowerCase().includes('lfom') && !dataset.name.toLowerCase().includes('pos')) {
         displayName = 'LFOM Sales';
+      } else if (dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('pos') && !dataset.name.toLowerCase().includes('lfom')) {
+        displayName = 'FOM Sales';
       } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('fom')) {
         displayName = 'POS FOM Sales';
       } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('lfom')) {

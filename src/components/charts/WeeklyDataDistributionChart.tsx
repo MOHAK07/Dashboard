@@ -28,64 +28,75 @@ const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
   return baseColors[datasetIndex % baseColors.length];
 };
 
-interface DatasetTimeSeriesChartProps {
+interface WeeklyDataDistributionChartProps {
   className?: string;
 }
 
-export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChartProps) {
+export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistributionChartProps) {
   const { state, getMultiDatasetData } = useApp();
-  const [chartType, setChartType] = useState<'line' | 'area' | 'bar'>('line');
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar');
   const isDarkMode = state.settings.theme === 'dark';
   
   const multiDatasetData = getMultiDatasetData();
   const isMultiDataset = multiDatasetData.length > 1;
 
-  // Process time series data for each dataset
-  const processTimeSeriesData = useMemo(() => {
+  // Process weekly data for each dataset
+  const processWeeklyData = useMemo(() => {
     if (state.datasets.length === 0) {
       return { categories: [], series: [], hasData: false };
     }
 
-    const allMonths = new Set<string>();
+    const allWeekMonthCombos = new Set<string>();
     const datasetSeries: any[] = [];
 
     // Process each active dataset
     state.datasets
       .filter(dataset => state.activeDatasetIds.includes(dataset.id))
       .forEach((dataset, index) => {
-        // Find quantity and month columns
+        // Find quantity, week, and month columns
         const quantityColumn = Object.keys(dataset.data[0] || {}).find(col => 
           col.toLowerCase() === 'quantity'
+        );
+        const weekColumn = Object.keys(dataset.data[0] || {}).find(col => 
+          col.toLowerCase() === 'week'
         );
         const monthColumn = Object.keys(dataset.data[0] || {}).find(col => 
           col.toLowerCase() === 'month'
         );
 
-        if (!quantityColumn || !monthColumn) {
+        if (!quantityColumn || !weekColumn || !monthColumn) {
           return;
         }
 
-        // Group by month and sum quantities
-        const monthlyData = new Map<string, number>();
+        // Group by week-month combination and sum quantities
+        const weeklyData = new Map<string, { quantity: number; month: string; week: string }>();
         
         dataset.data.forEach(row => {
+          const week = String(row[weekColumn] || '').trim();
           const month = String(row[monthColumn] || '').trim();
           const quantity = parseFloat(String(row[quantityColumn] || '0')) || 0;
           
-          if (month && quantity > 0) {
-            allMonths.add(month);
-            const currentTotal = monthlyData.get(month) || 0;
-            monthlyData.set(month, currentTotal + quantity);
+          if (week && month && quantity > 0) {
+            // Create a unique key for week-month combination
+            const weekMonthKey = `${week}-${month}`;
+            allWeekMonthCombos.add(weekMonthKey);
+            
+            if (!weeklyData.has(weekMonthKey)) {
+              weeklyData.set(weekMonthKey, { quantity: 0, month, week });
+            }
+            
+            const current = weeklyData.get(weekMonthKey)!;
+            current.quantity += quantity;
           }
         });
 
-        // Determine dataset display name
+        // Determine dataset display name with corrected color mapping
         let displayName = dataset.name;
         if (dataset.name.toLowerCase().includes('lfom') && !dataset.name.toLowerCase().includes('pos')) {
           displayName = 'LFOM';
         } else if (dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('pos') && !dataset.name.toLowerCase().includes('lfom')) {
           displayName = 'FOM';
-        } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('fom')) {
+        } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('lfom')) {
           displayName = 'POS FOM';
         } else if (dataset.name.toLowerCase().includes('pos') && dataset.name.toLowerCase().includes('lfom')) {
           displayName = 'POS LFOM';
@@ -93,51 +104,71 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
 
         datasetSeries.push({
           name: displayName,
-          data: monthlyData,
+          data: weeklyData,
           color: getUniqueDatasetColor(index, state.datasets.filter(d => state.activeDatasetIds.includes(d.id)).length),
           datasetId: dataset.id
         });
       });
 
-    // Sort months chronologically
-    const sortedMonths = Array.from(allMonths).sort((a, b) => {
+    // Sort week-month combinations chronologically
+    const sortedWeekMonths = Array.from(allWeekMonthCombos).sort((a, b) => {
+      const [weekA, monthA] = a.split('-');
+      const [weekB, monthB] = b.split('-');
+      
       const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
                          'July', 'August', 'September', 'October', 'November', 'December'];
-      return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+      
+      const monthIndexA = monthOrder.indexOf(monthA);
+      const monthIndexB = monthOrder.indexOf(monthB);
+      
+      if (monthIndexA !== monthIndexB) {
+        return monthIndexA - monthIndexB;
+      }
+      
+      // Extract week number for sorting within same month
+      const weekNumA = parseInt(weekA.replace(/\D/g, '')) || 0;
+      const weekNumB = parseInt(weekB.replace(/\D/g, '')) || 0;
+      return weekNumA - weekNumB;
     });
 
-    // Create final series with aligned data
+    // Create final series with aligned data and formatted categories
     const finalSeries = datasetSeries.map(series => ({
       name: series.name,
-      data: sortedMonths.map(month => {
-        const value = series.data.get(month) || 0;
-        return Math.round(value * 100) / 100; // Round to 2 decimal places
+      data: sortedWeekMonths.map(weekMonth => {
+        const weekData = series.data.get(weekMonth);
+        return weekData ? Math.round(weekData.quantity * 100) / 100 : 0;
       }),
       color: series.color
     }));
 
+    // Create formatted categories with month abbreviations in brackets
+    const formattedCategories = sortedWeekMonths.map(weekMonth => {
+      const [week, month] = weekMonth.split('-');
+      const monthAbbr = month.substring(0, 3); // Get first 3 letters
+      return `${week} (${monthAbbr})`;
+    });
+
     return {
-      categories: sortedMonths,
+      categories: formattedCategories,
       series: finalSeries,
-      hasData: finalSeries.length > 0 && sortedMonths.length > 0
+      hasData: finalSeries.length > 0 && sortedWeekMonths.length > 0
     };
   }, [state.datasets, state.activeDatasetIds]);
 
-  if (!processTimeSeriesData.hasData) {
+  if (!processWeeklyData.hasData) {
     return (
       <ChartContainer
-        title="Quantity Trends by Month - All Datasets"
-        availableTypes={['line', 'area', 'bar']}
+        title="Data Distribution - Weekly Quantity Analysis"
+        availableTypes={['bar', 'line', 'area']}
         currentType={chartType}
-        onChartTypeChange={(type) => setChartType(type as 'line' | 'area' | 'bar')}
+        onChartTypeChange={(type) => setChartType(type as 'bar' | 'line' | 'area')}
         className={className}
       >
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
           <div className="text-center">
-            <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">No Time Series Data Available</p>
+            <p className="text-lg font-medium">No Weekly Data Available</p>
             <p className="text-sm mt-2">
-              Upload datasets with 'Quantity' and 'Month' columns to view trends
+              Upload datasets with 'Quantity', 'Week', and 'Month' columns to view distribution
             </p>
           </div>
         </div>
@@ -167,7 +198,7 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
       gradient: chartType === 'area' ? {
         shadeIntensity: 1,
         type: 'vertical',
-        colorStops: processTimeSeriesData.series.map((series, index) => [
+        colorStops: processWeeklyData.series.map((series, index) => [
           { offset: 0, color: series.color, opacity: 0.8 },
           { offset: 100, color: series.color, opacity: 0.1 }
         ]).flat()
@@ -177,13 +208,13 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
     dataLabels: { enabled: false },
     
     xaxis: {
-      categories: processTimeSeriesData.categories,
+      categories: processWeeklyData.categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-        rotate: processTimeSeriesData.categories.length > 6 ? -45 : 0
+        rotate: processWeeklyData.categories.length > 8 ? -45 : 0
       },
       title: {
-        text: 'Months',
+        text: 'Week (Month)',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
@@ -199,12 +230,12 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
       },
       title: {
-        text: 'Total Quantity',
+        text: 'Quantity',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
     
-    colors: processTimeSeriesData.series.map(s => s.color),
+    colors: processWeeklyData.series.map(s => s.color),
     
     theme: { mode: isDarkMode ? 'dark' : 'light' },
     
@@ -245,7 +276,7 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
     
     markers: {
       size: chartType === 'line' ? 6 : 0,
-      colors: processTimeSeriesData.series.map(s => s.color),
+      colors: processWeeklyData.series.map(s => s.color),
       strokeColors: '#ffffff',
       strokeWidth: 2,
       hover: { size: 8 }
@@ -272,16 +303,16 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
 
   return (
     <ChartContainer
-      title={`Quantity Trends by Month${isMultiDataset ? ' - Dataset Comparison' : ''}`}
-      availableTypes={['line', 'area', 'bar']}
+      title={`Data Distribution - Weekly Quantity Analysis${isMultiDataset ? ' (Dataset Comparison)' : ''}`}
+      availableTypes={['bar', 'line', 'area']}
       currentType={chartType}
-      onChartTypeChange={(type) => setChartType(type as 'line' | 'area' | 'bar')}
+      onChartTypeChange={(type) => setChartType(type as 'bar' | 'line' | 'area')}
       className={className}
     >
       <div className="w-full h-full min-h-[500px]">
         <Chart
           options={chartOptions}
-          series={processTimeSeriesData.series}
+          series={processWeeklyData.series}
           type={chartType}
           height="500px"
           width="100%"

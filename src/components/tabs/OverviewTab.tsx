@@ -2,7 +2,8 @@ import React from 'react';
 import { FlexibleDataRow } from '../../types';
 import { DatasetSpecificKPIs } from '../charts/DatasetSpecificKPIs';
 import { DatasetTimeSeriesChart } from '../charts/DatasetTimeSeriesChart';
-import { FlexibleChart } from '../charts/FlexibleChart';
+import { WeeklyDataDistributionChart } from '../charts/WeeklyDataDistributionChart';
+import { DynamicRevenueBreakdownChart } from '../charts/DynamicRevenueBreakdownChart';
 import { useApp } from '../../contexts/AppContext';
 import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
 import { DataProcessor } from '../../utils/dataProcessing';
@@ -41,79 +42,16 @@ export function OverviewTab({ data }: OverviewTabProps) {
       {/* Dataset Time Series Chart */}
       <DatasetTimeSeriesChart />
 
-      {/* Data Overview */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Dataset Overview
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Detected Columns</h4>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total: {Object.keys(data[0] || {}).length}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Numeric: {numericColumns.length}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Categorical: {categoricalColumns.length}
-              </p>
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Key Columns</h4>
-            <div className="space-y-1">
-              {dateColumn && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Date: {dateColumn}
-                </p>
-              )}
-              {numericColumns.slice(0, 3).map(col => (
-                <p key={col} className="text-sm text-gray-600 dark:text-gray-400">
-                  Numeric: {col}
-                </p>
-              ))}
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Data Quality</h4>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Rows: {data.length.toLocaleString()}
-              </p>
-              <p className="text-sm text-success-600 dark:text-success-400">
-                ✓ Data loaded successfully
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-8">
-        {categoricalColumns.length > 0 && numericColumns.length > 0 && (
-          <FlexibleChart
-            data={data}
-            title="Data Distribution"
-            chartType="bar"
-            isDarkMode={isDarkMode}
-          />
-        )}
+        <WeeklyDataDistributionChart />
       </div>
 
-      {categoricalColumns.length > 0 && numericColumns.length > 0 && (
-        <div className="grid grid-cols-1 gap-8">
-          <FlexibleChart
-            data={data}
-            title="Category Breakdown"
-            chartType="donut"
-            isDarkMode={isDarkMode}
-          />
-        </div>
-      )}
+      {/* Quality Trends by Month - Repositioned */}
+      <DatasetTimeSeriesChart />
+
+      {/* Dynamic Revenue Breakdown */}
+      <DynamicRevenueBreakdownChart />
     </div>
   );
 }
