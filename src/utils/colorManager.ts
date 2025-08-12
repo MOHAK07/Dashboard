@@ -20,11 +20,11 @@ export class ColorManager {
   private static readonly DATASET_TYPE_COLORS = {
     'pos_fom': '#3b82f6',     // Blue for POS FOM
     'pos_lfom': '#22c55e',    // Green for POS LFOM  
-    'lfom': '#7ab839',        // Different green for LFOM
+    'lfom': '#f59e0b',        // Different green for LFOM
     'fom': '#f97316',         // Orange for FOM
     'mda_claim': '#8b5cf6',   // Purple for MDA Claim
     'stock': '#06b6d4',       // Cyan for Stock
-    'production': '#f59e0b',  // Amber for Production
+    'production': '#7ab839',  // Amber for Production
   };
 
   private static assignedColors = new Map<string, string>();
