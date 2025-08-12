@@ -85,7 +85,7 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
   // Filter out MDA claim datasets from the KPI display
   const filteredDatasetKPIs = datasetKPIs.filter(dataset => {
     const lowerName = dataset.name.toLowerCase();
-    return !(lowerName.includes('mda') || lowerName.includes('claim'));
+    return !(lowerName.includes('mda') || lowerName.includes('claim') || lowerName.includes('recovery'));
   });
 
   // If no non-MDA datasets, show placeholder

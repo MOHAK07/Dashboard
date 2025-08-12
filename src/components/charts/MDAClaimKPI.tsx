@@ -33,8 +33,78 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
     const sampleRow = allMDAData[0];
     const columns = Object.keys(sampleRow);
     
-    const eligibleAmountColumn = columns.find(col => 
-      col.toLowerCase().includes('eligible') && col.toLowerCase().includes('amount')
+    const eligibleAmountColumn = columns.find(col => {
+      const lowerCol = col.toLowerCase().trim();
+      return lowerCol.includes('eligible') && lowerCol.includes('amount');
+    });
+    const amountReceivedColumn = columns.find(col => {
+      const lowerCol = col.toLowerCase().trim();
+      return lowerCol.includes('amount') && lowerCol.includes('received');
+    });
+
+    console.log('MDA Claim KPI - Column Detection:', {
+      availableColumns: columns,
+      eligibleAmountColumn,
+      amountReceivedColumn
+    });
+
+    if (!eligibleAmountColumn || !amountReceivedColumn) {
+      console.warn('MDA Claim KPI - Missing required columns');
+      return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
+    }
+
+    // Calculate totals with improved parsing
+    let totalEligible = 0;
+    let totalReceived = 0;
+    let validRowCount = 0;
+
+    // Parse Indian number format function
+    const parseIndianNumber = (value: string): number => {
+      if (!value || value === '-' || value === '' || value.trim() === '') return 0;
+      
+      // Remove commas, quotes, and extra spaces, but keep decimal points
+      const cleaned = value.replace(/[",\s]/g, '');
+      const parsed = parseFloat(cleaned);
+      
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    allMDAData.forEach((row, index) => {
+      const eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
+      const receivedRaw = String(row[amountReceivedColumn] || '').trim();
+      
+      // Skip rows with dash values or empty values
+      if (eligibleRaw === '-' || eligibleRaw === '' || receivedRaw === '-' || receivedRaw === '') {
+        return;
+      }
+
+      const eligible = parseIndianNumber(eligibleRaw);
+      const received = parseIndianNumber(receivedRaw);
+      
+      console.log(`MDA KPI Row ${index + 1}: Eligible: ${eligibleRaw} -> ${eligible}, Received: ${receivedRaw} -> ${received}`);
+
+      if (eligible > 0 || received > 0) {
+        totalEligible += eligible;
+        totalReceived += received;
+        validRowCount++;
+      }
+    });
+
+    console.log('MDA Claim KPI - Final Totals:', {
+      totalEligible,
+      totalReceived,
+      validRowCount,
+      recoveryPercentage: totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0
+    });
+
+    const recoveryPercentage = totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0;
+
+    return {
+      hasData: validRowCount > 0,
+      recoveryPercentage: Math.round(recoveryPercentage * 100) / 100,
+      totalEligible,
+      totalReceived
+    };
     );
     const amountReceivedColumn = columns.find(col => 
       col.toLowerCase().includes('amount') && col.toLowerCase().includes('received')
