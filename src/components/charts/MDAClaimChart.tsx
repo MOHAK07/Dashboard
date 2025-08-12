@@ -413,34 +413,31 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
       return { categories: [], series: [], hasData: false };
     }
 
-    // Find required columns (exact match and case-insensitive)
+    // Find required columns (case-insensitive)
     const sampleRow = allMDAData[0];
     const columns = Object.keys(sampleRow);
     
-    // Enhanced column detection for Month column
+    // Enhanced column detection with multiple fallback strategies
     const monthColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
       return lowerCol === 'month' || 
              lowerCol.includes('month') ||
              lowerCol === 'period' ||
-             lowerCol.includes('time') ||
-             lowerCol.includes('date');
+             lowerCol.includes('time');
     });
     
-    // Enhanced column detection for Eligible Amount
     const eligibleAmountColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol === 'eligible amount' ||
-             (lowerCol.includes('eligible') && lowerCol.includes('amount')) ||
+      return (lowerCol.includes('eligible') && lowerCol.includes('amount')) ||
+             lowerCol === 'eligible amount' ||
              lowerCol.includes('eligible_amount') ||
              lowerCol.includes('eligibleamount');
     });
     
-    // Enhanced column detection for Amount Received
     const amountReceivedColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol === 'amount received' ||
-             (lowerCol.includes('amount') && lowerCol.includes('received')) ||
+      return (lowerCol.includes('amount') && lowerCol.includes('received')) ||
+             lowerCol === 'amount received' ||
              lowerCol.includes('amount_received') ||
              lowerCol.includes('amountreceived') ||
              lowerCol.includes('received_amount');
@@ -461,73 +458,50 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     // Group by month and sum amounts
     const monthlyData = new Map<string, { eligible: number; received: number }>();
 
-    // Enhanced number parsing function
-    const parseIndianNumber = (value: string | number | null | undefined): number => {
-      if (value === null || value === undefined || value === '-' || value === '' || String(value).trim() === '') {
-        return 0;
-      }
-      
-      // Convert to string and clean
-      let cleaned = String(value).replace(/[",\s]/g, '');
-      
-      // Handle cases where .00 is at the end
-      if (cleaned.endsWith('.00')) {
-        cleaned = cleaned.slice(0, -3);
-      }
-      
-      const parsed = parseFloat(cleaned);
-      
-      return isNaN(parsed) ? 0 : parsed;
-    };
-
-    // Function to format date to Month-Year
-    const formatMonthYear = (dateValue: any): string | null => {
-      if (!dateValue || dateValue === '-' || dateValue === '') return null;
-      
-      try {
-        let date: Date;
-        
-        // Handle different date formats
-        if (typeof dateValue === 'string') {
-          if (dateValue.includes('-')) {
-            date = new Date(dateValue);
-          } else {
-            return null;
-          }
-        } else if (dateValue instanceof Date) {
-          date = dateValue;
-        } else {
-          return null;
-        }
-        
-        if (isNaN(date.getTime())) return null;
-        
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        const month = months[date.getMonth()];
-        const year = date.getFullYear().toString().slice(-2);
-        
-        return `${month}-${year}`;
-      } catch (error) {
-        console.warn('Error parsing date:', dateValue, error);
-        return null;
-      }
+    // More robust number parsing function
+    const parseIndianNumber = (value: string | number): number => {
+        if (value === null || value === undefined) return 0;
+        let cleaned = String(value).trim();
+        if (cleaned === '-' || cleaned === '' || cleaned.toLowerCase() === 'total') return 0;
+        cleaned = cleaned.replace(/[^0-9.-]/g, '');
+        if (cleaned === '') return 0;
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
     };
 
     allMDAData.forEach((row, index) => {
-      const monthValue = row[monthColumn];
-      const month = formatMonthYear(monthValue);
+      let monthStr = String(row[monthColumn] || '').trim();
       
-      // Skip rows with invalid month data
-      if (!month) {
+      if (!monthStr || monthStr === '-' || monthStr === '' || monthStr === 'Total') {
+        return;
+      }
+      
+      let month;
+      // FIX: Handle YYYY-MM-DD date format from CSV
+      const date = new Date(monthStr);
+      if (!isNaN(date.getTime()) && monthStr.split('-').length === 3) {
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const monthName = monthNames[date.getUTCMonth()];
+          const year = String(date.getUTCFullYear()).slice(-2);
+          month = `${monthName}-${year}`;
+      } else if (monthStr.split('-').length === 2) {
+          // Fallback for "Mon-YY" format
+          month = monthStr;
+      } else {
+          console.warn(`Skipping row with unrecognized month format: ${monthStr}`);
+          return;
+      }
+
+      // Parse amounts with enhanced logic
+      let eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
+      let receivedRaw = String(row[amountReceivedColumn] || '').trim();
+      
+      if (eligibleRaw === '-' || eligibleRaw === '' || 
+          receivedRaw === '-' || receivedRaw === '' ||
+          eligibleRaw === 'Total' || receivedRaw === 'Total') {
         return;
       }
 
-      // Parse amounts
-      const eligibleRaw = row[eligibleAmountColumn];
-      const receivedRaw = row[amountReceivedColumn];
-      
       const eligible = parseIndianNumber(eligibleRaw);
       const received = parseIndianNumber(receivedRaw);
       
@@ -549,7 +523,6 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
 
     // Sort months chronologically
     const sortedMonths = Array.from(monthlyData.keys()).sort((a, b) => {
-      // Extract month and year from formats like "Dec-23", "Jan-24"
       const partsA = a.split('-');
       const partsB = b.split('-');
       
@@ -561,9 +534,8 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
       const [monthB, yearB] = partsB;
       
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       
-      // Convert 2-digit years to 4-digit years
       let fullYearA = parseInt(yearA);
       let fullYearB = parseInt(yearB);
       
@@ -582,12 +554,12 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
 
     const eligibleData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.eligible * 100) / 100; // Keep original values, round to 2 decimals
+      return Math.round(data.eligible * 100) / 100;
     });
 
     const receivedData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.received * 100) / 100; // Keep original values, round to 2 decimals
+      return Math.round(data.received * 100) / 100;
     });
 
     console.log('MDA Claim Chart - Final Data:', {
@@ -615,7 +587,14 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
   }, [state.datasets, state.activeDatasetIds]);
 
   if (!processMDAData.hasData) {
-    return null; // Don't render if no MDA claim data
+    return (
+        <div className={`card ${className} flex items-center justify-center min-h-[500px]`}>
+            <div className="text-center text-gray-500">
+                <p className="font-semibold">No MDA Claim Data to Display</p>
+                <p className="text-sm">Please select a valid MDA dataset with a 'Month' column.</p>
+            </div>
+        </div>
+    );
   }
 
   const chartOptions: ApexOptions = {
@@ -665,7 +644,6 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     yaxis: {
       labels: {
         formatter: (val: number) => {
-          // Format values in thousands/lakhs/crores
           if (val >= 10000000) { // 1 crore
             return `₹${(val / 10000000).toFixed(1)}Cr`;
           } else if (val >= 100000) { // 1 lakh
@@ -703,7 +681,6 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
       intersect: false,
       y: {
         formatter: (val: number) => {
-          // Format tooltip values
           if (val >= 10000000) { // 1 crore
             return `₹${(val / 10000000).toFixed(2)} Crores`;
           } else if (val >= 100000) { // 1 lakh
