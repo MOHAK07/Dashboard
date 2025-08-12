@@ -1,204 +1,37 @@
-import React, { useMemo } from 'react';
-import { TrendingUp, TrendingDown, Percent } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { ColorManager } from '../../utils/colorManager';
+const productKPIs: ProductKPI[] = useMemo(() => {
+  const computeFor = (
+    predicate: (name: string) => boolean,
+    displayName: string
+  ): ProductKPI | null => {
+    const rows = state.datasets
+      .filter(d => state.activeDatasetIds.includes(d.id) && predicate(d.name))
+      .flatMap(d => d.data);
+    if (!rows.length) return null;
 
-interface MDAClaimKPIProps {
-  className?: string;
-}
+    const cols = Object.keys(rows[0]);
+    const prodCol = cols.find(c=>c.toLowerCase().includes('production'));
+    const salesCol= cols.find(c=>c.toLowerCase().includes('sales'));
+    if (!prodCol || !salesCol) return null;
 
-export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
-  const { state } = useApp();
-
-  // Calculate MDA claim KPIs
-  const mdaKPIs = useMemo(() => {
-    // Find MDA claim datasets
-    const mdaDatasets = state.datasets.filter(dataset => 
-      state.activeDatasetIds.includes(dataset.id) && 
-      ColorManager.isMDAClaimDataset(dataset.name)
-    );
-
-    if (mdaDatasets.length === 0) {
-      return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
-    }
-
-    // Combine all MDA claim data
-    const allMDAData = mdaDatasets.flatMap(dataset => dataset.data);
-
-    if (allMDAData.length === 0) {
-      return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
-    }
-
-    // Find required columns (case-insensitive)
-    const sampleRow = allMDAData[0];
-    const columns = Object.keys(sampleRow);
-    
-    const eligibleAmountColumn = columns.find(col => {
-      const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('eligible') && lowerCol.includes('amount');
+    let sumProd=0, sumSales=0;
+    rows.forEach(r => {
+      sumProd  += parseFloat(String(r[prodCol ]).replace(/[, ]/g, ''))||0;
+      sumSales += parseFloat(String(r[salesCol]).replace(/[, ]/g, ''))||0;
     });
-    const amountReceivedColumn = columns.find(col => {
-      const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('amount') && lowerCol.includes('received');
-    });
-
-    console.log('MDA Claim KPI - Column Detection:', {
-      availableColumns: columns,
-      eligibleAmountColumn,
-      amountReceivedColumn
-    });
-
-    if (!eligibleAmountColumn || !amountReceivedColumn) {
-      console.warn('MDA Claim KPI - Missing required columns');
-      return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
-    }
-
-    // Calculate totals with improved parsing
-    let totalEligible = 0;
-    let totalReceived = 0;
-    let validRowCount = 0;
-
-    // Parse Indian number format function
-    const parseIndianNumber = (value: string): number => {
-      if (!value || value === '-' || value === '' || value.trim() === '') return 0;
-      
-      // Remove commas, quotes, and extra spaces, but keep decimal points
-      const cleaned = value.replace(/[",\s]/g, '');
-      const parsed = parseFloat(cleaned);
-      
-      return isNaN(parsed) ? 0 : parsed;
-    };
-
-    allMDAData.forEach((row, index) => {
-      const eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
-      const receivedRaw = String(row[amountReceivedColumn] || '').trim();
-      
-      // Skip rows with dash values or empty values
-      if (eligibleRaw === '-' || eligibleRaw === '' || receivedRaw === '-' || receivedRaw === '') {
-        return;
-      }
-
-      const eligible = parseIndianNumber(eligibleRaw);
-      const received = parseIndianNumber(receivedRaw);
-      
-      console.log(`MDA KPI Row ${index + 1}: Eligible: ${eligibleRaw} -> ${eligible}, Received: ${receivedRaw} -> ${received}`);
-
-      if (eligible > 0 || received > 0) {
-        totalEligible += eligible;
-        totalReceived += received;
-        validRowCount++;
-      }
-    });
-
-    console.log('MDA Claim KPI - Final Totals:', {
-      totalEligible,
-      totalReceived,
-      validRowCount,
-      recoveryPercentage: totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0
-    });
-
-    const recoveryPercentage = totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0;
+    const avgProd = sumProd/rows.length;
+    const avgSales= sumSales/rows.length;
+    const recoveryPct = avgProd>0 ? (avgSales/avgProd)*100 : 0;
 
     return {
-      hasData: validRowCount > 0,
-      recoveryPercentage: Math.round(recoveryPercentage * 100) / 100,
-      totalEligible,
-      totalReceived
+      name: displayName,
+      avgProduction: Math.round(avgProd*100)/100,
+      avgSales:      Math.round(avgSales*100)/100,
+      recoveryRate:  Math.round(recoveryPct*100)/100
     };
-  }, [state.datasets, state.activeDatasetIds]);
-
-  if (!mdaKPIs.hasData) {
-    return null; // Don't render if no MDA claim data
-  }
-
-  const formatAmount = (amount: number): string => {
-    if (amount >= 10000000) { // 1 crore
-      return `₹${(amount / 10000000).toFixed(2)}Cr`;
-    } else if (amount >= 100000) { // 1 lakh
-      return `₹${(amount / 100000).toFixed(2)}L`;
-    } else if (amount >= 1000) { // 1 thousand
-      return `₹${(amount / 1000).toFixed(2)}K`;
-    }
-    return `₹${amount.toFixed(2)}`;
   };
 
-  const getChangeIcon = (percentage: number) => {
-    if (percentage >= 75) return <TrendingUp className="h-4 w-4 text-success-500" />;
-    if (percentage >= 50) return <Percent className="h-4 w-4 text-warning-500" />;
-    return <TrendingDown className="h-4 w-4 text-error-500" />;
-  };
-
-  const getChangeColor = (percentage: number) => {
-    if (percentage >= 75) return 'text-success-600 dark:text-success-400';
-    if (percentage >= 50) return 'text-warning-600 dark:text-warning-400';
-    return 'text-error-600 dark:text-error-400';
-  };
-
-  const getBackgroundColor = (percentage: number) => {
-    if (percentage >= 75) return 'bg-success-100 dark:bg-success-900/50';
-    if (percentage >= 50) return 'bg-warning-100 dark:bg-warning-900/50';
-    return 'bg-error-100 dark:bg-error-900/50';
-  };
-
-  return (
-    <div className={`card hover:shadow-md transition-all duration-200 ${className}`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            MDA Claim Recovery Rate
-          </p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {mdaKPIs.recoveryPercentage.toFixed(1)}%
-          </p>
-          
-          <div className={`flex items-center space-x-1.5 mb-3 ${getChangeColor(mdaKPIs.recoveryPercentage)}`}>
-            {getChangeIcon(mdaKPIs.recoveryPercentage)}
-            <span className="text-sm font-medium">
-              {mdaKPIs.recoveryPercentage >= 75 ? 'Excellent' : 
-               mdaKPIs.recoveryPercentage >= 50 ? 'Good' : 'Needs Improvement'}
-            </span>
-          </div>
-
-          <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-            <div className="flex justify-between">
-              <span>Total Eligible:</span>
-              <span className="font-medium">{formatAmount(mdaKPIs.totalEligible)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Amount Received:</span>
-              <span className="font-medium">{formatAmount(mdaKPIs.totalReceived)}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className={`p-3 rounded-lg ${getBackgroundColor(mdaKPIs.recoveryPercentage)}`}>
-          <Percent className={`h-6 w-6 ${
-            mdaKPIs.recoveryPercentage >= 75 ? 'text-success-600 dark:text-success-400' :
-            mdaKPIs.recoveryPercentage >= 50 ? 'text-warning-600 dark:text-warning-400' :
-            'text-error-600 dark:text-error-400'
-          }`} />
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="mt-4">
-        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-          <span>Recovery Progress</span>
-          <span>{mdaKPIs.recoveryPercentage.toFixed(1)}%</span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div 
-            className={`h-2 rounded-full transition-all duration-500 ${
-              mdaKPIs.recoveryPercentage >= 75 ? 'bg-success-500' :
-              mdaKPIs.recoveryPercentage >= 50 ? 'bg-warning-500' :
-              'bg-error-500'
-            }`}
-            style={{ width: `${Math.min(mdaKPIs.recoveryPercentage, 100)}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default MDAClaimKPI;
+  return [
+    computeFor(name => name.toLowerCase().includes('rcf'), 'RCF'),
+    computeFor(name => name.toLowerCase().includes('boomi'), 'Boomi Samrudhi')
+  ].filter(Boolean) as ProductKPI[];
+}, [state.datasets, state.activeDatasetIds]);
