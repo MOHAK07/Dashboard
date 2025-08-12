@@ -23,7 +23,7 @@ export class ColorManager {
     'lfom': '#f59e0b',        // Different green for LFOM
     'fom': '#f97316',         // Orange for FOM
     'mda_claim': '#8b5cf6',   // Purple for MDA Claim
-    'stock': '#06b6d4',       // Cyan for Stock
+    'stock': '#14b8a6',       // Teal for Stock
     'production': '#7ab839',  // Amber for Production
   };
 
@@ -77,6 +77,9 @@ export class ColorManager {
     if (lowerName.includes('production')) {
       return 'production';
     }
+    if (lowerName.includes('stock') || lowerName.includes('inventory')) {
+      return 'stock';
+    }
     
     return null;
   }
@@ -105,6 +108,9 @@ export class ColorManager {
     if (lowerName.includes('production')) {
       return 'Production';
     }
+    if (lowerName.includes('stock') || lowerName.includes('inventory')) {
+      return 'Stock Data';
+    }
     
     return datasetName;
   }
@@ -112,6 +118,11 @@ export class ColorManager {
   static isMDAClaimDataset(datasetName: string): boolean {
     const lowerName = datasetName.toLowerCase();
     return lowerName.includes('mda') || lowerName.includes('claim');
+  }
+
+  static isStockDataset(datasetName: string): boolean {
+    const lowerName = datasetName.toLowerCase();
+    return lowerName.includes('stock') || lowerName.includes('inventory');
   }
 
   static resetColorAssignments(): void {

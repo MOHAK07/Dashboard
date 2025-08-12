@@ -6,6 +6,8 @@ import { WeeklyDataDistributionChart } from '../charts/WeeklyDataDistributionCha
 import { DynamicRevenueBreakdownChart } from '../charts/DynamicRevenueBreakdownChart';
 import { MDAClaimChart } from '../charts/MDAClaimChart';
 import { MDAClaimKPI } from '../charts/MDAClaimKPI';
+import { StockAnalysisChart } from '../charts/StockAnalysisChart';
+import { StockKPICards } from '../charts/StockKPICards';
 import { useApp } from '../../contexts/AppContext';
 import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
 import { DataProcessor } from '../../utils/dataProcessing';
@@ -23,6 +25,12 @@ export function OverviewTab({ data }: OverviewTabProps) {
   const hasMDAClaimData = state.datasets.some(dataset => 
     state.activeDatasetIds.includes(dataset.id) && 
     ColorManager.isMDAClaimDataset(dataset.name)
+  );
+
+  // Check if stock data is available
+  const hasStockData = state.datasets.some(dataset => 
+    state.activeDatasetIds.includes(dataset.id) && 
+    ColorManager.isStockDataset(dataset.name)
   );
 
   if (data.length === 0) {
@@ -49,9 +57,12 @@ export function OverviewTab({ data }: OverviewTabProps) {
       <div className="grid grid-cols-1 gap-6">
         <DatasetSpecificKPIs />
         
+        {/* Stock KPI Cards - Only show when stock data is available */}
+        {hasStockData && <StockKPICards />}
+        
         {/* MDA Claim KPI - Only show when MDA claim data is available */}
         {hasMDAClaimData && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <MDAClaimKPI />
           </div>
         )}
@@ -67,6 +78,9 @@ export function OverviewTab({ data }: OverviewTabProps) {
 
       {/* Dynamic Revenue Breakdown */}
       <DynamicRevenueBreakdownChart />
+      
+      {/* Stock Analysis Charts - Only show when stock data is available */}
+      {hasStockData && <StockAnalysisChart />}
       
       {/* MDA Claim Chart - Only show when MDA claim data is available */}
       {hasMDAClaimData && <MDAClaimChart />}
