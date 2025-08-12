@@ -105,43 +105,6 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
       totalEligible,
       totalReceived
     };
-    );
-    const amountReceivedColumn = columns.find(col => 
-      col.toLowerCase().includes('amount') && col.toLowerCase().includes('received')
-    );
-
-    if (!eligibleAmountColumn || !amountReceivedColumn) {
-      return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
-    }
-
-    // Calculate totals
-    let totalEligible = 0;
-    let totalReceived = 0;
-
-    allMDAData.forEach(row => {
-      // Parse amounts (handle Indian number format with commas)
-      const eligibleStr = String(row[eligibleAmountColumn] || '0')
-        .replace(/[,\s]/g, '')
-        .replace(/-/g, '0'); // Replace dashes with 0
-      const receivedStr = String(row[amountReceivedColumn] || '0')
-        .replace(/[,\s]/g, '')
-        .replace(/-/g, '0'); // Replace dashes with 0
-      
-      const eligible = parseFloat(eligibleStr) || 0;
-      const received = parseFloat(receivedStr) || 0;
-
-      if (eligible >= 0) totalEligible += eligible;
-      if (received >= 0) totalReceived += received;
-    });
-
-    const recoveryPercentage = totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0;
-
-    return {
-      hasData: true,
-      recoveryPercentage: Math.round(recoveryPercentage * 100) / 100,
-      totalEligible,
-      totalReceived
-    };
   }, [state.datasets, state.activeDatasetIds]);
 
   if (!mdaKPIs.hasData) {
