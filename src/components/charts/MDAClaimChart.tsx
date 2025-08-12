@@ -58,7 +58,11 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
 
     allMDAData.forEach(row => {
       const month = String(row[monthColumn] || '').trim();
-      if (!month || month === '-') return;
+      if (!month || month === '-' || !month.includes('-')) return;
+      
+      // Validate month format (should be like "Dec-23", "Jan-24")
+      const monthParts = month.split('-');
+      if (monthParts.length !== 2) return;
 
       // Parse amounts (handle Indian number format with commas)
       const eligibleStr = String(row[eligibleAmountColumn] || '0').replace(/[,\s]/g, '');
@@ -83,6 +87,9 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
       // Extract month and year from formats like "Dec-23", "Jan-24"
       const [monthA, yearA] = a.split('-');
       const [monthB, yearB] = b.split('-');
+      
+      // Additional safety check
+      if (!monthA || !yearA || !monthB || !yearB) return 0;
       
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
