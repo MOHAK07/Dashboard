@@ -50,43 +50,45 @@ interface DatasetSpecificKPIsProps {
 export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps) {
   const { state } = useApp();
 
-  // Calculate exact quantity totals for each dataset
+  // Calculate exact quantity totals for each dataset, excluding MDA claim and stock datasets
   const calculateDatasetKPIs = () => {
-    const datasetKPIs = state.datasets.map((dataset) => {
-      // Find quantity column (exact match, case insensitive)
-      const quantityColumn = Object.keys(dataset.data[0] || {}).find(col => 
-        col.toLowerCase() === 'quantity'
-      );
+    return state.datasets
+      .filter(dataset => {
+        const lowerName = dataset.name.toLowerCase();
+        // Exclude MDA claim, stock, and recovery datasets
+        return !(lowerName.includes('mda') || 
+                lowerName.includes('claim') || 
+                lowerName.includes('recovery') ||
+                lowerName.includes('stock') ||
+                lowerName.includes('inventory'));
+      })
+      .map((dataset) => {
+        // Find quantity column (exact match, case insensitive)
+        const quantityColumn = Object.keys(dataset.data[0] || {}).find(col => 
+          col.toLowerCase().trim() === 'quantity'
+        );
 
-      let totalQuantity = 0;
-      if (quantityColumn) {
-        totalQuantity = dataset.data.reduce((sum, row) => {
-          const quantity = parseFloat(String(row[quantityColumn] || '0')) || 0;
-          return sum + quantity;
-        }, 0);
-      }
+        let totalQuantity = 0;
+        if (quantityColumn) {
+          totalQuantity = dataset.data.reduce((sum, row) => {
+            const quantity = parseFloat(String(row[quantityColumn] || '0')) || 0;
+            return sum + quantity;
+          }, 0);
+        }
 
-      return {
-        id: dataset.id,
-        name: getDatasetDisplayName(dataset.name),
-        totalQuantity: Math.round(totalQuantity * 100) / 100, // Round to 2 decimal places
-        rowCount: dataset.rowCount,
-        isActive: state.activeDatasetIds.includes(dataset.id),
-        color: getDatasetColorByName(dataset.name),
-        hasQuantityData: !!quantityColumn
-      };
-    });
-
-    return datasetKPIs;
-  };
-
-  const datasetKPIs = calculateDatasetKPIs();
-
-  // Filter out MDA claim datasets from the KPI display
-  const filteredDatasetKPIs = datasetKPIs.filter(dataset => {
-    const lowerName = dataset.name.toLowerCase();
-    return !(lowerName.includes('mda') || lowerName.includes('claim') || lowerName.includes('recovery'));
+        return {
+          id: dataset.id,
+          name: getDatasetDisplayName(dataset.name),
+          totalQuantity: Math.round(totalQuantity * 100) / 100,
+          rowCount: dataset.rowCount,
+          isActive: state.activeDatasetIds.includes(dataset.id),
+          color: getDatasetColorByName(dataset.name),
+          hasQuantityData: !!quantityColumn
+        };
+      });
   });
+
+  const filteredDatasetKPIs = calculateDatasetKPIs();
 
   // If no non-MDA datasets, show placeholder
   if (filteredDatasetKPIs.length === 0) {

@@ -39,17 +39,30 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     const sampleRow = allMDAData[0];
     const columns = Object.keys(sampleRow);
     
+    // Enhanced column detection with multiple fallback strategies
     const monthColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol === 'month' || lowerCol.includes('month');
+      return lowerCol === 'month' || 
+             lowerCol.includes('month') ||
+             lowerCol === 'period' ||
+             lowerCol.includes('time');
     });
+    
     const eligibleAmountColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('eligible') && lowerCol.includes('amount');
+      return (lowerCol.includes('eligible') && lowerCol.includes('amount')) ||
+             lowerCol === 'eligible amount' ||
+             lowerCol.includes('eligible_amount') ||
+             lowerCol.includes('eligibleamount');
     });
+    
     const amountReceivedColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('amount') && lowerCol.includes('received');
+      return (lowerCol.includes('amount') && lowerCol.includes('received')) ||
+             lowerCol === 'amount received' ||
+             lowerCol.includes('amount_received') ||
+             lowerCol.includes('amountreceived') ||
+             lowerCol.includes('received_amount');
     });
 
     console.log('MDA Claim Chart - Column Detection:', {
@@ -68,34 +81,49 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     const monthlyData = new Map<string, { eligible: number; received: number }>();
 
     allMDAData.forEach((row, index) => {
-      const month = String(row[monthColumn] || '').trim();
+      let month = String(row[monthColumn] || '').trim();
       
       // Skip rows with invalid month data
-      if (!month || month === '-' || month === '' || !month.includes('-')) {
+      if (!month || month === '-' || month === '' || month === 'Total') {
         return;
       }
       
+      // Handle different month formats
+      if (!month.includes('-')) {
+        // If month doesn't contain hyphen, skip it
+        return;
+      }
+
       // Validate month format (should be like "Dec-23", "Jan-24")
       const monthParts = month.split('-');
       if (monthParts.length !== 2 || !monthParts[0] || !monthParts[1]) {
+        console.warn(`Invalid month format: ${month}`);
         return;
       }
 
-      // Parse amounts with improved logic for Indian number format
-      const eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
-      const receivedRaw = String(row[amountReceivedColumn] || '').trim();
+      // Parse amounts with enhanced logic for Indian number format
+      let eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
+      let receivedRaw = String(row[amountReceivedColumn] || '').trim();
       
       // Skip rows with dash values or empty values
-      if (eligibleRaw === '-' || eligibleRaw === '' || receivedRaw === '-' || receivedRaw === '') {
+      if (eligibleRaw === '-' || eligibleRaw === '' || 
+          receivedRaw === '-' || receivedRaw === '' ||
+          eligibleRaw === 'Total' || receivedRaw === 'Total') {
         return;
       }
 
-      // Parse numbers - handle Indian format with commas
+      // Enhanced number parsing for Indian format
       const parseIndianNumber = (value: string): number => {
-        if (!value || value === '-' || value === '') return 0;
+        if (!value || value === '-' || value === '' || value === 'Total') return 0;
         
-        // Remove commas, quotes, and extra spaces
-        const cleaned = value.replace(/[",\s]/g, '').replace(/\.00$/, '');
+        // Remove commas, quotes, spaces, and handle decimal points
+        let cleaned = value.replace(/[",\s]/g, '');
+        
+        // Handle cases where .00 is at the end
+        if (cleaned.endsWith('.00')) {
+          cleaned = cleaned.slice(0, -3);
+        }
+        
         const parsed = parseFloat(cleaned);
         
         return isNaN(parsed) ? 0 : parsed;
@@ -104,10 +132,10 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
       const eligible = parseIndianNumber(eligibleRaw);
       const received = parseIndianNumber(receivedRaw);
       
-      console.log(`Row ${index + 1} - Month: ${month}, Eligible: ${eligibleRaw} -> ${eligible}, Received: ${receivedRaw} -> ${received}`);
+      console.log(`MDA Chart Row ${index + 1} - Month: ${month}, Eligible: ${eligibleRaw} -> ${eligible}, Received: ${receivedRaw} -> ${received}`);
 
-      // Only include rows with valid positive amounts
-      if (eligible > 0 || received > 0) {
+      // Include rows with valid amounts (including zero)
+      if (eligible >= 0 && received >= 0 && (eligible > 0 || received > 0)) {
         if (!monthlyData.has(month)) {
           monthlyData.set(month, { eligible: 0, received: 0 });
         }
@@ -123,28 +151,31 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     // Sort months chronologically
     const sortedMonths = Array.from(monthlyData.keys()).sort((a, b) => {
       // Extract month and year from formats like "Dec-23", "Jan-24"
-      const [monthA, yearA] = a.split('-');
-      const [monthB, yearB] = b.split('-');
+      const partsA = a.split('-');
+      const partsB = b.split('-');
       
-      // Safety check for undefined values
-      if (!monthA || !yearA || !monthB || !yearB) {
-        console.warn('Invalid month format detected:', a, b);
+      if (partsA.length !== 2 || partsB.length !== 2) {
         return 0;
       }
+      
+      const [monthA, yearA] = partsA;
+      const [monthB, yearB] = partsB;
       
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       
-      // Convert to numbers for proper year comparison
-      const yearNumA = parseInt(yearA);
-      const yearNumB = parseInt(yearB);
+      // Convert 2-digit years to 4-digit years
+      let fullYearA = parseInt(yearA);
+      let fullYearB = parseInt(yearB);
       
-      if (isNaN(yearNumA) || isNaN(yearNumB)) {
-        console.warn('Invalid year format:', yearA, yearB);
-        return 0;
+      if (fullYearA < 100) {
+        fullYearA += fullYearA < 50 ? 2000 : 1900;
+      }
+      if (fullYearB < 100) {
+        fullYearB += fullYearB < 50 ? 2000 : 1900;
       }
       
-      const yearComparison = yearNumA - yearNumB;
+      const yearComparison = fullYearA - fullYearB;
       if (yearComparison !== 0) return yearComparison;
       
       return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
@@ -152,12 +183,12 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
 
     const eligibleData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.eligible); // Keep original values in thousands
+      return Math.round(data.eligible * 100) / 100; // Keep original values, round to 2 decimals
     });
 
     const receivedData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.received); // Keep original values in thousands
+      return Math.round(data.received * 100) / 100; // Keep original values, round to 2 decimals
     });
 
     console.log('MDA Claim Chart - Final Data:', {

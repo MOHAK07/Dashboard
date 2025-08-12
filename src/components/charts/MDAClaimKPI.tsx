@@ -33,13 +33,22 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
     const sampleRow = allMDAData[0];
     const columns = Object.keys(sampleRow);
     
+    // Enhanced column detection with multiple fallback strategies
     const eligibleAmountColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('eligible') && lowerCol.includes('amount');
+      return (lowerCol.includes('eligible') && lowerCol.includes('amount')) ||
+             lowerCol === 'eligible amount' ||
+             lowerCol.includes('eligible_amount') ||
+             lowerCol.includes('eligibleamount');
     });
+    
     const amountReceivedColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('amount') && lowerCol.includes('received');
+      return (lowerCol.includes('amount') && lowerCol.includes('received')) ||
+             lowerCol === 'amount received' ||
+             lowerCol.includes('amount_received') ||
+             lowerCol.includes('amountreceived') ||
+             lowerCol.includes('received_amount');
     });
 
     console.log('MDA Claim KPI - Column Detection:', {
@@ -59,22 +68,30 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
     let validRowCount = 0;
 
     // Parse Indian number format function
-    const parseIndianNumber = (value: string): number => {
-      if (!value || value === '-' || value === '' || value.trim() === '') return 0;
+    const parseIndianNumber = (value: string | number): number => {
+      if (!value || value === '-' || value === '' || String(value).trim() === '' || value === 'Total') return 0;
       
-      // Remove commas, quotes, and extra spaces, but keep decimal points
-      const cleaned = value.replace(/[",\s]/g, '');
+      // Convert to string and clean
+      let cleaned = String(value).replace(/[",\s]/g, '');
+      
+      // Handle cases where .00 is at the end
+      if (cleaned.endsWith('.00')) {
+        cleaned = cleaned.slice(0, -3);
+      }
+      
       const parsed = parseFloat(cleaned);
       
       return isNaN(parsed) ? 0 : parsed;
     };
 
     allMDAData.forEach((row, index) => {
-      const eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
-      const receivedRaw = String(row[amountReceivedColumn] || '').trim();
+      let eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
+      let receivedRaw = String(row[amountReceivedColumn] || '').trim();
       
-      // Skip rows with dash values or empty values
-      if (eligibleRaw === '-' || eligibleRaw === '' || receivedRaw === '-' || receivedRaw === '') {
+      // Skip rows with dash values, empty values, or total rows
+      if (eligibleRaw === '-' || eligibleRaw === '' || 
+          receivedRaw === '-' || receivedRaw === '' ||
+          eligibleRaw === 'Total' || receivedRaw === 'Total') {
         return;
       }
 
@@ -83,7 +100,7 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
       
       console.log(`MDA KPI Row ${index + 1}: Eligible: ${eligibleRaw} -> ${eligible}, Received: ${receivedRaw} -> ${received}`);
 
-      if (eligible > 0 || received > 0) {
+      if (eligible >= 0 && received >= 0 && (eligible > 0 || received > 0)) {
         totalEligible += eligible;
         totalReceived += received;
         validRowCount++;

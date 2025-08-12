@@ -8,6 +8,7 @@ import { useApp } from '../contexts/AppContext';
 interface DataTableProps {
   data: FlexibleDataRow[];
   className?: string;
+  tableId?: string;
 }
 
 interface ColumnConfig {
@@ -65,7 +66,7 @@ function Row({ index, style, data }: RowProps) {
   );
 }
 
-export function DataTable({ data, className = '' }: DataTableProps) {
+export function DataTable({ data, className = '', tableId = 'data-table' }: DataTableProps) {
   const { state } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{
@@ -85,7 +86,9 @@ export function DataTable({ data, className = '' }: DataTableProps) {
     return Object.keys(sampleRow).map(key => ({
       key,
       label: key,
-      width: key.toLowerCase().includes('address') || key.toLowerCase().includes('adress') ? 200 : 120,
+      width: key.toLowerCase().includes('address') || key.toLowerCase().includes('adress') ? 250 : 
+             key.toLowerCase().includes('name') ? 180 :
+             key.toLowerCase().includes('date') ? 120 : 140,
       sortable: true,
       filterable: !key.toLowerCase().includes('address') && !key.toLowerCase().includes('adress'),
       isNumeric: numericColumns.includes(key),
@@ -160,7 +163,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className={`card ${className}`}>
+      <div className={`${className}`}>
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
           <div className="text-center">
             <p className="text-lg font-medium">No data available</p>
@@ -172,10 +175,10 @@ export function DataTable({ data, className = '' }: DataTableProps) {
   }
 
   return (
-    <div className={`card ${className}`}>
+    <div className={`${className}`}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Data Explorer
+          {tableId === 'data-table' ? 'Data Explorer' : 'Dataset Table'}
         </h3>
         
         <div className="flex items-center space-x-4">
@@ -204,7 +207,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
 
       {/* Column Filters */}
       {showFilters && (
-        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-x-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {columns.filter(col => col.filterable).map(column => (
               <div key={column.key}>
@@ -224,29 +227,29 @@ export function DataTable({ data, className = '' }: DataTableProps) {
         </div>
       )}
 
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+        <div className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-x-auto">
           <div className="flex overflow-x-auto">
-          {columns.map((column) => (
-            <div
-              key={column.key}
-              style={{ width: column.width }}
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0"
-            >
-              {column.sortable ? (
-                <button
-                  onClick={() => handleSort(column.key)}
-                  className="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:text-gray-700 dark:focus:text-gray-200 whitespace-nowrap"
-                >
-                  <span>{column.label}</span>
-                  {getSortIcon(column.key)}
-                </button>
-              ) : (
-                column.label
-              )}
-            </div>
-          ))}
+            {columns.map((column) => (
+              <div
+                key={column.key}
+                style={{ width: column.width, minWidth: column.width }}
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0"
+              >
+                {column.sortable ? (
+                  <button
+                    onClick={() => handleSort(column.key)}
+                    className="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:text-gray-700 dark:focus:text-gray-200 whitespace-nowrap"
+                  >
+                    <span>{column.label}</span>
+                    {getSortIcon(column.key)}
+                  </button>
+                ) : (
+                  column.label
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -256,7 +259,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
             No data matches your current filters
           </div>
         ) : (
-          <div className="overflow-hidden">
+          <div className="overflow-x-auto">
             <List
               height={400}
               itemCount={filteredAndSortedData.length}
@@ -267,6 +270,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
                 currency: state.settings.currency
               }}
               width="100%"
+              style={{ minWidth: columns.reduce((sum, col) => sum + col.width, 0) }}
             >
               {Row}
             </List>
@@ -285,8 +289,7 @@ export function DataTable({ data, className = '' }: DataTableProps) {
               setSearchTerm('');
               setColumnFilters({});
             }}
-            width="100%"
-            style={{ overflowX: 'auto', overflowY: 'auto' }}
+            className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
           >
             Clear filters
           </button>
