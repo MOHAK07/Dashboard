@@ -82,8 +82,14 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
 
   const datasetKPIs = calculateDatasetKPIs();
 
-  // If no datasets, show placeholder
-  if (datasetKPIs.length === 0) {
+  // Filter out MDA claim datasets from the KPI display
+  const filteredDatasetKPIs = datasetKPIs.filter(dataset => {
+    const lowerName = dataset.name.toLowerCase();
+    return !(lowerName.includes('mda') || lowerName.includes('claim'));
+  });
+
+  // If no non-MDA datasets, show placeholder
+  if (filteredDatasetKPIs.length === 0) {
     return (
       <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
         {['FOM Sales', 'LFOM Sales', 'POS FOM Sales', 'POS LFOM Sales'].map((name, index) => (
@@ -113,7 +119,7 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
 
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
-      {datasetKPIs.map((dataset) => (
+      {filteredDatasetKPIs.map((dataset) => (
         <div
           key={dataset.id}
           className={`card transition-all duration-200 ${

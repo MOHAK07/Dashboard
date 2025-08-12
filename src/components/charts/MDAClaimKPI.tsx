@@ -50,14 +50,18 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
 
     allMDAData.forEach(row => {
       // Parse amounts (handle Indian number format with commas)
-      const eligibleStr = String(row[eligibleAmountColumn] || '0').replace(/[,\s]/g, '');
-      const receivedStr = String(row[amountReceivedColumn] || '0').replace(/[,\s]/g, '');
+      const eligibleStr = String(row[eligibleAmountColumn] || '0')
+        .replace(/[,\s]/g, '')
+        .replace(/-/g, '0'); // Replace dashes with 0
+      const receivedStr = String(row[amountReceivedColumn] || '0')
+        .replace(/[,\s]/g, '')
+        .replace(/-/g, '0'); // Replace dashes with 0
       
       const eligible = parseFloat(eligibleStr) || 0;
       const received = parseFloat(receivedStr) || 0;
 
-      if (eligible > 0) totalEligible += eligible;
-      if (received > 0) totalReceived += received;
+      if (eligible >= 0) totalEligible += eligible;
+      if (received >= 0) totalReceived += received;
     });
 
     const recoveryPercentage = totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0;

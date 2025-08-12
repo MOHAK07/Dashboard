@@ -40,7 +40,7 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     const columns = Object.keys(sampleRow);
     
     const monthColumn = columns.find(col => 
-      col.toLowerCase().includes('month')
+      col.toLowerCase() === 'month'
     );
     const eligibleAmountColumn = columns.find(col => 
       col.toLowerCase().includes('eligible') && col.toLowerCase().includes('amount')
@@ -58,20 +58,24 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
 
     allMDAData.forEach(row => {
       const month = String(row[monthColumn] || '').trim();
-      if (!month || month === '-' || !month.includes('-')) return;
+      if (!month || month === '-' || month === '' || !month.includes('-')) return;
       
       // Validate month format (should be like "Dec-23", "Jan-24")
       const monthParts = month.split('-');
-      if (monthParts.length !== 2) return;
+      if (monthParts.length !== 2 || !monthParts[0] || !monthParts[1]) return;
 
       // Parse amounts (handle Indian number format with commas)
-      const eligibleStr = String(row[eligibleAmountColumn] || '0').replace(/[,\s]/g, '');
-      const receivedStr = String(row[amountReceivedColumn] || '0').replace(/[,\s]/g, '');
+      const eligibleStr = String(row[eligibleAmountColumn] || '0')
+        .replace(/[,\s]/g, '')
+        .replace(/-/g, '0'); // Replace dashes with 0
+      const receivedStr = String(row[amountReceivedColumn] || '0')
+        .replace(/[,\s]/g, '')
+        .replace(/-/g, '0'); // Replace dashes with 0
       
       const eligible = parseFloat(eligibleStr) || 0;
       const received = parseFloat(receivedStr) || 0;
 
-      if (eligible > 0 || received > 0) {
+      if (eligible >= 0 || received >= 0) { // Allow zero values
         if (!monthlyData.has(month)) {
           monthlyData.set(month, { eligible: 0, received: 0 });
         }
@@ -88,13 +92,25 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
       const [monthA, yearA] = a.split('-');
       const [monthB, yearB] = b.split('-');
       
-      // Additional safety check
-      if (!monthA || !yearA || !monthB || !yearB) return 0;
+      // Safety check for undefined values
+      if (!monthA || !yearA || !monthB || !yearB) {
+        console.warn('Invalid month format detected:', a, b);
+        return 0;
+      }
       
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       
-      const yearComparison = yearA.localeCompare(yearB);
+      // Convert to numbers for proper year comparison
+      const yearNumA = parseInt(yearA);
+      const yearNumB = parseInt(yearB);
+      
+      if (isNaN(yearNumA) || isNaN(yearNumB)) {
+        console.warn('Invalid year format:', yearA, yearB);
+        return 0;
+      }
+      
+      const yearComparison = yearNumA - yearNumB;
       if (yearComparison !== 0) return yearComparison;
       
       return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
@@ -102,12 +118,12 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
 
     const eligibleData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.eligible / 1000); // Convert to thousands
+      return Math.round(data.eligible); // Keep original values
     });
 
     const receivedData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.received / 1000); // Convert to thousands
+      return Math.round(data.received); // Keep original values
     });
 
     return {

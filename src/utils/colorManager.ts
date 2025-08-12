@@ -111,7 +111,7 @@ export class ColorManager {
 
   static isMDAClaimDataset(datasetName: string): boolean {
     const lowerName = datasetName.toLowerCase();
-    return lowerName.includes('mda') && lowerName.includes('claim');
+    return lowerName.includes('mda') || lowerName.includes('claim');
   }
 
   static resetColorAssignments(): void {
