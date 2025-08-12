@@ -417,37 +417,20 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     const sampleRow = allMDAData[0];
     const columns = Object.keys(sampleRow);
     
-    // Enhanced column detection with multiple fallback strategies
+    // Enhanced column detection
     const monthColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol === 'month' || 
-             lowerCol.includes('month') ||
-             lowerCol === 'period' ||
-             lowerCol.includes('time');
+      return lowerCol === 'month' || lowerCol.includes('period') || lowerCol.includes('time');
     });
     
     const eligibleAmountColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return (lowerCol.includes('eligible') && lowerCol.includes('amount')) ||
-             lowerCol === 'eligible amount' ||
-             lowerCol.includes('eligible_amount') ||
-             lowerCol.includes('eligibleamount');
+      return (lowerCol.includes('eligible') && lowerCol.includes('amount')) || lowerCol.includes('eligible_amount');
     });
     
     const amountReceivedColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return (lowerCol.includes('amount') && lowerCol.includes('received')) ||
-             lowerCol === 'amount received' ||
-             lowerCol.includes('amount_received') ||
-             lowerCol.includes('amountreceived') ||
-             lowerCol.includes('received_amount');
-    });
-
-    console.log('MDA Claim Chart - Column Detection:', {
-      availableColumns: columns,
-      monthColumn,
-      eligibleAmountColumn,
-      amountReceivedColumn
+      return (lowerCol.includes('amount') && lowerCol.includes('received')) || lowerCol.includes('amount_received');
     });
 
     if (!monthColumn || !eligibleAmountColumn || !amountReceivedColumn) {
@@ -458,13 +441,11 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     // Group by month and sum amounts
     const monthlyData = new Map<string, { eligible: number; received: number }>();
 
-    // More robust number parsing function
-    const parseIndianNumber = (value: string | number): number => {
+    // Robust number parsing function
+    const parseNumber = (value: string | number): number => {
         if (value === null || value === undefined) return 0;
-        let cleaned = String(value).trim();
-        if (cleaned === '-' || cleaned === '' || cleaned.toLowerCase() === 'total') return 0;
-        cleaned = cleaned.replace(/[^0-9.-]/g, '');
-        if (cleaned === '') return 0;
+        let cleaned = String(value).trim().replace(/[^0-9.-]/g, '');
+        if (cleaned === '' || cleaned === '-') return 0;
         const parsed = parseFloat(cleaned);
         return isNaN(parsed) ? 0 : parsed;
     };
@@ -472,117 +453,70 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     allMDAData.forEach((row, index) => {
       let monthStr = String(row[monthColumn] || '').trim();
       
-      if (!monthStr || monthStr === '-' || monthStr === '' || monthStr === 'Total') {
+      if (!monthStr || monthStr.toLowerCase() === 'total' || monthStr === '-') {
         return;
       }
       
-      let month;
-      // FIX: Handle YYYY-MM-DD date format from CSV
+      // FIX: More flexible date parsing to generate "Mon-YY" format
+      let month = '';
       const date = new Date(monthStr);
-      if (!isNaN(date.getTime()) && monthStr.split('-').length === 3) {
+      if (!isNaN(date.getTime())) {
+          // Handles 'YYYY-MM-DD', 'MM/DD/YYYY', 'Month DD, YYYY' etc.
           const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          const monthName = monthNames[date.getUTCMonth()];
-          const year = String(date.getUTCFullYear()).slice(-2);
-          month = `${monthName}-${year}`;
-      } else if (monthStr.split('-').length === 2) {
-          // Fallback for "Mon-YY" format
+          month = `${monthNames[date.getUTCMonth()]}-${String(date.getUTCFullYear()).slice(-2)}`;
+      } else if (monthStr.match(/^[a-zA-Z]{3}-\d{2}$/)) {
+          // Handles "Mon-YY" format directly
           month = monthStr;
       } else {
-          console.warn(`Skipping row with unrecognized month format: ${monthStr}`);
+          console.warn(`Skipping row with unparseable month: ${monthStr}`);
           return;
       }
 
-      // Parse amounts with enhanced logic
-      let eligibleRaw = String(row[eligibleAmountColumn] || '').trim();
-      let receivedRaw = String(row[amountReceivedColumn] || '').trim();
+      const eligible = parseNumber(row[eligibleAmountColumn]);
+      const received = parseNumber(row[amountReceivedColumn]);
       
-      if (eligibleRaw === '-' || eligibleRaw === '' || 
-          receivedRaw === '-' || receivedRaw === '' ||
-          eligibleRaw === 'Total' || receivedRaw === 'Total') {
-        return;
-      }
-
-      const eligible = parseIndianNumber(eligibleRaw);
-      const received = parseIndianNumber(receivedRaw);
-      
-      console.log(`MDA Chart Row ${index + 1} - Month: ${month}, Eligible: ${eligibleRaw} -> ${eligible}, Received: ${receivedRaw} -> ${received}`);
-
-      // Include rows with valid amounts (including zero)
-      if (eligible >= 0 && received >= 0 && (eligible > 0 || received > 0)) {
+      if (eligible > 0 || received > 0) {
         if (!monthlyData.has(month)) {
           monthlyData.set(month, { eligible: 0, received: 0 });
         }
-        
         const current = monthlyData.get(month)!;
         current.eligible += eligible;
         current.received += received;
       }
     });
 
-    console.log('MDA Claim Chart - Monthly Data:', Array.from(monthlyData.entries()));
-
     // Sort months chronologically
     const sortedMonths = Array.from(monthlyData.keys()).sort((a, b) => {
-      const partsA = a.split('-');
-      const partsB = b.split('-');
+      const [monthA, yearA] = a.split('-');
+      const [monthB, yearB] = b.split('-');
+      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       
-      if (partsA.length !== 2 || partsB.length !== 2) {
-        return 0;
-      }
+      const fullYearA = 2000 + parseInt(yearA);
+      const fullYearB = 2000 + parseInt(yearB);
       
-      const [monthA, yearA] = partsA;
-      const [monthB, yearB] = partsB;
-      
-      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      let fullYearA = parseInt(yearA);
-      let fullYearB = parseInt(yearB);
-      
-      if (fullYearA < 100) {
-        fullYearA += fullYearA < 50 ? 2000 : 1900;
-      }
-      if (fullYearB < 100) {
-        fullYearB += fullYearB < 50 ? 2000 : 1900;
-      }
-      
-      const yearComparison = fullYearA - fullYearB;
-      if (yearComparison !== 0) return yearComparison;
-      
+      if (fullYearA !== fullYearB) return fullYearA - fullYearB;
       return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
     });
 
     const eligibleData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.eligible * 100) / 100;
+      return parseFloat(data.eligible.toFixed(2));
     });
 
     const receivedData = sortedMonths.map(month => {
       const data = monthlyData.get(month)!;
-      return Math.round(data.received * 100) / 100;
+      return parseFloat(data.received.toFixed(2));
     });
 
-    console.log('MDA Claim Chart - Final Data:', {
-      sortedMonths,
-      eligibleData,
-      receivedData
-    });
+    const hasData = sortedMonths.length > 0 && (eligibleData.some(v => v > 0) || receivedData.some(v => v > 0));
 
     return {
       categories: sortedMonths,
       series: [
-        {
-          name: 'Eligible Amount',
-          data: eligibleData,
-          color: '#3b82f6' // Blue
-        },
-        {
-          name: 'Amount Received',
-          data: receivedData,
-          color: '#22c55e' // Green
-        }
+        { name: 'Eligible Amount', data: eligibleData, color: '#3b82f6' },
+        { name: 'Amount Received', data: receivedData, color: '#22c55e' }
       ],
-      hasData: sortedMonths.length > 0 && (eligibleData.some(v => v > 0) || receivedData.some(v => v > 0))
+      hasData
     };
   }, [state.datasets, state.activeDatasetIds]);
 
@@ -590,143 +524,83 @@ export function MDAClaimChart({ className = '' }: MDAClaimChartProps) {
     return (
         <div className={`card ${className} flex items-center justify-center min-h-[500px]`}>
             <div className="text-center text-gray-500">
-                <p className="font-semibold">No MDA Claim Data to Display</p>
-                <p className="text-sm">Please select a valid MDA dataset with a 'Month' column.</p>
+                <p className="font-semibold">No Chart Data</p>
+                <p className="text-sm">Please check the dataset for a valid 'Month' column.</p>
             </div>
         </div>
     );
   }
-
+  
   const chartOptions: ApexOptions = {
     chart: {
       type: chartType,
       background: 'transparent',
       toolbar: { show: false },
-      animations: {
-        enabled: true,
-        easing: 'easeinout',
-        speed: 800
-      }
+      animations: { enabled: true, easing: 'easeinout', speed: 800 }
     },
-    
     stroke: {
       curve: 'smooth',
       width: chartType === 'line' ? 4 : chartType === 'area' ? 3 : 0,
     },
-    
     fill: {
       type: chartType === 'area' ? 'gradient' : 'solid',
       gradient: chartType === 'area' ? {
-        shadeIntensity: 1,
-        type: 'vertical',
+        shadeIntensity: 1, type: 'vertical',
         colorStops: [
           { offset: 0, color: '#3b82f6', opacity: 0.8 },
-          { offset: 50, color: '#3b82f6', opacity: 0.4 },
           { offset: 100, color: '#3b82f6', opacity: 0.1 }
         ]
       } : undefined
     },
-    
     dataLabels: { enabled: false },
-    
     xaxis: {
       categories: processMDAData.categories,
       labels: {
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
         rotate: processMDAData.categories.length > 8 ? -45 : 0
       },
-      title: {
-        text: 'Months',
-        style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
-      }
+      title: { text: 'Months', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
     },
-    
     yaxis: {
       labels: {
         formatter: (val: number) => {
-          if (val >= 10000000) { // 1 crore
-            return `₹${(val / 10000000).toFixed(1)}Cr`;
-          } else if (val >= 100000) { // 1 lakh
-            return `₹${(val / 100000).toFixed(1)}L`;
-          } else if (val >= 1000) { // 1 thousand
-            return `₹${(val / 1000).toFixed(1)}K`;
-          }
+          if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)}Cr`;
+          if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+          if (val >= 1000) return `₹${(val / 1000).toFixed(1)}K`;
           return `₹${val}`;
         },
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
       },
-      title: {
-        text: 'Amount (₹)',
-        style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
-      }
+      title: { text: 'Amount (₹)', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
     },
-    
-    colors: processMDAData.series.map(s => s.color),
-    
+    colors: processMDAData.series.map(s => s.color as string),
     theme: { mode: isDarkMode ? 'dark' : 'light' },
-    
-    grid: { 
-      borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-      padding: {
-        top: 0,
-        right: 10,
-        bottom: 0,
-        left: 10
-      }
-    },
-    
+    grid: { borderColor: isDarkMode ? '#374151' : '#e5e7eb' },
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
       shared: true,
       intersect: false,
       y: {
-        formatter: (val: number) => {
-          if (val >= 10000000) { // 1 crore
-            return `₹${(val / 10000000).toFixed(2)} Crores`;
-          } else if (val >= 100000) { // 1 lakh
-            return `₹${(val / 100000).toFixed(2)} Lakhs`;
-          } else if (val >= 1000) { // 1 thousand
-            return `₹${(val / 1000).toFixed(2)} Thousands`;
-          }
-          return `₹${val.toLocaleString()}`;
-        }
+        formatter: (val: number) => `₹${val.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
       }
     },
-    
     legend: {
-      show: true,
-      position: 'top',
-      labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-      markers: {
-        width: 12,
-        height: 12,
-        radius: 6
-      }
+      show: true, position: 'top',
+      labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
     },
-    
     markers: {
-      size: chartType === 'line' ? 6 : 0,
-      colors: processMDAData.series.map(s => s.color),
-      strokeColors: '#ffffff',
+      size: chartType === 'line' ? 5 : 0,
       strokeWidth: 2,
-      hover: { size: 8 }
+      hover: { size: 7 }
     },
-    
     plotOptions: {
-      bar: {
-        borderRadius: 4,
-        columnWidth: '75%',
-        dataLabels: { position: 'top' }
-      }
+      bar: { borderRadius: 4, columnWidth: '70%' }
     },
-    
     responsive: [{
       breakpoint: 768,
       options: {
         legend: { position: 'bottom' },
-        xaxis: {
-          labels: { rotate: -90 }
-        }
+        xaxis: { labels: { rotate: -90 } }
       }
     }]
   };
