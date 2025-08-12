@@ -521,23 +521,99 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       dateRange: sortedDates.length > 0 ? `${sortedDates[0]} to ${sortedDates[sortedDates.length - 1]}` : 'None'
     });
 
+    // Function to aggregate data for better horizontal bar display
+    const aggregateDataForHorizontal = (dates: string[], dataMap: Map<string, any>) => {
+      // If we have more than 15 dates, aggregate by week or month for horizontal display
+      if (dates.length <= 15) {
+        return { dates, dataMap };
+      }
+
+      const aggregatedMap = new Map();
+      const aggregatedDates: string[] = [];
+
+      if (dates.length > 50) {
+        // Aggregate by month for very large datasets
+        const monthMap = new Map<string, {
+          rcfProduction: number;
+          rcfSales: number;
+          rcfStock: number;
+          boomiProduction: number;
+          boomiSales: number;
+          boomiStock: number;
+          count: number;
+        }>();
+
+        dates.forEach(date => {
+          const monthKey = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+          const data = dataMap.get(date);
+          
+          if (!monthMap.has(monthKey)) {
+            monthMap.set(monthKey, {
+              rcfProduction: 0, rcfSales: 0, rcfStock: 0,
+              boomiProduction: 0, boomiSales: 0, boomiStock: 0,
+              count: 0
+            });
+          }
+          
+          const monthData = monthMap.get(monthKey)!;
+          monthData.rcfProduction += data.rcfProduction;
+          monthData.rcfSales += data.rcfSales;
+          monthData.rcfStock += data.rcfStock;
+          monthData.boomiProduction += data.boomiProduction;
+          monthData.boomiSales += data.boomiSales;
+          monthData.boomiStock += data.boomiStock;
+          monthData.count += 1;
+        });
+
+        // Convert to arrays and take averages where appropriate
+        Array.from(monthMap.keys()).sort().forEach(monthKey => {
+          const data = monthMap.get(monthKey)!;
+          aggregatedDates.push(monthKey);
+          aggregatedMap.set(monthKey, {
+            rcfProduction: Math.round(data.rcfProduction / data.count),
+            rcfSales: Math.round(data.rcfSales / data.count),
+            rcfStock: Math.round(data.rcfStock / data.count),
+            boomiProduction: Math.round(data.boomiProduction / data.count),
+            boomiSales: Math.round(data.boomiSales / data.count),
+            boomiStock: Math.round(data.boomiStock / data.count)
+          });
+        });
+      } else {
+        // Take every nth item for medium datasets
+        const step = Math.ceil(dates.length / 12);
+        for (let i = 0; i < dates.length; i += step) {
+          const date = dates[i];
+          aggregatedDates.push(date);
+          aggregatedMap.set(date, dataMap.get(date));
+        }
+      }
+
+      return { dates: aggregatedDates, dataMap: aggregatedMap };
+    };
+
+    // Use aggregated data for horizontal bars, original for others
+    const useAggregated = chartType === 'horizontalBar';
+    const { dates: finalDates, dataMap: finalDataMap } = useAggregated 
+      ? aggregateDataForHorizontal(sortedDates, dateMap)
+      : { dates: sortedDates, dataMap: dateMap };
+
     // Prepare RCF data
     const rcfData = {
-      categories: sortedDates,
+      categories: finalDates,
       series: [
         {
           name: 'Production/RCF',
-          data: sortedDates.map(date => dateMap.get(date)!.rcfProduction),
+          data: finalDates.map(date => finalDataMap.get(date)!.rcfProduction),
           color: '#3b82f6' // Blue
         },
         {
           name: 'Sales/RCF',
-          data: sortedDates.map(date => dateMap.get(date)!.rcfSales),
+          data: finalDates.map(date => finalDataMap.get(date)!.rcfSales),
           color: '#ef4444' // Red
         },
         {
           name: 'Unsold/RCF',
-          data: sortedDates.map(date => dateMap.get(date)!.rcfStock),
+          data: finalDates.map(date => finalDataMap.get(date)!.rcfStock),
           color: '#f59e0b' // Yellow/Orange
         }
       ]
@@ -545,21 +621,21 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
 
     // Prepare Boomi Samrudhi data
     const boomiData = {
-      categories: sortedDates,
+      categories: finalDates,
       series: [
         {
           name: 'Production/Boomi Samrudhi',
-          data: sortedDates.map(date => dateMap.get(date)!.boomiProduction),
+          data: finalDates.map(date => finalDataMap.get(date)!.boomiProduction),
           color: '#3b82f6' // Blue
         },
         {
           name: 'Sales/Boomi Samrudhi',
-          data: sortedDates.map(date => dateMap.get(date)!.boomiSales),
+          data: finalDates.map(date => finalDataMap.get(date)!.boomiSales),
           color: '#ef4444' // Red
         },
         {
           name: 'Unsold/Boomi Samrudhi',
-          data: sortedDates.map(date => dateMap.get(date)!.boomiStock),
+          data: finalDates.map(date => finalDataMap.get(date)!.boomiStock),
           color: '#f59e0b' // Yellow/Orange
         }
       ]
@@ -568,9 +644,9 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
     return {
       rcfData,
       boomiData,
-      hasData: sortedDates.length > 0
+      hasData: finalDates.length > 0
     };
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, chartType]); // Added chartType to dependencies
 
   if (!processStockData.hasData) {
     return null; // Don't render if no stock data
@@ -581,11 +657,16 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
     const actualChartType = chartType === 'horizontalBar' ? 'bar' : chartType;
     const isHorizontal = chartType === 'horizontalBar';
 
+    // Calculate dynamic height for horizontal bars
+    const dataPoints = processStockData.rcfData?.categories?.length || 0;
+    const minBarHeight = isHorizontal ? Math.max(400, dataPoints * 25) : 500;
+
     return {
       chart: {
         type: actualChartType,
         background: 'transparent',
         toolbar: { show: false },
+        height: isHorizontal ? minBarHeight : 500,
         animations: {
           enabled: true,
           easing: 'easeinout',
@@ -602,40 +683,71 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
         type: 'solid'
       },
       
-      dataLabels: { enabled: false },
+      dataLabels: { 
+        enabled: false 
+      },
       
       xaxis: {
         categories: processStockData.rcfData?.categories || [],
         labels: {
-          style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
-          rotate: !isHorizontal ? -45 : 0
+          style: { 
+            colors: isDarkMode ? '#9ca3af' : '#6b7280',
+            fontSize: '12px'
+          },
+          rotate: !isHorizontal ? -45 : 0,
+          maxHeight: !isHorizontal ? 100 : undefined,
+          formatter: isHorizontal ? (val: number) => {
+            if (val >= 1000000) {
+              return `${(val / 1000000).toFixed(1)}M`;
+            } else if (val >= 1000) {
+              return `${(val / 1000).toFixed(1)}K`;
+            }
+            return val.toString();
+          } : undefined
         },
         title: {
-          text: isHorizontal ? 'Value' : 'Date',
+          text: isHorizontal ? 'Value (Units)' : 'Date',
           style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
-        }
+        },
+        tickAmount: isHorizontal ? 8 : undefined
       },
       
       yaxis: {
         labels: {
-          formatter: (val: number) => {
+          style: { 
+            colors: isDarkMode ? '#9ca3af' : '#6b7280',
+            fontSize: '11px'
+          },
+          formatter: (val: number | string) => {
             if (isHorizontal) {
-              // For horizontal bars, show dates on y-axis
-              return val.toString();
+              // For horizontal bars, show dates on y-axis with better formatting
+              const dateStr = val.toString();
+              // If it's a full date, format it nicely
+              if (dateStr.includes('-') && dateStr.length > 7) {
+                try {
+                  return new Date(dateStr).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric'
+                  });
+                } catch {
+                  return dateStr;
+                }
+              }
+              return dateStr;
             } else {
               // For vertical charts, format numbers
-              if (val >= 1000000) {
-                return `${(val / 1000000).toFixed(1)}M`;
-              } else if (val >= 1000) {
-                return `${(val / 1000).toFixed(1)}K`;
+              const numVal = typeof val === 'string' ? parseFloat(val) : val;
+              if (numVal >= 1000000) {
+                return `${(numVal / 1000000).toFixed(1)}M`;
+              } else if (numVal >= 1000) {
+                return `${(numVal / 1000).toFixed(1)}K`;
               }
-              return val.toString();
+              return numVal.toString();
             }
-          },
-          style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
+          }
         },
         title: {
-          text: isHorizontal ? 'Date' : 'Value',
+          text: isHorizontal ? 'Date' : 'Value (Units)',
           style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
         }
       },
@@ -647,10 +759,20 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       grid: { 
         borderColor: isDarkMode ? '#374151' : '#e5e7eb',
         padding: {
-          top: 0,
-          right: 10,
-          bottom: 0,
-          left: 10
+          top: 10,
+          right: 15,
+          bottom: 10,
+          left: 15
+        },
+        xaxis: {
+          lines: {
+            show: true
+          }
+        },
+        yaxis: {
+          lines: {
+            show: true
+          }
         }
       },
       
@@ -673,40 +795,58 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       legend: {
         show: true,
         position: 'bottom',
+        horizontalAlign: 'center',
         labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
         markers: {
           width: 12,
           height: 12,
           radius: 6
+        },
+        itemMargin: {
+          horizontal: 10,
+          vertical: 5
         }
       },
       
       plotOptions: {
         bar: {
           horizontal: isHorizontal,
-          borderRadius: 2,
-          columnWidth: isHorizontal ? '60%' : '80%',
-          barHeight: isHorizontal ? '60%' : '70%',
+          borderRadius: 3,
+          columnWidth: isHorizontal ? '70%' : '75%',
+          barHeight: isHorizontal ? '75%' : '70%',
           dataLabels: { 
             position: isHorizontal ? 'bottom' : 'top'
-          }
+          },
+          distributed: false
         }
       },
       
       responsive: [{
         breakpoint: 768,
         options: {
-          legend: { position: 'bottom' },
+          chart: {
+            height: isHorizontal ? Math.max(300, dataPoints * 20) : 400
+          },
+          legend: { 
+            position: 'bottom',
+            horizontalAlign: 'center'
+          },
           xaxis: {
             labels: { 
-              rotate: isHorizontal ? 0 : -90 
+              rotate: isHorizontal ? 0 : -90,
+              style: { fontSize: '10px' }
+            }
+          },
+          yaxis: {
+            labels: {
+              style: { fontSize: '10px' }
             }
           },
           plotOptions: {
             bar: {
               horizontal: isHorizontal,
-              columnWidth: isHorizontal ? '70%' : '90%',
-              barHeight: isHorizontal ? '70%' : '80%'
+              columnWidth: isHorizontal ? '80%' : '85%',
+              barHeight: isHorizontal ? '80%' : '75%'
             }
           }
         }
@@ -724,12 +864,18 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
           currentType={chartType}
           onChartTypeChange={(type) => setChartType(type as 'bar' | 'line' | 'horizontalBar')}
         >
-          <div className="w-full h-full min-h-[500px]">
+          <div className="w-full h-full" style={{ 
+            minHeight: chartType === 'horizontalBar' 
+              ? `${Math.max(400, (processStockData.rcfData?.categories?.length || 0) * 25)}px`
+              : '500px'
+          }}>
             <Chart
               options={createChartOptions('RCF')}
               series={processStockData.rcfData.series}
               type={chartType === 'horizontalBar' ? 'bar' : chartType}
-              height="500px"
+              height={chartType === 'horizontalBar' 
+                ? Math.max(400, (processStockData.rcfData?.categories?.length || 0) * 25)
+                : 500}
               width="100%"
             />
           </div>
@@ -744,12 +890,18 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
           currentType={chartType}
           onChartTypeChange={(type) => setChartType(type as 'bar' | 'line' | 'horizontalBar')}
         >
-          <div className="w-full h-full min-h-[500px]">
+          <div className="w-full h-full" style={{ 
+            minHeight: chartType === 'horizontalBar' 
+              ? `${Math.max(400, (processStockData.boomiData?.categories?.length || 0) * 25)}px`
+              : '500px'
+          }}>
             <Chart
               options={createChartOptions('Boomi Samrudhi')}
               series={processStockData.boomiData.series}
               type={chartType === 'horizontalBar' ? 'bar' : chartType}
-              height="500px"
+              height={chartType === 'horizontalBar' 
+                ? Math.max(400, (processStockData.boomiData?.categories?.length || 0) * 25)
+                : 500}
               width="100%"
             />
           </div>
