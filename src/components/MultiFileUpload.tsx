@@ -3,7 +3,7 @@ import { Upload, FileText, X, CheckCircle, AlertTriangle, AlertCircle, Plus, Eye
 import { FileParser } from '../utils/fileParser';
 import { DataRow, Dataset } from '../types';
 import { useApp } from '../contexts/AppContext';
-import { DataProcessor } from '../utils/dataProcessing';
+import { ColorManager } from '../utils/colorManager';
 
 interface MultiFileUploadProps {
   onClose: () => void;
@@ -21,10 +21,6 @@ interface UploadingFile {
   validationSummary?: string;
 }
 
-const DATASET_COLORS = [
-  '#3b82f6', '#7ab839', '#f97316', '#ef4444', '#1A2885',
-  '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
-];
 
 export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFileUploadProps) {
   const { dispatch } = useApp(); // We'll use this only onContinue
@@ -119,8 +115,10 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
         status: validation.isValid ? 'valid' : validation.errors.some(e => e.severity === 'error') ? 'error' : 'warning',
         rowCount: validation.validRows,
         validationSummary: validation.summary.message,
-        color: DATASET_COLORS[Math.floor(Math.random() * DATASET_COLORS.length)],
+        color: ColorManager.getDatasetColor(uploadingFile.file.name.replace(/\.[^/.]+$/, '')),
         preview: (validation.validData || []).slice(0, 5),
+        dataType: validation.dataType,
+        detectedColumns: validation.detectedColumns,
       };
 
       // Buffer in local state, not global

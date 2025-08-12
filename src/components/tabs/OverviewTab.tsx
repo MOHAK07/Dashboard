@@ -4,9 +4,12 @@ import { DatasetSpecificKPIs } from '../charts/DatasetSpecificKPIs';
 import { DatasetTimeSeriesChart } from '../charts/DatasetTimeSeriesChart';
 import { WeeklyDataDistributionChart } from '../charts/WeeklyDataDistributionChart';
 import { DynamicRevenueBreakdownChart } from '../charts/DynamicRevenueBreakdownChart';
+import { MDAClaimChart } from '../charts/MDAClaimChart';
+import { MDAClaimKPI } from '../charts/MDAClaimKPI';
 import { useApp } from '../../contexts/AppContext';
 import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
 import { DataProcessor } from '../../utils/dataProcessing';
+import { ColorManager } from '../../utils/colorManager';
 
 interface OverviewTabProps {
   data: FlexibleDataRow[];
@@ -15,6 +18,12 @@ interface OverviewTabProps {
 export function OverviewTab({ data }: OverviewTabProps) {
   const { state } = useApp();
   const isDarkMode = state.settings.theme === 'dark';
+  
+  // Check if MDA claim data is available
+  const hasMDAClaimData = state.datasets.some(dataset => 
+    state.activeDatasetIds.includes(dataset.id) && 
+    ColorManager.isMDAClaimDataset(dataset.name)
+  );
 
   if (data.length === 0) {
     return (
@@ -37,7 +46,16 @@ export function OverviewTab({ data }: OverviewTabProps) {
       <DrillDownBreadcrumb />
 
       {/* Dataset-Specific KPI Cards */}
-      <DatasetSpecificKPIs />
+      <div className="grid grid-cols-1 gap-6">
+        <DatasetSpecificKPIs />
+        
+        {/* MDA Claim KPI - Only show when MDA claim data is available */}
+        {hasMDAClaimData && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MDAClaimKPI />
+          </div>
+        )}
+      </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-8">
@@ -49,6 +67,9 @@ export function OverviewTab({ data }: OverviewTabProps) {
 
       {/* Dynamic Revenue Breakdown */}
       <DynamicRevenueBreakdownChart />
+      
+      {/* MDA Claim Chart - Only show when MDA claim data is available */}
+      {hasMDAClaimData && <MDAClaimChart />}
     </div>
   );
 }

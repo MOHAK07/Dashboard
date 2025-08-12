@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { Dataset, FlexibleDataRow, FilterState, UserSettings, TabType } from '../types';
+import { ColorManager } from '../utils/colorManager';
 
 // Define the state interface
 interface AppState {
@@ -300,7 +301,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (values.length > 0) {
         currentFilteredData = currentFilteredData.filter(row => {
           const rowValue = String(row[column] || '').toLowerCase().trim();
-          return values.some(filterValue => 
+          return values.some((filterValue: string) => 
             String(filterValue).toLowerCase().trim() === rowValue
           );
         });
@@ -432,7 +433,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       status: 'valid',
       rowCount: sampleData.length,
       validationSummary: 'Sample data loaded successfully',
-      color: DATASET_COLORS[0],
+      color: ColorManager.getDatasetColor('Sample Dataset'),
       preview: sampleData.slice(0, 5),
       dataType: 'sales',
       detectedColumns: Object.keys(sampleData[0] || {}),
