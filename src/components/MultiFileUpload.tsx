@@ -4,6 +4,7 @@ import { FileParser } from '../utils/fileParser';
 import { DataRow, Dataset } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { ColorManager } from '../utils/colorManager';
+import { DataProcessor } from '../utils/dataProcessing';
 
 interface MultiFileUploadProps {
   onClose: () => void;
