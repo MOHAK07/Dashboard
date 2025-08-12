@@ -477,14 +477,19 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       }
     },
     yaxis: {
-      labels: {
-        style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
-      },
-      title: {
-        text: isHorizontal ? 'Week (Month)' : 'Quantity',
-        style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
-      }
-    },
+  labels: {
+    formatter: (val: number) =>
+      val.toString().includes('.') 
+        ? Math.round(val).toLocaleString() 
+        : val.toLocaleString(),
+    style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
+  },
+  title: {
+    text: isHorizontal ? 'Week (Month)' : 'Quantity',
+    style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
+  }
+},
+
     colors: series.map(s => s.color),
     theme: { mode: isDarkMode ? 'dark' : 'light' },
     grid: {
