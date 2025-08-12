@@ -5,6 +5,7 @@ import { FlexibleDataRow } from '../../types';
 import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
 import { DataProcessor } from '../../utils/dataProcessing';
+import { Database } from 'lucide-react';
 
 // Use the same color function for consistency
 const getDatasetColorByName = (datasetName: string) => {
