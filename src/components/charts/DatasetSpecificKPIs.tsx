@@ -86,7 +86,7 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
           hasQuantityData: !!quantityColumn
         };
       });
-  });
+  };
 
   const filteredDatasetKPIs = calculateDatasetKPIs();
 
