@@ -389,7 +389,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
       <div className="card hover:shadow-md transition-all duration-200">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-large text-gray-600 dark:text-gray-400 mb-3">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
               RCF Product Performance
             </p>
             
@@ -452,7 +452,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
       <div className="card hover:shadow-md transition-all duration-200">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-large text-gray-600 dark:text-gray-400 mb-3">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
               Boomi Samrudhi Product Performance
             </p>
             
