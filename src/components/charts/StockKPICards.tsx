@@ -1,5 +1,218 @@
+// import React, { useMemo } from 'react';
+// import { Package, TrendingUp, TrendingDown } from 'lucide-react';
+// import { useApp } from '../../contexts/AppContext';
+// import { ColorManager } from '../../utils/colorManager';
+
+// interface StockKPICardsProps {
+//   className?: string;
+// }
+
+// export function StockKPICards({ className = '' }: StockKPICardsProps) {
+//   const { state } = useApp();
+
+//   // Calculate stock KPIs for both products
+//   const stockKPIs = useMemo(() => {
+//     // Find stock datasets
+//     const stockDatasets = state.datasets.filter(dataset => 
+//       state.activeDatasetIds.includes(dataset.id) && 
+//       ColorManager.isStockDataset(dataset.name)
+//     );
+
+//     if (stockDatasets.length === 0) {
+//       return { hasData: false, rcfStock: 0, boomiStock: 0 };
+//     }
+
+//     // Combine all stock data
+//     const allStockData = stockDatasets.flatMap(dataset => dataset.data);
+
+//     if (allStockData.length === 0) {
+//       return { hasData: false, rcfStock: 0, boomiStock: 0 };
+//     }
+
+//     // Find required columns (case-insensitive)
+//     const sampleRow = allStockData[0];
+//     const columns = Object.keys(sampleRow);
+    
+//     const rcfStockColumn = columns.find(col => {
+//       const lowerCol = col.toLowerCase().trim();
+//       return lowerCol.includes('rcf') && lowerCol.includes('stock');
+//     });
+//     const boomiStockColumn = columns.find(col => {
+//       const lowerCol = col.toLowerCase().trim();
+//       return lowerCol.includes('boomi') && lowerCol.includes('stock');
+//     });
+
+//     console.log('Stock KPI - Column Detection:', {
+//       availableColumns: columns,
+//       rcfStockColumn,
+//       boomiStockColumn
+//     });
+
+//     if (!rcfStockColumn || !boomiStockColumn) {
+//       console.warn('Stock KPI - Missing required stock columns');
+//       return { hasData: false, rcfStock: 0, boomiStock: 0 };
+//     }
+
+//     // Parse Indian number format
+//     const parseIndianNumber = (value: string): number => {
+//       if (!value || value === '-' || value === '' || value.trim() === '') return 0;
+      
+//       // Remove commas, quotes, and extra spaces, but keep decimal points
+//       const cleaned = value.replace(/[",\s]/g, '');
+//       const parsed = parseFloat(cleaned);
+      
+//       return isNaN(parsed) ? 0 : parsed;
+//     };
+
+//     // Calculate total stock for each product
+//     let totalRCFStock = 0;
+//     let totalBoomiStock = 0;
+//     let validRowCount = 0;
+
+//     allStockData.forEach((row, index) => {
+//       const rcfStockRaw = String(row[rcfStockColumn] || '').trim();
+//       const boomiStockRaw = String(row[boomiStockColumn] || '').trim();
+      
+//       const rcfStock = parseIndianNumber(rcfStockRaw);
+//       const boomiStock = parseIndianNumber(boomiStockRaw);
+      
+//       console.log(`Stock KPI Row ${index + 1}: RCF Stock: ${rcfStockRaw} -> ${rcfStock}, Boomi Stock: ${boomiStockRaw} -> ${boomiStock}`);
+
+//       if (rcfStock >= 0 || boomiStock >= 0) {
+//         totalRCFStock += rcfStock;
+//         totalBoomiStock += boomiStock;
+//         validRowCount++;
+//       }
+//     });
+
+//     console.log('Stock KPI - Final Totals:', {
+//       totalRCFStock,
+//       totalBoomiStock,
+//       validRowCount
+//     });
+
+//     return {
+//       hasData: validRowCount > 0,
+//       rcfStock: Math.round(totalRCFStock * 100) / 100,
+//       boomiStock: Math.round(totalBoomiStock * 100) / 100
+//     };
+//   }, [state.datasets, state.activeDatasetIds]);
+
+//   if (!stockKPIs.hasData) {
+//     return null; // Don't render if no stock data
+//   }
+
+//   const formatStockAmount = (amount: number): string => {
+//     if (amount >= 10000000) { // 1 crore
+//       return `${(amount / 10000000).toFixed(2)}Cr`;
+//     } else if (amount >= 100000) { // 1 lakh
+//       return `${(amount / 100000).toFixed(2)}L`;
+//     } else if (amount >= 1000) { // 1 thousand
+//       return `${(amount / 1000).toFixed(2)}K`;
+//     }
+//     return amount.toFixed(0);
+//   };
+
+//   const getStockStatus = (amount: number) => {
+//     if (amount > 500000) return { status: 'High', color: 'success', icon: TrendingUp };
+//     if (amount > 100000) return { status: 'Medium', color: 'warning', icon: Package };
+//     return { status: 'Low', color: 'error', icon: TrendingDown };
+//   };
+
+//   const rcfStatus = getStockStatus(stockKPIs.rcfStock);
+//   const boomiStatus = getStockStatus(stockKPIs.boomiStock);
+
+//   return (
+//     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${className}`}>
+//       {/* RCF Stock KPI */}
+//       <div className="card hover:shadow-md transition-all duration-200">
+//         <div className="flex items-start justify-between">
+//           <div className="flex-1">
+//             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+//               RCF Total Stock Remaining
+//             </p>
+//             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+//               {formatStockAmount(stockKPIs.rcfStock)}
+//             </p>
+            
+//             <div className={`flex items-center space-x-1.5 mb-3 ${
+//               rcfStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
+//               rcfStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
+//               'text-error-600 dark:text-error-400'
+//             }`}>
+//               <rcfStatus.icon className="h-4 w-4" />
+//               <span className="text-sm font-medium">
+//                 {rcfStatus.status} Stock Level
+//               </span>
+//             </div>
+
+//             <div className="text-xs text-gray-600 dark:text-gray-400">
+//               <span>Raw Value: {stockKPIs.rcfStock.toLocaleString()} units</span>
+//             </div>
+//           </div>
+          
+//           <div className={`p-3 rounded-lg ${
+//             rcfStatus.color === 'success' ? 'bg-success-100 dark:bg-success-900/50' :
+//             rcfStatus.color === 'warning' ? 'bg-warning-100 dark:bg-warning-900/50' :
+//             'bg-error-100 dark:bg-error-900/50'
+//           }`}>
+//             <Package className={`h-6 w-6 ${
+//               rcfStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
+//               rcfStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
+//               'text-error-600 dark:text-error-400'
+//             }`} />
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Boomi Samrudhi Stock KPI */}
+//       <div className="card hover:shadow-md transition-all duration-200">
+//         <div className="flex items-start justify-between">
+//           <div className="flex-1">
+//             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+//               Boomi Samrudhi Total Stock Remaining
+//             </p>
+//             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+//               {formatStockAmount(stockKPIs.boomiStock)}
+//             </p>
+            
+//             <div className={`flex items-center space-x-1.5 mb-3 ${
+//               boomiStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
+//               boomiStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
+//               'text-error-600 dark:text-error-400'
+//             }`}>
+//               <boomiStatus.icon className="h-4 w-4" />
+//               <span className="text-sm font-medium">
+//                 {boomiStatus.status} Stock Level
+//               </span>
+//             </div>
+
+//             <div className="text-xs text-gray-600 dark:text-gray-400">
+//               <span>Raw Value: {stockKPIs.boomiStock.toLocaleString()} units</span>
+//             </div>
+//           </div>
+          
+//           <div className={`p-3 rounded-lg ${
+//             boomiStatus.color === 'success' ? 'bg-success-100 dark:bg-success-900/50' :
+//             boomiStatus.color === 'warning' ? 'bg-warning-100 dark:bg-warning-900/50' :
+//             'bg-error-100 dark:bg-error-900/50'
+//           }`}>
+//             <Package className={`h-6 w-6 ${
+//               boomiStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
+//               boomiStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
+//               'text-error-600 dark:text-error-400'
+//             }`} />
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default StockKPICards;
+
 import React, { useMemo } from 'react';
-import { Package, TrendingUp, TrendingDown } from 'lucide-react';
+import { Package, TrendingUp, TrendingDown, Factory, ShoppingCart } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { ColorManager } from '../../utils/colorManager';
 
@@ -10,8 +223,8 @@ interface StockKPICardsProps {
 export function StockKPICards({ className = '' }: StockKPICardsProps) {
   const { state } = useApp();
 
-  // Calculate stock KPIs for both products
-  const stockKPIs = useMemo(() => {
+  // Calculate production and sales KPIs for both products
+  const productionSalesKPIs = useMemo(() => {
     // Find stock datasets
     const stockDatasets = state.datasets.filter(dataset => 
       state.activeDatasetIds.includes(dataset.id) && 
@@ -19,38 +232,69 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
     );
 
     if (stockDatasets.length === 0) {
-      return { hasData: false, rcfStock: 0, boomiStock: 0 };
+      return { 
+        hasData: false, 
+        rcfProductionAvg: 0, 
+        rcfSalesAvg: 0,
+        boomiProductionAvg: 0,
+        boomiSalesAvg: 0
+      };
     }
 
     // Combine all stock data
     const allStockData = stockDatasets.flatMap(dataset => dataset.data);
-
+    
     if (allStockData.length === 0) {
-      return { hasData: false, rcfStock: 0, boomiStock: 0 };
+      return { 
+        hasData: false, 
+        rcfProductionAvg: 0, 
+        rcfSalesAvg: 0,
+        boomiProductionAvg: 0,
+        boomiSalesAvg: 0
+      };
     }
 
     // Find required columns (case-insensitive)
     const sampleRow = allStockData[0];
     const columns = Object.keys(sampleRow);
     
-    const rcfStockColumn = columns.find(col => {
+    const rcfProductionColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('rcf') && lowerCol.includes('stock');
+      return lowerCol.includes('rcf') && lowerCol.includes('production');
     });
-    const boomiStockColumn = columns.find(col => {
+    
+    const rcfSalesColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
-      return lowerCol.includes('boomi') && lowerCol.includes('stock');
+      return lowerCol.includes('rcf') && lowerCol.includes('sales');
+    });
+    
+    const boomiProductionColumn = columns.find(col => {
+      const lowerCol = col.toLowerCase().trim();
+      return lowerCol.includes('boomi') && lowerCol.includes('production');
+    });
+    
+    const boomiSalesColumn = columns.find(col => {
+      const lowerCol = col.toLowerCase().trim();
+      return lowerCol.includes('boomi') && lowerCol.includes('sales');
     });
 
-    console.log('Stock KPI - Column Detection:', {
+    console.log('Production Sales KPI - Column Detection:', {
       availableColumns: columns,
-      rcfStockColumn,
-      boomiStockColumn
+      rcfProductionColumn,
+      rcfSalesColumn,
+      boomiProductionColumn,
+      boomiSalesColumn
     });
 
-    if (!rcfStockColumn || !boomiStockColumn) {
-      console.warn('Stock KPI - Missing required stock columns');
-      return { hasData: false, rcfStock: 0, boomiStock: 0 };
+    if (!rcfProductionColumn || !rcfSalesColumn || !boomiProductionColumn || !boomiSalesColumn) {
+      console.warn('Production Sales KPI - Missing required columns');
+      return { 
+        hasData: false, 
+        rcfProductionAvg: 0, 
+        rcfSalesAvg: 0,
+        boomiProductionAvg: 0,
+        boomiSalesAvg: 0
+      };
     }
 
     // Parse Indian number format
@@ -64,45 +308,61 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    // Calculate total stock for each product
-    let totalRCFStock = 0;
-    let totalBoomiStock = 0;
+    // Calculate totals and count for averages
+    let totalRCFProduction = 0;
+    let totalRCFSales = 0;
+    let totalBoomiProduction = 0;
+    let totalBoomiSales = 0;
     let validRowCount = 0;
 
     allStockData.forEach((row, index) => {
-      const rcfStockRaw = String(row[rcfStockColumn] || '').trim();
-      const boomiStockRaw = String(row[boomiStockColumn] || '').trim();
+      const rcfProductionRaw = String(row[rcfProductionColumn] || '').trim();
+      const rcfSalesRaw = String(row[rcfSalesColumn] || '').trim();
+      const boomiProductionRaw = String(row[boomiProductionColumn] || '').trim();
+      const boomiSalesRaw = String(row[boomiSalesColumn] || '').trim();
       
-      const rcfStock = parseIndianNumber(rcfStockRaw);
-      const boomiStock = parseIndianNumber(boomiStockRaw);
+      const rcfProduction = parseIndianNumber(rcfProductionRaw);
+      const rcfSales = parseIndianNumber(rcfSalesRaw);
+      const boomiProduction = parseIndianNumber(boomiProductionRaw);
+      const boomiSales = parseIndianNumber(boomiSalesRaw);
       
-      console.log(`Stock KPI Row ${index + 1}: RCF Stock: ${rcfStockRaw} -> ${rcfStock}, Boomi Stock: ${boomiStockRaw} -> ${boomiStock}`);
-
-      if (rcfStock >= 0 || boomiStock >= 0) {
-        totalRCFStock += rcfStock;
-        totalBoomiStock += boomiStock;
-        validRowCount++;
-      }
+      console.log(`Production Sales KPI Row ${index + 1}: RCF Prod: ${rcfProductionRaw} -> ${rcfProduction}, RCF Sales: ${rcfSalesRaw} -> ${rcfSales}, Boomi Prod: ${boomiProductionRaw} -> ${boomiProduction}, Boomi Sales: ${boomiSalesRaw} -> ${boomiSales}`);
+      
+      totalRCFProduction += rcfProduction;
+      totalRCFSales += rcfSales;
+      totalBoomiProduction += boomiProduction;
+      totalBoomiSales += boomiSales;
+      validRowCount++;
     });
 
-    console.log('Stock KPI - Final Totals:', {
-      totalRCFStock,
-      totalBoomiStock,
+    // Calculate averages
+    const rcfProductionAvg = validRowCount > 0 ? totalRCFProduction / validRowCount : 0;
+    const rcfSalesAvg = validRowCount > 0 ? totalRCFSales / validRowCount : 0;
+    const boomiProductionAvg = validRowCount > 0 ? totalBoomiProduction / validRowCount : 0;
+    const boomiSalesAvg = validRowCount > 0 ? totalBoomiSales / validRowCount : 0;
+
+    console.log('Production Sales KPI - Final Averages:', {
+      rcfProductionAvg,
+      rcfSalesAvg,
+      boomiProductionAvg,
+      boomiSalesAvg,
       validRowCount
     });
 
     return {
       hasData: validRowCount > 0,
-      rcfStock: Math.round(totalRCFStock * 100) / 100,
-      boomiStock: Math.round(totalBoomiStock * 100) / 100
+      rcfProductionAvg: Math.round(rcfProductionAvg * 100) / 100,
+      rcfSalesAvg: Math.round(rcfSalesAvg * 100) / 100,
+      boomiProductionAvg: Math.round(boomiProductionAvg * 100) / 100,
+      boomiSalesAvg: Math.round(boomiSalesAvg * 100) / 100
     };
   }, [state.datasets, state.activeDatasetIds]);
 
-  if (!stockKPIs.hasData) {
-    return null; // Don't render if no stock data
+  if (!productionSalesKPIs.hasData) {
+    return null; // Don't render if no data
   }
 
-  const formatStockAmount = (amount: number): string => {
+  const formatAmount = (amount: number): string => {
     if (amount >= 10000000) { // 1 crore
       return `${(amount / 10000000).toFixed(2)}Cr`;
     } else if (amount >= 100000) { // 1 lakh
@@ -113,41 +373,64 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
     return amount.toFixed(0);
   };
 
-  const getStockStatus = (amount: number) => {
-    if (amount > 500000) return { status: 'High', color: 'success', icon: TrendingUp };
-    if (amount > 100000) return { status: 'Medium', color: 'warning', icon: Package };
-    return { status: 'Low', color: 'error', icon: TrendingDown };
+  const getPerformanceStatus = (production: number, sales: number) => {
+    const ratio = sales > 0 ? production / sales : production > 0 ? 2 : 0;
+    if (ratio > 1.2) return { status: 'High Production', color: 'success', icon: TrendingUp };
+    if (ratio > 0.8) return { status: 'Balanced', color: 'warning', icon: Package };
+    return { status: 'High Demand', color: 'error', icon: TrendingDown };
   };
 
-  const rcfStatus = getStockStatus(stockKPIs.rcfStock);
-  const boomiStatus = getStockStatus(stockKPIs.boomiStock);
+  const rcfStatus = getPerformanceStatus(productionSalesKPIs.rcfProductionAvg, productionSalesKPIs.rcfSalesAvg);
+  const boomiStatus = getPerformanceStatus(productionSalesKPIs.boomiProductionAvg, productionSalesKPIs.boomiSalesAvg);
 
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${className}`}>
-      {/* RCF Stock KPI */}
+      {/* RCF Product KPI */}
       <div className="card hover:shadow-md transition-all duration-200">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              RCF Total Stock Remaining
-            </p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {formatStockAmount(stockKPIs.rcfStock)}
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+              RCF Product Performance
             </p>
             
-            <div className={`flex items-center space-x-1.5 mb-3 ${
+            {/* Production and Sales side by side */}
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <Factory className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Production</span>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {formatAmount(productionSalesKPIs.rcfProductionAvg)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Avg: {productionSalesKPIs.rcfProductionAvg.toFixed(1)}
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <ShoppingCart className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Sales</span>
+                </div>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {formatAmount(productionSalesKPIs.rcfSalesAvg)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Avg: {productionSalesKPIs.rcfSalesAvg.toFixed(1)}
+                </p>
+              </div>
+            </div>
+            
+            <div className={`flex items-center space-x-1.5 ${
               rcfStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
               rcfStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
               'text-error-600 dark:text-error-400'
             }`}>
               <rcfStatus.icon className="h-4 w-4" />
               <span className="text-sm font-medium">
-                {rcfStatus.status} Stock Level
+                {rcfStatus.status}
               </span>
-            </div>
-
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              <span>Raw Value: {stockKPIs.rcfStock.toLocaleString()} units</span>
             </div>
           </div>
           
@@ -165,30 +448,52 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
         </div>
       </div>
 
-      {/* Boomi Samrudhi Stock KPI */}
+      {/* Boomi Samrudhi Product KPI */}
       <div className="card hover:shadow-md transition-all duration-200">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Boomi Samrudhi Total Stock Remaining
-            </p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {formatStockAmount(stockKPIs.boomiStock)}
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+              Boomi Samrudhi Product Performance
             </p>
             
-            <div className={`flex items-center space-x-1.5 mb-3 ${
+            {/* Production and Sales side by side */}
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <Factory className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Production</span>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {formatAmount(productionSalesKPIs.boomiProductionAvg)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Avg: {productionSalesKPIs.boomiProductionAvg.toFixed(1)}
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <ShoppingCart className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Sales</span>
+                </div>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {formatAmount(productionSalesKPIs.boomiSalesAvg)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Avg: {productionSalesKPIs.boomiSalesAvg.toFixed(1)}
+                </p>
+              </div>
+            </div>
+            
+            <div className={`flex items-center space-x-1.5 ${
               boomiStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
               boomiStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
               'text-error-600 dark:text-error-400'
             }`}>
               <boomiStatus.icon className="h-4 w-4" />
               <span className="text-sm font-medium">
-                {boomiStatus.status} Stock Level
+                {boomiStatus.status}
               </span>
-            </div>
-
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              <span>Raw Value: {stockKPIs.boomiStock.toLocaleString()} units</span>
             </div>
           </div>
           
