@@ -451,7 +451,6 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       new Date(a).getTime() - new Date(b).getTime()
     );
 
-    // Aggregation for horizontal bar
     const aggregate = (dates: string[]) => {
       if (dates.length <= 15) {
         return { dates, map };
@@ -461,7 +460,6 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       const aggregatedMap = new Map<string, any>();
 
       if (dates.length > 50) {
-        // monthly average
         const monthMap = new Map<string, any>();
         dates.forEach(d => {
           const m = new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
@@ -537,7 +535,6 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
     const count = processStockData.rcfData!.categories.length;
     const dynamicHeight = isHorizontal ? Math.max(400, count * 40 + 200) : 500;
     
-    // Create base options
     const baseOptions: ApexOptions = {
       chart: {
         type: actualType,
@@ -598,7 +595,6 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       }]
     };
 
-    // Add chart-type specific options
     if (actualType === 'bar') {
       baseOptions.plotOptions = {
         bar: {
@@ -610,13 +606,13 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
         }
       };
       
-      // Add responsive bar options
-      if (baseOptions.responsive && baseOptions.responsive[0]) {
-        baseOptions.responsive.options.plotOptions = {
-          bar: {
-            columnWidth: isHorizontal ? '80%' : '85%',
-            barHeight: isHorizontal ? '80%' : undefined
-          }
+      if (baseOptions.responsive && baseOptions.responsive[0] && baseOptions.responsive[0].options) {
+        if (!baseOptions.responsive.options.plotOptions) {
+          baseOptions.responsive.options.plotOptions = {};
+        }
+        baseOptions.responsive.options.plotOptions.bar = {
+          columnWidth: isHorizontal ? '80%' : '85%',
+          barHeight: isHorizontal ? '80%' : undefined
         };
       }
     } else if (actualType === 'line') {
@@ -675,3 +671,4 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
 }
 
 export default StockAnalysisChart;
+
