@@ -391,9 +391,11 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       state.activeDatasetIds.includes(dataset.id) &&
       ColorManager.isStockDataset(dataset.name)
     );
+
     if (stockDatasets.length === 0) {
       return { rcfData: null, boomiData: null, hasData: false };
     }
+
     const allStockData = stockDatasets.flatMap(ds => ds.data);
     if (allStockData.length === 0) {
       return { rcfData: null, boomiData: null, hasData: false };
@@ -401,6 +403,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
 
     const columns = Object.keys(allStockData[0]);
     const dateCol = columns.find(c => c.toLowerCase().trim() === 'date');
+
     const findCol = (prefix: string, field: string) =>
       columns.find(c => c.toLowerCase().includes(prefix) && c.toLowerCase().includes(field));
 
@@ -416,7 +419,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
     }
 
     const parseNum = (val: any) => {
-      if (val == null || val === '-' || String(val).trim() === '') return 0;
+      if (val === null || val === '-' || String(val).trim() === '') return 0;
       const n = parseFloat(String(val).replace(/[",\s]/g, ''));
       return isNaN(n) ? 0 : n;
     };
@@ -433,6 +436,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
     allStockData.forEach(row => {
       const d = String(row[dateCol]).trim();
       if (!d) return;
+
       map.set(d, {
         rcfProduction: parseNum(row[rcfProdCol!] || 0),
         rcfSales:      parseNum(row[rcfSalesCol!] || 0),
@@ -452,8 +456,10 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
       if (dates.length <= 15) {
         return { dates, map };
       }
+
       const aggregatedDates: string[] = [];
       const aggregatedMap = new Map<string, any>();
+
       if (dates.length > 50) {
         // monthly average
         const monthMap = new Map<string, any>();
@@ -470,6 +476,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
           mm.count++;
           monthMap.set(m, mm);
         });
+
         Array.from(monthMap.keys()).sort().forEach(m => {
           const d = monthMap.get(m);
           aggregatedDates.push(m);
@@ -490,6 +497,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
           aggregatedMap.set(d, map.get(d));
         }
       }
+
       return { dates: aggregatedDates, map: aggregatedMap };
     };
 
@@ -528,23 +536,15 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
     const actualType = isHorizontal ? 'bar' : chartType;
     const count = processStockData.rcfData!.categories.length;
     const dynamicHeight = isHorizontal ? Math.max(400, count * 40 + 200) : 500;
-
-    return {
+    
+    // Create base options
+    const baseOptions: ApexOptions = {
       chart: {
         type: actualType,
         background: 'transparent',
         toolbar: { show: false },
         height: dynamicHeight,
         animations: { enabled: true, easing: 'easeinout', speed: 800 }
-      },
-      plotOptions: {
-        bar: {
-          horizontal: isHorizontal,
-          borderRadius: 3,
-          columnWidth: isHorizontal ? '70%' : '75%',
-          barHeight: isHorizontal ? '75%' : undefined,
-          dataLabels: { position: isHorizontal ? 'bottom' : 'top' }
-        }
       },
       dataLabels: { enabled: false },
       xaxis: {
@@ -592,17 +592,48 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
         breakpoint: 768,
         options: {
           chart: { height: isHorizontal ? Math.max(300, count * 20 + 150) : 400 },
-          plotOptions: {
-            bar: {
-              columnWidth: isHorizontal ? '80%' : '85%',
-              barHeight: isHorizontal ? '80%' : undefined
-            }
-          },
           xaxis: { labels: { rotate: isHorizontal ? 0 : -90, style: { fontSize: '10px' } } },
           yaxis: { labels: { style: { fontSize: '10px' } } }
         }
       }]
     };
+
+    // Add chart-type specific options
+    if (actualType === 'bar') {
+      baseOptions.plotOptions = {
+        bar: {
+          horizontal: isHorizontal,
+          borderRadius: 3,
+          columnWidth: isHorizontal ? '70%' : '75%',
+          barHeight: isHorizontal ? '75%' : undefined,
+          dataLabels: { position: isHorizontal ? 'bottom' : 'top' }
+        }
+      };
+      
+      // Add responsive bar options
+      if (baseOptions.responsive && baseOptions.responsive[0]) {
+        baseOptions.responsive.options.plotOptions = {
+          bar: {
+            columnWidth: isHorizontal ? '80%' : '85%',
+            barHeight: isHorizontal ? '80%' : undefined
+          }
+        };
+      }
+    } else if (actualType === 'line') {
+      baseOptions.stroke = {
+        curve: 'smooth',
+        width: 2
+      };
+      baseOptions.markers = {
+        size: 4,
+        strokeWidth: 2,
+        hover: {
+          size: 6
+        }
+      };
+    }
+
+    return baseOptions;
   };
 
   return (
