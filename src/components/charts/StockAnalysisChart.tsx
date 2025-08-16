@@ -202,7 +202,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280', fontSize: '12px' },
           rotate: isHorizontal ? 0 : -45
         },
-        title: { text: isHorizontal ? 'Value (MT)' : 'Date', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
+        title: { text: isHorizontal ? 'Value (mt)' : 'Date', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
       },
       yaxis: {
         labels: {
