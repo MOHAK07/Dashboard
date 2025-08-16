@@ -234,7 +234,7 @@ export function DatasetTimeSeriesChart({ className = '' }: DatasetTimeSeriesChar
           return `${val.toLocaleString('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
-          })} MT`;
+          })} mt`;
         }
       }
     },
