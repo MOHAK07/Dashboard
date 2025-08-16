@@ -150,7 +150,7 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
                   `${dataset.totalQuantity.toLocaleString('en-US', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2
-                  })} MT` 
+                  })} mt` 
                 ) : (
                   'No Quantity Data'
                 )}
