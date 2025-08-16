@@ -147,10 +147,10 @@ export function DatasetSpecificKPIs({ className = '' }: DatasetSpecificKPIsProps
               
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                 {dataset.hasQuantityData ? (
-                  dataset.totalQuantity.toLocaleString('en-US', {
+                  `dataset.totalQuantity.toLocaleString('en-US', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2
-                  })
+                  }) MT`
                 ) : (
                   'No Quantity Data'
                 )}
