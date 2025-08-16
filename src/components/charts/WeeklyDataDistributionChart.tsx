@@ -172,7 +172,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       theme: isDarkMode ? 'dark' : 'light',
       shared: true,
       intersect: false,
-      y: { formatter: v => `${v.toLocaleString()} MT` }
+      y: { formatter: v => `${v.toLocaleString()} mt` }
     },
     legend: {
       show: true,
