@@ -202,7 +202,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
           style: { colors: isDarkMode ? '#9ca3af' : '#6b7280', fontSize: '12px' },
           rotate: isHorizontal ? 0 : -45
         },
-        title: { text: isHorizontal ? 'Value (Units)' : 'Date', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
+        title: { text: isHorizontal ? 'Value (MT)' : 'Date', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
       },
       yaxis: {
         labels: {
@@ -218,7 +218,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
             return n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : `${n}`;
           }
         },
-        title: { text: isHorizontal ? 'Date' : 'Value (Units)', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
+        title: { text: isHorizontal ? 'Date' : 'Value (MT)', style: { color: isDarkMode ? '#9ca3af' : '#6b7280' } }
       },
       colors: processStockData.rcfData!.series.map(s => s.color),
       theme: { mode: isDarkMode ? 'dark' : 'light' },
@@ -227,7 +227,7 @@ export function StockAnalysisChart({ className = '' }: StockAnalysisChartProps) 
         theme: isDarkMode ? 'dark' : 'light',
         shared: true,
         intersect: false,
-        y: { formatter: v => v >= 1e6 ? `${(v/1e6).toFixed(2)}M units` : v >= 1e3 ? `${(v/1e3).toFixed(2)}K units` : `${v} units` }
+        y: { formatter: v => v >= 1e6 ? `${(v/1e6).toFixed(2)}M MT` : v >= 1e3 ? `${(v/1e3).toFixed(2)}K MT` : `${v} MT` }
       },
       legend: {
         show: true,
