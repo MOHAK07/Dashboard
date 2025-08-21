@@ -7,6 +7,7 @@ import { DynamicRevenueBreakdownChart } from '../charts/DynamicRevenueBreakdownC
 import { MDAClaimChart } from '../charts/MDAClaimChart';
 import { MDAClaimKPI } from '../charts/MDAClaimKPI';
 import { StockAnalysisChart } from '../charts/StockAnalysisChart';
+import { BuyerTypeAnalysisChart } from '../charts/BuyerTypeAnalysisChart';
 import { StockKPICards } from '../charts/StockKPICards';
 import { useApp } from '../../contexts/AppContext';
 import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
@@ -31,6 +32,15 @@ export function OverviewTab({ data }: OverviewTabProps) {
   const hasStockData = state.datasets.some(dataset => 
     state.activeDatasetIds.includes(dataset.id) && 
     ColorManager.isStockDataset(dataset.name)
+  );
+
+  const hasFOMData = state.datasets.some(dataset => 
+    state.activeDatasetIds.includes(dataset.id) && 
+    (dataset.name.toLowerCase().includes('fom') ||
+     dataset.fileName.toLowerCase().includes('fom') ||
+     (dataset.detectedColumns?.includes('Buyer Type') && 
+      dataset.detectedColumns?.includes('Price') &&
+      dataset.detectedColumns?.includes('Name')))
   );
 
   if (data.length === 0) {
@@ -71,6 +81,8 @@ export function OverviewTab({ data }: OverviewTabProps) {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-8">
         <WeeklyDataDistributionChart />
+
+        {hasFOMData && <BuyerTypeAnalysisChart />}
       </div>
 
       {/* Quality Trends by Month - Repositioned */}
