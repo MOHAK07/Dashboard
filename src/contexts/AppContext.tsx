@@ -4,7 +4,7 @@ import { ColorManager } from '../utils/colorManager';
 
 // Define the state interface
 interface AppState {
-  datasets: Dataset[];
+  datasets: Dataset[]; 
   activeDatasetIds: string[];
   data: FlexibleDataRow[];
   filteredData: FlexibleDataRow[];
