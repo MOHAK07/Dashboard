@@ -379,6 +379,34 @@ export class DataProcessor {
     return ColorManager.getDatasetDisplayName(datasetName);
   }
 
+  static convertDatabaseRecordToFlexibleRow(record: any): FlexibleDataRow {
+    const converted: FlexibleDataRow = {};
+    
+    Object.entries(record).forEach(([key, value]) => {
+      // Handle null values
+      if (value === null || value === undefined) {
+        converted[key] = null;
+        return;
+      }
+      
+      // Convert string numbers back to numbers if they look numeric
+      if (typeof value === 'string' && this.looksLikeNumber(value)) {
+        const numValue = parseFloat(value);
+        converted[key] = isNaN(numValue) ? value : numValue;
+      } else {
+        converted[key] = value;
+      }
+    });
+    
+    return converted;
+  }
+
+  private static looksLikeNumber(value: string): boolean {
+    if (!value || value.trim() === '') return false;
+    const trimmed = value.trim().replace(/[,\s]/g, '');
+    return !isNaN(parseFloat(trimmed)) && isFinite(parseFloat(trimmed));
+  }
+
   static findColumnByKeywords(data: FlexibleDataRow[], keywords: string[]): string | null {
     if (data.length === 0) return null;
     

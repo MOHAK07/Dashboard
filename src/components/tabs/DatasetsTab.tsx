@@ -23,6 +23,7 @@ import {
 import { useApp } from '../../contexts/AppContext';
 import { Dataset } from '../../types';
 import { DataProcessor } from '../../utils/dataProcessing';
+import { DatabaseStatus } from '../DatabaseStatus';
 
 
 export function DatasetsTab() {
@@ -174,6 +175,9 @@ export function DatasetsTab() {
             </button>
           </div>
         </div>
+
+        {/* Database Status */}
+        <DatabaseStatus />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

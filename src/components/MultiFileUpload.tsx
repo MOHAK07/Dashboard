@@ -1,10 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertTriangle, AlertCircle, Plus, Eye } from 'lucide-react';
 import { FileParser } from '../utils/fileParser';
-import { DataRow, Dataset } from '../types';
+import { FlexibleDataRow, Dataset } from '../types';
 import { useApp } from '../contexts/AppContext';
 import { ColorManager } from '../utils/colorManager';
 import { DataProcessor } from '../utils/dataProcessing';
+import { DatabaseUploadModal } from './DatabaseUploadModal';
+import { TableName } from '../lib/supabase';
 
 interface MultiFileUploadProps {
   onClose: () => void;
@@ -17,18 +19,22 @@ interface UploadingFile {
   file: File;
   status: 'uploading' | 'validating' | 'complete' | 'error';
   progress: number;
-  data?: DataRow[];
+  data?: FlexibleDataRow[];
   error?: string;
   validationSummary?: string;
 }
 
 
 export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFileUploadProps) {
-  const { dispatch } = useApp(); // We'll use this only onContinue
+  const { dispatch, uploadToDatabase } = useApp();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [validatedDatasets, setValidatedDatasets] = useState<Dataset[]>([]); // Local buffer
   const [showPreview, setShowPreview] = useState<string | null>(null);
+  const [showDatabaseUpload, setShowDatabaseUpload] = useState<{
+    data: FlexibleDataRow[];
+    fileName: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -184,6 +190,13 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
     if (onContinue) onContinue();
   };
 
+  const handleUploadToDatabase = async (tableName: TableName, data: FlexibleDataRow[]): Promise<boolean> => {
+    const success = await uploadToDatabase(tableName, data);
+    if (success) {
+      setShowDatabaseUpload(null);
+    }
+    return success;
+  };
   return (
     <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${className}`}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
@@ -248,6 +261,17 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
             />
           </div>
 
+
+        {/* Database Upload Modal */}
+        {showDatabaseUpload && (
+          <DatabaseUploadModal
+            isOpen={true}
+            onClose={() => setShowDatabaseUpload(null)}
+            data={showDatabaseUpload.data}
+            fileName={showDatabaseUpload.fileName}
+            onUpload={handleUploadToDatabase}
+          />
+        )}
           {/* Upload Progress */}
           {uploadingFiles.length > 0 && (
             <div className="space-y-4">
@@ -279,6 +303,18 @@ export function MultiFileUpload({ onClose, onContinue, className = '' }: MultiFi
                             title="Preview data"
                           >
                             <Eye className="h-4 w-4" />
+                          </button>
+                        )}
+                        {file.status === 'complete' && file.data && (
+                          <button
+                            onClick={() => setShowDatabaseUpload({
+                              data: file.data || [],
+                              fileName: file.file.name
+                            })}
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                            title="Upload to database"
+                          >
+                            <Upload className="h-4 w-4" />
                           </button>
                         )}
                         <button

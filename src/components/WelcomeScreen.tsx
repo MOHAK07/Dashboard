@@ -1,13 +1,14 @@
 import React from 'react';
 import { BarChart3, Upload, Zap, Shield, Globe, TrendingUp } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { DatabaseStatus } from './DatabaseStatus';
 
 interface WelcomeScreenProps {
   onFileUpload: () => void;
 }
 
 export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
-  const { loadSampleData } = useApp();
+  const { state } = useApp();
 
   const features = [
     {
@@ -40,6 +41,11 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-6xl mx-auto px-4 py-12">
+        {/* Database Status at top */}
+        <div className="mb-8">
+          <DatabaseStatus />
+        </div>
+
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-100 dark:bg-primary-900/50 rounded-full mb-6">
@@ -62,14 +68,7 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
               className="btn-primary text-lg px-8 py-4 flex items-center space-x-2 transform hover:scale-105 transition-transform"
             >
               <Upload className="h-5 w-5" />
-              <span>Upload Your Data</span>
-            </button>
-            
-            <button
-              onClick={loadSampleData}
-              className="btn-secondary text-lg px-8 py-4 transform hover:scale-105 transition-transform"
-            >
-              Try Sample Data
+              <span>{state.isConnectedToDatabase ? 'Upload to Database' : 'Upload Your Data'}</span>
             </button>
           </div>
 

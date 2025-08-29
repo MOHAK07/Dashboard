@@ -2,6 +2,9 @@ import React, { useState, useRef } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 import { FileParser } from '../utils/fileParser';
 import { DataRow, ValidationResult } from '../types';
+import { DatabaseUploadModal } from './DatabaseUploadModal';
+import { useApp } from '../contexts/AppContext';
+import { TableName } from '../lib/supabase';
 
 interface FileUploadProps {
   onDataLoaded: (data: DataRow[]) => void;
@@ -9,10 +12,15 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ onDataLoaded, className = '' }: FileUploadProps) {
+  const { uploadToDatabase } = useApp();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+  const [showDatabaseUpload, setShowDatabaseUpload] = useState<{
+    data: DataRow[];
+    fileName: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -91,13 +99,25 @@ export function FileUpload({ onDataLoaded, className = '' }: FileUploadProps) {
     if (validationResult && validationResult.isValid) {
       // Extract valid data from the stored parsed data
       if (validationResult.validData) {
-        onDataLoaded(validationResult.validData);
+        // Show database upload option
+        setShowDatabaseUpload({
+          data: validationResult.validData,
+          fileName: 'uploaded-file'
+        });
       }
     }
     setShowValidation(false);
     setValidationResult(null);
   };
 
+  const handleDatabaseUpload = async (tableName: TableName, data: DataRow[]): Promise<boolean> => {
+    const success = await uploadToDatabase(tableName, data);
+    if (success) {
+      setShowDatabaseUpload(null);
+      onDataLoaded(data); // Also load locally for immediate display
+    }
+    return success;
+  };
   const getSummaryIcon = (type: string) => {
     switch (type) {
       case 'success': return <CheckCircle className="h-6 w-6 text-success-500" />;
@@ -195,7 +215,7 @@ export function FileUpload({ onDataLoaded, className = '' }: FileUploadProps) {
                 onClick={() => setShowValidation(false)}
                 className="btn-secondary"
               >
-                Cancel
+                Upload to Database ({validationResult.validRows} rows)
               </button>
               {validationResult.isValid && (
                 <button
@@ -267,6 +287,16 @@ export function FileUpload({ onDataLoaded, className = '' }: FileUploadProps) {
         />
       </div>
 
+      {/* Database Upload Modal */}
+      {showDatabaseUpload && (
+        <DatabaseUploadModal
+          isOpen={true}
+          onClose={() => setShowDatabaseUpload(null)}
+          data={showDatabaseUpload.data}
+          fileName={showDatabaseUpload.fileName}
+          onUpload={handleDatabaseUpload}
+        />
+      )}
       {isProcessing && (
         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-75 rounded-xl">
           <div className="text-center">
