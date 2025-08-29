@@ -237,7 +237,7 @@ function RealtimeSubscriptionHandler({ children }: { children: ReactNode }) {
 // Provider component
 export function AppProvider({ children }: { children: ReactNode }) {
   // Initialize auth hook
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading, canAccessDashboard } = useAuth();
   
   // Initialize Supabase hooks
   const { 
@@ -295,7 +295,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     dispatch({ type: 'SET_USER', payload: user });
     dispatch({ type: 'SET_AUTHENTICATED', payload: !!user });
-  }, [user]);
+    
+    // Set default tab based on user role when user changes
+    if (user && userProfile) {
+      const defaultTab = canAccessDashboard() ? 'overview' : 'data-management';
+      dispatch({ type: 'SET_ACTIVE_TAB', payload: defaultTab });
+    }
+  }, [user, userProfile, canAccessDashboard]);
 
   useEffect(() => {
     const handleDatabaseChange = async () => {

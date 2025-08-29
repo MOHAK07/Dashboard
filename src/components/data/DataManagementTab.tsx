@@ -19,8 +19,10 @@ import { DatabaseService } from '../../services/databaseService';
 import { DataEntryForm } from './DataEntryForm';
 import { BulkUploadModal } from './BulkUploadModal';
 import { DataTable } from '../DataTable';
+import { useAuth } from '../../hooks/useAuth';
 
 export function DataManagementTab() {
+  const { isAdmin } = useAuth();
   const [selectedTable, setSelectedTable] = useState<TableName>(TABLES.FOM);
   const [tableData, setTableData] = useState<FlexibleDataRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +75,11 @@ export function DataManagementTab() {
   };
 
   const handleDeleteRecord = async (record: FlexibleDataRow) => {
+    if (!isAdmin()) {
+      alert('Only administrators can delete records');
+      return;
+    }
+    
     if (!confirm('Are you sure you want to delete this record?')) return;
 
     setIsLoading(true);
@@ -95,6 +102,11 @@ export function DataManagementTab() {
   };
 
   const handleBulkDelete = async () => {
+    if (!isAdmin()) {
+      alert('Only administrators can delete records');
+      return;
+    }
+    
     if (selectedRecords.length === 0) return;
     
     if (!confirm(`Are you sure you want to delete ${selectedRecords.length} records?`)) return;
@@ -168,21 +180,25 @@ export function DataManagementTab() {
             <span>Refresh</span>
           </button>
           
-          <button
-            onClick={() => setShowBulkUpload(true)}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <Upload className="h-4 w-4" />
-            <span>Bulk Upload</span>
-          </button>
+          {isAdmin() && (
+            <button
+              onClick={() => setShowBulkUpload(true)}
+              className="btn-secondary flex items-center space-x-2"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Bulk Upload</span>
+            </button>
+          )}
           
-          <button
-            onClick={handleAddRecord}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Record</span>
-          </button>
+          {isAdmin() && (
+            <button
+              onClick={handleAddRecord}
+              className="btn-primary flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Record</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -222,6 +238,7 @@ export function DataManagementTab() {
             </div>
 
             {selectedRecords.length > 0 && (
+              isAdmin() && (
               <button
                 onClick={handleBulkDelete}
                 className="btn-secondary text-error-600 hover:bg-error-50 dark:hover:bg-error-900/20 flex items-center space-x-2"
@@ -229,6 +246,7 @@ export function DataManagementTab() {
                 <Trash2 className="h-4 w-4" />
                 <span>Delete ({selectedRecords.length})</span>
               </button>
+              )
             )}
           </div>
         </div>
@@ -330,11 +348,11 @@ export function DataManagementTab() {
             
             <DataTable 
               data={filteredData}
-              onEdit={handleEditRecord}
-              onDelete={handleDeleteRecord}
+              onEdit={isAdmin() ? handleEditRecord : undefined}
+              onDelete={isAdmin() ? handleDeleteRecord : undefined}
               selectedRecords={selectedRecords}
-              onSelectionChange={setSelectedRecords}
-              showActions={true}
+              onSelectionChange={isAdmin() ? setSelectedRecords : undefined}
+              showActions={isAdmin()}
             />
           </div>
         )}

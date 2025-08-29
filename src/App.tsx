@@ -18,7 +18,7 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 function DashboardContent() {
   // Hooks must come first, before any return
   const { state, setActiveTab } = useApp();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading, canAccessDashboard } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
@@ -74,6 +74,18 @@ function DashboardContent() {
     const filteredData = state.filteredData;
     switch (state.activeTab) {
       case 'overview':
+        // Check if user can access dashboard overview
+        if (!canAccessDashboard()) {
+          return (
+            <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+              <div className="text-center">
+                <p className="text-lg font-medium">Access Restricted</p>
+                <p className="text-sm mt-2">Dashboard overview is only available to administrators</p>
+                <p className="text-xs mt-1 text-gray-400">Current role: {userProfile?.role || 'Unknown'}</p>
+              </div>
+            </div>
+          );
+        }
         return <OverviewTab data={filteredData} />;
       case 'data-management':
         return <DataManagementTab />;
@@ -84,8 +96,10 @@ function DashboardContent() {
       case 'settings':
         return <SettingsTab />;
       default:
-        setActiveTab('overview');
-        return <OverviewTab data={filteredData} />;
+        // Default to data-management for operators, overview for admins
+        const defaultTab = canAccessDashboard() ? 'overview' : 'data-management';
+        setActiveTab(defaultTab);
+        return defaultTab === 'overview' ? <OverviewTab data={filteredData} /> : <DataManagementTab />;
     }
   };
 

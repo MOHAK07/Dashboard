@@ -13,6 +13,7 @@ import { useApp } from '../../contexts/AppContext';
 import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { ColorManager } from '../../utils/colorManager';
+import { RoleGuard } from '../auth/RoleGuard';
 
 interface OverviewTabProps {
   data: FlexibleDataRow[];
@@ -43,59 +44,55 @@ export function OverviewTab({ data }: OverviewTabProps) {
       dataset.detectedColumns?.includes('Name')))
   );
 
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-        <div className="text-center">
-          <p className="text-lg font-medium">No data available</p>
-          <p className="text-sm">Upload data to view the dashboard overview</p>
-        </div>
-      </div>
-    );
-  }
-
-  const numericColumns = DataProcessor.findNumericColumns(data);
-  const categoricalColumns = DataProcessor.findCategoricalColumns(data);
-  const dateColumn = DataProcessor.findDateColumn(data);
-
   return (
-    <div className="space-y-8">
-      {/* Drill-down Breadcrumb */}
-      <DrillDownBreadcrumb />
-
-      {/* Dataset-Specific KPI Cards */}
-      <div className="grid grid-cols-1 gap-6">
-        <DatasetSpecificKPIs />
-        
-        {/* Stock KPI Cards - Only show when stock data is available */}
-        {hasStockData && <StockKPICards />}
-        
-        {/* MDA Claim KPI - Only show when MDA claim data is available */}
-        {hasMDAClaimData && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <MDAClaimKPI />
+    <RoleGuard adminOnly={true}>
+      {data.length === 0 ? (
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="text-center">
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Upload data to view the dashboard overview</p>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Drill-down Breadcrumb */}
+          <DrillDownBreadcrumb />
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-8">
-        <WeeklyDataDistributionChart />
+          {/* Dataset-Specific KPI Cards */}
+          <div className="grid grid-cols-1 gap-6">
+            <DatasetSpecificKPIs />
+            
+            {/* Stock KPI Cards - Only show when stock data is available */}
+            {hasStockData && <StockKPICards />}
+            
+            {/* MDA Claim KPI - Only show when MDA claim data is available */}
+            {hasMDAClaimData && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <MDAClaimKPI />
+              </div>
+            )}
+          </div>
 
-        {hasFOMData && <BuyerTypeAnalysisChart />}
-      </div>
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 gap-8">
+            <WeeklyDataDistributionChart />
 
-      {/* Quality Trends by Month - Repositioned */}
-      <DatasetTimeSeriesChart />
+            {hasFOMData && <BuyerTypeAnalysisChart />}
+          </div>
 
-      {/* Dynamic Revenue Breakdown */}
-      <DynamicRevenueBreakdownChart />
-      
-      {/* Stock Analysis Charts - Only show when stock data is available */}
-      {hasStockData && <StockAnalysisChart />}
-      
-      {/* MDA Claim Chart - Only show when MDA claim data is available */}
-      {hasMDAClaimData && <MDAClaimChart />}
-    </div>
+          {/* Quality Trends by Month - Repositioned */}
+          <DatasetTimeSeriesChart />
+
+          {/* Dynamic Revenue Breakdown */}
+          <DynamicRevenueBreakdownChart />
+          
+          {/* Stock Analysis Charts - Only show when stock data is available */}
+          {hasStockData && <StockAnalysisChart />}
+          
+          {/* MDA Claim Chart - Only show when MDA claim data is available */}
+          {hasMDAClaimData && <MDAClaimChart />}
+        </div>
+      )}
+    </RoleGuard>
   );
 }

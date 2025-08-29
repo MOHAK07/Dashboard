@@ -20,44 +20,66 @@ interface SidebarProps {
   onMobileToggle: () => void;
 }
 
-const navigationItems = [
-  {
-    id: 'overview' as TabType,
-    label: 'Dashboard Overview',
-    icon: BarChart3,
-    emoji: '📊',
-  },
-  {
-    id: 'data-management' as TabType,
-    label: 'Data Management',
-    icon: Edit3,
-    emoji: '✏️',
-  },
-  {
-    id: 'explorer' as TabType,
-    label: 'Data Explorer',
-    icon: Database,
-    emoji: '📝',
-  },
-  {
-    id: 'datasets' as TabType,
-    label: 'Data Manager',
-    icon: Library,
-    emoji: '📚',
-  },
-  {
-    id: 'settings' as TabType,
-    label: 'Settings',
-    icon: Settings,
-    emoji: '⚙️',
-  },
-];
-
 export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileToggle }: SidebarProps) {
   const { state, setActiveTab } = useApp();
-  const { signOut, user } = useAuth();
+  const { signOut, user, userProfile, isAdmin, canAccessDashboard } = useAuth();
+
+  // Define navigation items based on user role
+  const getNavigationItems = () => {
+    const baseItems = [
+      {
+        id: 'data-management' as TabType,
+        label: 'Data Management',
+        icon: Edit3,
+        emoji: '✏️',
+        adminOnly: false,
+      },
+      {
+        id: 'explorer' as TabType,
+        label: 'Data Explorer',
+        icon: Database,
+        emoji: '📝',
+        adminOnly: false,
+      },
+      {
+        id: 'datasets' as TabType,
+        label: 'Data Manager',
+        icon: Library,
+        emoji: '📚',
+        adminOnly: false,
+      },
+      {
+        id: 'settings' as TabType,
+        label: 'Settings',
+        icon: Settings,
+        emoji: '⚙️',
+        adminOnly: false,
+      },
+    ];
+
+    // Add dashboard overview only for admins
+    if (canAccessDashboard()) {
+      baseItems.unshift({
+        id: 'overview' as TabType,
+        label: 'Dashboard Overview',
+        icon: BarChart3,
+        emoji: '📊',
+        adminOnly: true,
+      });
+    }
+
+    return baseItems;
+  };
+
+  const navigationItems = getNavigationItems();
 
   const handleTabClick = (tabId: TabType) => {
+    // Additional check for dashboard overview access
+    if (tabId === 'overview' && !canAccessDashboard()) {
+      console.warn('Access denied: User does not have permission to access dashboard overview');
+      return;
+    }
+    
     setActiveTab(tabId);
     // Close mobile sidebar when item is clicked
     if (isMobileOpen) {
@@ -162,9 +184,20 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileToggle }:
               {/* User Info */}
               {user && (
                 <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                    {user.email}
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                      {user.email}
+                    </p>
+                    {userProfile && (
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        userProfile.role === 'admin' 
+                          ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                          : 'bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300'
+                      }`}>
+                        {userProfile.role === 'admin' ? '👑 Admin' : '👤 Operator'}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={signOut}
                     className="mt-2 flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 hover:text-error-600 dark:hover:text-error-400 transition-colors"

@@ -50,7 +50,7 @@ interface HeaderProps {
 
 export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) {
   const { state, setFilters, setSettings, clearGlobalFilters, syncFromDatabase } = useApp();
-  const { user, signOut } = useAuth();
+  const { user, userProfile, signOut, isAdmin } = useAuth();
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
@@ -433,8 +433,30 @@ export function Header({ onMobileMenuToggle, onUploadNewDataset }: HeaderProps) 
                     <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                       {user.email}
                     </p>
+                    {userProfile && (
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          userProfile.role === 'admin' 
+                            ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                            : 'bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300'
+                        }`}>
+                          {userProfile.role === 'admin' ? '👑 Administrator' : '👤 Operator'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="py-2">
+                    {isAdmin() && (
+                      <button
+                        onClick={() => {
+                          // Admin-only action placeholder
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        Admin Settings
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         signOut();

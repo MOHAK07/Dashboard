@@ -1,8 +1,10 @@
 import { Monitor, Moon, Sun, Bell, Save, Trash2 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import { useAuth } from '../../hooks/useAuth';
 
 export function SettingsTab() {
   const { state, setSettings } = useApp();
+  const { userProfile, isAdmin } = useAuth();
 
   const updateSetting = (key: keyof typeof state.settings, value: any) => {
     setSettings({
@@ -34,6 +36,34 @@ export function SettingsTab() {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
           Display Settings
         </h3>
+        
+        {/* User Role Information */}
+        {userProfile && (
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">Current Role</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your access level and permissions
+                </p>
+              </div>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                userProfile.role === 'admin' 
+                  ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                  : 'bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300'
+              }`}>
+                {userProfile.role === 'admin' ? '👑 Administrator' : '👤 Operator'}
+              </span>
+            </div>
+            
+            <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              {userProfile.role === 'admin' 
+                ? 'Full access to all features including dashboard overview, data management, and user administration'
+                : 'Access to data management, explorer, and settings. Dashboard overview is restricted to administrators'
+              }
+            </div>
+          </div>
+        )}
         
         <div className="space-y-6">
           {/* Theme Selection */}
@@ -235,37 +265,41 @@ export function SettingsTab() {
                 {state.data.length} rows loaded
               </p>
             </div>
-            <button
-              onClick={() => {
-                sessionStorage.removeItem('dashboard-data');
-                sessionStorage.removeItem('dashboard-datasets');
-                window.location.reload();
-              }}
-              className="btn-secondary text-sm"
-            >
-              Clear Data
-            </button>
+            {isAdmin() && (
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem('dashboard-data');
+                  sessionStorage.removeItem('dashboard-datasets');
+                  window.location.reload();
+                }}
+                className="btn-secondary text-sm"
+              >
+                Clear Data
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Reset Settings
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Restore all settings to defaults
-              </p>
+          {isAdmin() && (
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Reset Settings
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Restore all settings to defaults
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('dashboard-settings');
+                  window.location.reload();
+                }}
+                className="btn-secondary text-sm"
+              >
+                Reset
+              </button>
             </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem('dashboard-settings');
-                window.location.reload();
-              }}
-              className="btn-secondary text-sm"
-            >
-              Reset
-            </button>
-          </div>
+          )}
         </div>
       </div>
 

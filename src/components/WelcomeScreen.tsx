@@ -2,6 +2,7 @@ import React from 'react';
 import { BarChart3, Upload, Zap, Shield, Globe, TrendingUp } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { DatabaseStatus } from './DatabaseStatus';
+import { useAuth } from '../hooks/useAuth';
 
 interface WelcomeScreenProps {
   onFileUpload: () => void;
@@ -9,6 +10,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
   const { state } = useApp();
+  const { userProfile, canAccessDashboard } = useAuth();
 
   const features = [
     {
@@ -33,8 +35,10 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
     },
     {
       icon: TrendingUp,
-      title: 'Smart Analytics',
-      description: 'Automatic chart generation and KPI calculation based on your data',
+      title: canAccessDashboard() ? 'Smart Analytics' : 'Data Management',
+      description: canAccessDashboard() 
+        ? 'Automatic chart generation and KPI calculation based on your data'
+        : 'Comprehensive data entry, editing, and management capabilities',
     },
   ];
 
@@ -56,9 +60,23 @@ export function WelcomeScreen({ onFileUpload }: WelcomeScreenProps) {
             Welcome to <span className="text-primary-600 dark:text-primary-400">TruAlt Analytics</span>
           </h1>
           
+          {userProfile && (
+            <div className="mb-4">
+              <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+                userProfile.role === 'admin' 
+                  ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                  : 'bg-secondary-100 dark:bg-secondary-900/50 text-secondary-700 dark:text-secondary-300'
+              }`}>
+                {userProfile.role === 'admin' ? '👑 Administrator Access' : '👤 Operator Access'}
+              </span>
+            </div>
+          )}
+          
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
-            Transform any data into actionable insights with our intelligent, adaptive analytics dashboard. 
-            Upload your files with any structure - we'll handle the rest automatically.
+            {canAccessDashboard() 
+              ? 'Transform any data into actionable insights with our intelligent, adaptive analytics dashboard. Upload your files with any structure - we\'ll handle the rest automatically.'
+              : 'Manage and organize your data with our comprehensive data management tools. Upload, edit, and maintain your datasets with ease.'
+            }
           </p>
 
           {/* Action Buttons */}

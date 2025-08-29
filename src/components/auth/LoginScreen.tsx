@@ -17,6 +17,7 @@ const signUpSchema = yup.object({
   confirmPassword: yup.string()
     .oneOf([yup.ref('password')], 'Passwords must match')
     .required('Please confirm your password'),
+  role: yup.string().oneOf(['admin', 'operator'], 'Please select a valid role').required('Role is required'),
 });
 
 export function LoginScreen() {
@@ -63,6 +64,18 @@ export function LoginScreen() {
           <p className="text-gray-600 dark:text-gray-400">
             {isSignUp ? 'Create your account to get started' : 'Sign in to manage your data'}
           </p>
+          
+          {isSignUp && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">
+                Role Information:
+              </p>
+              <div className="space-y-1 text-xs text-blue-600 dark:text-blue-400">
+                <p><strong>Administrator:</strong> Full access to dashboard overview, analytics, and data management</p>
+                <p><strong>Operator:</strong> Access to data management, explorer, and settings (no dashboard overview)</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Auth Form */}
@@ -150,6 +163,29 @@ export function LoginScreen() {
                 {errors.confirmPassword && (
                   <p className="mt-1 text-sm text-error-600 dark:text-error-400">
                     {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Role Selection (Sign Up Only) */}
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  User Role
+                </label>
+                <select
+                  {...register('role')}
+                  className="input-field w-full"
+                  disabled={isLoading}
+                >
+                  <option value="">Select your role</option>
+                  <option value="operator">Operator - Data entry and viewing</option>
+                  <option value="admin">Admin - Full dashboard access</option>
+                </select>
+                {errors.role && (
+                  <p className="mt-1 text-sm text-error-600 dark:text-error-400">
+                    {errors.role.message}
                   </p>
                 )}
               </div>
