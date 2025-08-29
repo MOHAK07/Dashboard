@@ -394,19 +394,12 @@ export class DataProcessor {
         const numValue = parseFloat(value);
         converted[key] = isNaN(numValue) ? value : numValue;
       } else {
-        converted[key] = value;
+        converted[key] = value as string | number | null | undefined;
       }
     });
     
     return converted;
   }
-
-  private static looksLikeNumber(value: string): boolean {
-    if (!value || value.trim() === '') return false;
-    const trimmed = value.trim().replace(/[,\s]/g, '');
-    return !isNaN(parseFloat(trimmed)) && isFinite(parseFloat(trimmed));
-  }
-
   static findColumnByKeywords(data: FlexibleDataRow[], keywords: string[]): string | null {
     if (data.length === 0) return null;
     
