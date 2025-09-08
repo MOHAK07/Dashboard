@@ -508,14 +508,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
   const clearGlobalFilters = () => {
-    dispatch({
-      type: "SET_FILTERS",
-      payload: {
-        ...state.filters,
-        dateRange: { start: "", end: "" },
-        selectedValues: {},
-      },
-    });
+    // This function is now handled by the GlobalFilterContext
+    // Keep for backward compatibility but delegate to new system
+    console.warn('clearGlobalFilters is deprecated. Use GlobalFilterContext instead.');
   };
   const getMultiDatasetData = () => {
     return state.datasets

@@ -508,6 +508,45 @@ export class DataProcessor {
     ];
     
     const lowerColumn = columnName.toLowerCase();
+    // This method is now deprecated in favor of the GlobalFilterContext
+    console.warn('DataProcessor.getFilteredData is deprecated. Use GlobalFilterContext instead.');
     return numericKeywords.some(keyword => lowerColumn.includes(keyword));
+  }
+
+  static hasValidDateColumn(data: FlexibleDataRow[]): boolean {
+    const dateColumn = this.findDateColumn(data);
+    if (!dateColumn) return false;
+    
+    // Check if at least some rows have valid dates
+    const validDateCount = data.slice(0, 10).reduce((count, row) => {
+      const dateValue = row[dateColumn];
+      if (!dateValue) return count;
+      
+      const date = new Date(String(dateValue));
+      return count + (isNaN(date.getTime()) ? 0 : 1);
+    }, 0);
+    
+    return validDateCount > 0;
+  }
+
+  static hasValidMonthColumn(data: FlexibleDataRow[]): boolean {
+    if (data.length === 0) return false;
+    
+    const monthColumn = Object.keys(data[0]).find(col => 
+      col.toLowerCase() === 'month' || col.toLowerCase().includes('month')
+    );
+    
+    return !!monthColumn;
+  }
+
+  static hasValidBuyerTypeColumn(data: FlexibleDataRow[]): boolean {
+    if (data.length === 0) return false;
+    
+    const buyerTypeColumn = Object.keys(data[0]).find(col => {
+      const lowerCol = col.toLowerCase().replace(/\s+/g, '');
+      return lowerCol.includes('buyer') && lowerCol.includes('type');
+    });
+    
+    return !!buyerTypeColumn;
   }
 }

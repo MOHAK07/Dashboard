@@ -1,32 +1,59 @@
 import React, { useState } from 'react';
 import { Save, Bookmark, Trash2, Plus, X } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
+import { useGlobalFilterContext } from '../contexts/GlobalFilterContext';
 
 interface SavedFiltersProps {
   className?: string;
 }
 
 export function SavedFilters({ className = '' }: SavedFiltersProps) {
-  const { state, saveFilterSet, loadFilterSet, deleteFilterSet } = useApp();
+  const { filterState, updateFilters } = useGlobalFilterContext();
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [filterName, setFilterName] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [savedFilterSets, setSavedFilterSets] = useState<any[]>([]);
 
+  // Load saved filter sets from localStorage
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('global-filter-sets');
+      if (saved) {
+        setSavedFilterSets(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading saved filter sets:', error);
+    }
+  }, []);
   const handleSaveFilter = () => {
     if (filterName.trim()) {
-      saveFilterSet(filterName.trim());
+      const newFilterSet = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: filterName.trim(),
+        filters: filterState.filters,
+        createdAt: new Date().toISOString(),
+      };
+      
+      const updatedSets = [...savedFilterSets, newFilterSet];
+      setSavedFilterSets(updatedSets);
+      localStorage.setItem('global-filter-sets', JSON.stringify(updatedSets));
+      
       setFilterName('');
       setShowSaveModal(false);
     }
   };
 
-  const hasActiveFilters = 
-    state.filters.dateRange.start || 
-    state.filters.dateRange.end || 
-    state.filters.selectedProducts.length > 0 ||
-    state.filters.selectedPlants.length > 0 ||
-    state.filters.selectedFactories.length > 0 ||
-    Object.keys(state.filters.drillDownFilters).length > 0;
+  const loadFilterSet = (filterSet: any) => {
+    updateFilters(filterSet.filters);
+    setShowDropdown(false);
+  };
+
+  const deleteFilterSet = (id: string) => {
+    const updatedSets = savedFilterSets.filter(set => set.id !== id);
+    setSavedFilterSets(updatedSets);
+    localStorage.setItem('global-filter-sets', JSON.stringify(updatedSets));
+  };
+
+  const hasActiveFilters = filterState.filters.isActive;
 
   return (
     <div className={`relative ${className}`}>
@@ -43,7 +70,7 @@ export function SavedFilters({ className = '' }: SavedFiltersProps) {
         )}
 
         {/* Saved Filters Dropdown */}
-        {state.settings.savedFilterSets.length > 0 && (
+        {savedFilterSets.length > 0 && (
           <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
@@ -59,14 +86,14 @@ export function SavedFilters({ className = '' }: SavedFiltersProps) {
                   <h3 className="font-medium text-gray-900 dark:text-gray-100">Saved Filters</h3>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  {state.settings.savedFilterSets.map((filterSet) => (
+                  {savedFilterSets.map((filterSet) => (
                     <div
                       key={filterSet.id}
                       className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <button
                         onClick={() => {
-                          loadFilterSet(filterSet.id);
+                          loadFilterSet(filterSet);
                           setShowDropdown(false);
                         }}
                         className="flex-1 text-left text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"

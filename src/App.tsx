@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AppProvider, useApp } from "./contexts/AppContext";
+import { GlobalFilterProvider } from "./contexts/GlobalFilterContext";
 import { useAuth } from "./hooks/useAuth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingSpinner } from "./components/LoadingSpinner";
@@ -169,7 +170,9 @@ export default function App() {
     <ErrorBoundary>
       <Router>
         <AppProvider>
-          <DashboardContent />
+          <GlobalFilterProvider>
+            <DashboardContent />
+          </GlobalFilterProvider>
         </AppProvider>
       </Router>
     </ErrorBoundary>
