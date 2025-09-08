@@ -280,22 +280,3 @@ export function Header({
     </header>
   );
 }
-                          dataset.name
-                        ),
-                      }}
-                    />
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {dataset.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      ({dataset.rowCount.toLocaleString()} rows)
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </header>
-  );
-}
