@@ -1,18 +1,19 @@
-import React from 'react';
-import { FlexibleDataRow } from '../../types';
-import { DatasetSpecificKPIs } from '../charts/DatasetSpecificKPIs';
-import { DatasetTimeSeriesChart } from '../charts/DatasetTimeSeriesChart';
-import { WeeklyDataDistributionChart } from '../charts/WeeklyDataDistributionChart';
-import { DynamicRevenueBreakdownChart } from '../charts/DynamicRevenueBreakdownChart';
-import { MDAClaimChart } from '../charts/MDAClaimChart';
-import { MDAClaimKPI } from '../charts/MDAClaimKPI';
-import { StockAnalysisChart } from '../charts/StockAnalysisChart';
-import { BuyerTypeAnalysisChart } from '../charts/BuyerTypeAnalysisChart';
-import { StockKPICards } from '../charts/StockKPICards';
-import { useApp } from '../../contexts/AppContext';
-import { DrillDownBreadcrumb } from '../DrillDownBreadcrumb';
-import { DataProcessor } from '../../utils/dataProcessing';
-import { ColorManager } from '../../utils/colorManager';
+import React from "react";
+import { FlexibleDataRow } from "../../types";
+import { DatasetSpecificKPIs } from "../charts/DatasetSpecificKPIs";
+import { DatasetTimeSeriesChart } from "../charts/DatasetTimeSeriesChart";
+import { WeeklyDataDistributionChart } from "../charts/WeeklyDataDistributionChart";
+import { DynamicRevenueBreakdownChart } from "../charts/DynamicRevenueBreakdownChart";
+import { MDAClaimChart } from "../charts/MDAClaimChart";
+import { MDAClaimKPI } from "../charts/MDAClaimKPI";
+import { StockAnalysisChart } from "../charts/StockAnalysisChart";
+import { BuyerTypeAnalysisChart } from "../charts/BuyerTypeAnalysisChart";
+import { StockKPICards } from "../charts/StockKPICards";
+import { RevenueKPICards } from "../charts/RevenueKPICards";
+import { useApp } from "../../contexts/AppContext";
+import { DrillDownBreadcrumb } from "../DrillDownBreadcrumb";
+import { DataProcessor } from "../../utils/dataProcessing";
+import { ColorManager } from "../../utils/colorManager";
 
 interface OverviewTabProps {
   data: FlexibleDataRow[];
@@ -20,27 +21,39 @@ interface OverviewTabProps {
 
 export function OverviewTab({ data }: OverviewTabProps) {
   const { state } = useApp();
-  const isDarkMode = state.settings.theme === 'dark';
-  
+  const { filteredData } = state;
+  const isDarkMode = state.settings.theme === "dark";
+
   // Check if MDA claim data is available
-  const hasMDAClaimData = state.datasets.some(dataset => 
-    state.activeDatasetIds.includes(dataset.id) && 
-    ColorManager.isMDAClaimDataset(dataset.name)
+  const hasMDAClaimData = state.datasets.some(
+    (dataset) =>
+      state.activeDatasetIds.includes(dataset.id) &&
+      ColorManager.isMDAClaimDataset(dataset.name)
   );
 
   // Check if stock data is available
-  const hasStockData = state.datasets.some(dataset => 
-    state.activeDatasetIds.includes(dataset.id) && 
-    ColorManager.isStockDataset(dataset.name)
+  const hasStockData = state.datasets.some(
+    (dataset) =>
+      state.activeDatasetIds.includes(dataset.id) &&
+      ColorManager.isStockDataset(dataset.name)
   );
 
-  const hasFOMData = state.datasets.some(dataset => 
-    state.activeDatasetIds.includes(dataset.id) && 
-    (dataset.name.toLowerCase().includes('fom') ||
-     dataset.fileName.toLowerCase().includes('fom') ||
-     (dataset.detectedColumns?.includes('Buyer Type') && 
-      dataset.detectedColumns?.includes('Price') &&
-      dataset.detectedColumns?.includes('Name')))
+  // Check if revenue data is available
+  const hasRevenueData = state.datasets.some(
+    (dataset) =>
+      state.activeDatasetIds.includes(dataset.id) &&
+      (dataset.name.toLowerCase().includes('revenue') || 
+       dataset.fileName.toLowerCase().includes('revenue'))
+  );
+
+  const hasFOMData = state.datasets.some(
+    (dataset) =>
+      state.activeDatasetIds.includes(dataset.id) &&
+      (dataset.name.toLowerCase().includes("fom") ||
+        dataset.fileName.toLowerCase().includes("fom") ||
+        (dataset.detectedColumns?.includes("Buyer Type") &&
+          dataset.detectedColumns?.includes("Price") &&
+          dataset.detectedColumns?.includes("Name")))
   );
 
   if (data.length === 0) {
@@ -59,17 +72,19 @@ export function OverviewTab({ data }: OverviewTabProps) {
   const dateColumn = DataProcessor.findDateColumn(data);
 
   return (
-    <div className="space-y-8">
-      {/* Drill-down Breadcrumb */}
+    <div className="space-y-6">
       <DrillDownBreadcrumb />
 
       {/* Dataset-Specific KPI Cards */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         <DatasetSpecificKPIs />
-        
+
+        {/* Revenue KPI Cards - Only show when revenue data is available */}
+        {hasRevenueData && <RevenueKPICards />}
+
         {/* Stock KPI Cards - Only show when stock data is available */}
         {hasStockData && <StockKPICards />}
-        
+
         {/* MDA Claim KPI - Only show when MDA claim data is available */}
         {hasMDAClaimData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -79,21 +94,21 @@ export function OverviewTab({ data }: OverviewTabProps) {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1">
         <WeeklyDataDistributionChart />
-
-        {hasFOMData && <BuyerTypeAnalysisChart />}
       </div>
+
+      {hasFOMData && <BuyerTypeAnalysisChart />}
 
       {/* Quality Trends by Month - Repositioned */}
       <DatasetTimeSeriesChart />
 
       {/* Dynamic Revenue Breakdown */}
       <DynamicRevenueBreakdownChart />
-      
+
       {/* Stock Analysis Charts - Only show when stock data is available */}
       {hasStockData && <StockAnalysisChart />}
-      
+
       {/* MDA Claim Chart - Only show when MDA claim data is available */}
       {hasMDAClaimData && <MDAClaimChart />}
     </div>

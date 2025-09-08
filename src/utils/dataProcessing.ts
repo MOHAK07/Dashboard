@@ -389,7 +389,6 @@ export class DataProcessor {
         return;
       }
       
-      // Convert string numbers back to numbers if they look numeric
       if (typeof value === 'string' && this.looksLikeNumber(value)) {
         const numValue = parseFloat(value);
         converted[key] = isNaN(numValue) ? value : numValue;
@@ -400,6 +399,7 @@ export class DataProcessor {
     
     return converted;
   }
+
   static findColumnByKeywords(data: FlexibleDataRow[], keywords: string[]): string | null {
     if (data.length === 0) return null;
     

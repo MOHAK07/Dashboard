@@ -6,10 +6,39 @@ import {
   POSLFOMRecord, 
   POSFOMRecord, 
   StockRecord,
+  RevenueRecord,
   DatabaseRecord,
   DatabaseResponse 
 } from '../types/database';
 import { FlexibleDataRow } from '../types';
+
+// Converts Excel's serial number date to a JavaScript Date object
+function excelDateToJSDate(serial: number) {
+  const utc_days  = Math.floor(serial - 25569);
+  const utc_value = utc_days * 86400;                                        
+  const date_info = new Date(utc_value * 1000);
+  return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate() + 1);
+}
+
+// Parses a string date (e.g., "DD-MM-YYYY") into a JavaScript Date object
+function parseStringDate(dateString: string): Date | null {
+    // Handles formats like DD-MM-YYYY, DD/MM/YYYY
+    const parts = dateString.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+    if (!parts) return null;
+
+    // parts[1] = Day, parts[2] = Month, parts[3] = Year
+    const day = parseInt(parts[1], 10);
+    const month = parseInt(parts[2], 10) - 1; // Month is 0-indexed in JS
+    const year = parseInt(parts[3], 10);
+    
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+
+    const date = new Date(year, month, day);
+    if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+        return date;
+    }
+    return null;
+}
 
 export class DatabaseService {
   // Generic CRUD operations
@@ -252,16 +281,29 @@ export class DatabaseService {
     data: FlexibleDataRow,
     tableName: TableName
   ): Partial<DatabaseRecord> {
-    // Clean and prepare data for database insertion
     const cleanedData: any = {};
     
     Object.entries(data).forEach(([key, value]) => {
-      // Skip null/undefined values
       if (value === null || value === undefined || value === '') {
         return;
       }
       
-      // Convert string numbers to actual numbers for numeric columns
+      const lowerKey = key.toLowerCase();
+
+      if (lowerKey.includes('date')) {
+        let jsDate: Date | null = null;
+        if (typeof value === 'number') {
+          jsDate = excelDateToJSDate(value);
+        } else if (typeof value === 'string') {
+          jsDate = parseStringDate(value);
+        }
+        
+        if (jsDate) {
+          cleanedData[key] = jsDate.toISOString().split('T')[0];
+          return; 
+        }
+      }
+
       if (this.isNumericColumn(key) && typeof value === 'string') {
         const numValue = parseFloat(value.replace(/[,\s]/g, ''));
         if (!isNaN(numValue)) {
@@ -283,6 +325,8 @@ export class DatabaseService {
     ];
     
     const lowerColumn = columnName.toLowerCase();
+    if (lowerColumn.includes('date')) return false;
+
     return numericKeywords.some(keyword => lowerColumn.includes(keyword));
   }
 
@@ -309,6 +353,10 @@ export class DatabaseService {
 
   static async fetchStockData(): Promise<DatabaseResponse<StockRecord>> {
     return this.fetchAll<StockRecord>(TABLES.STOCK);
+  }
+
+  static async fetchRevenueData(): Promise<DatabaseResponse<RevenueRecord>> {
+    return this.fetchAll<RevenueRecord>(TABLES.REVENUE);
   }
 
   // Batch operations for data upload
@@ -354,6 +402,13 @@ export class DatabaseService {
     return this.insertBatch<StockRecord>(TABLES.STOCK, convertedRecords);
   }
 
+  static async uploadRevenueData(records: FlexibleDataRow[]): Promise<DatabaseResponse<RevenueRecord>> {
+    const convertedRecords = records.map(record => 
+      this.convertToTableRecord(record, TABLES.REVENUE) as Partial<RevenueRecord>
+    );
+    return this.insertBatch<RevenueRecord>(TABLES.REVENUE, convertedRecords);
+  }
+
   // Get all data from all tables
   static async fetchAllData(): Promise<{
     fom: FOMRecord[];
@@ -362,6 +417,7 @@ export class DatabaseService {
     posLfom: POSLFOMRecord[];
     posFom: POSFOMRecord[];
     stock: StockRecord[];
+    revenue: RevenueRecord[];
     errors: string[];
   }> {
     const results = await Promise.allSettled([
@@ -370,7 +426,8 @@ export class DatabaseService {
       this.fetchMDAClaimData(),
       this.fetchPOSLFOMData(),
       this.fetchPOSFOMData(),
-      this.fetchStockData()
+      this.fetchStockData(),
+      this.fetchRevenueData()
     ]);
 
     const errors: string[] = [];
@@ -380,7 +437,8 @@ export class DatabaseService {
       mdaClaim: [] as MDAClaimRecord[],
       posLfom: [] as POSLFOMRecord[],
       posFom: [] as POSFOMRecord[],
-      stock: [] as StockRecord[]
+      stock: [] as StockRecord[],
+      revenue: [] as RevenueRecord[]
     };
 
     results.forEach((result, index) => {
@@ -392,6 +450,7 @@ export class DatabaseService {
           case 3: data.posLfom = result.value.data as POSLFOMRecord[]; break;
           case 4: data.posFom = result.value.data as POSFOMRecord[]; break;
           case 5: data.stock = result.value.data as StockRecord[]; break;
+          case 6: data.revenue = result.value.data as RevenueRecord[]; break;
         }
       } else if (result.status === 'fulfilled' && result.value.error) {
         errors.push(result.value.error.message);

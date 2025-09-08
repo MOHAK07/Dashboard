@@ -18,13 +18,14 @@ export class ColorManager {
   ];
 
   private static readonly DATASET_TYPE_COLORS = {
-    'pos_fom': '#3b82f6',     // Blue for POS FOM
-    'pos_lfom': '#22c55e',    // Green for POS LFOM  
-    'lfom': '#f59e0b',        // Different green for LFOM
-    'fom': '#f97316',         // Orange for FOM
-    'mda_claim': '#8b5cf6',   // Purple for MDA Claim
-    'stock': '#14b8a6',       // Teal for Stock
-    'production': '#7ab839',  // Amber for Production
+    'pos_fom': '#3b82f6',     
+    'pos_lfom': '#22c55e',    
+    'lfom': '#f59e0b',        
+    'fom': '#f97316',         
+    'mda_claim': '#8b5cf6',   
+    'stock': '#14b8a6',       
+    'production': '#7ab839',
+    'revenue': '#ec4899',
   };
 
   private static assignedColors = new Map<string, string>();
@@ -74,6 +75,9 @@ export class ColorManager {
     if (lowerName.includes('stock')) {
       return 'stock';
     }
+    if (lowerName.includes('revenue')) {
+      return 'revenue';
+    }
     if (lowerName.includes('production')) {
       return 'production';
     }
@@ -105,6 +109,9 @@ export class ColorManager {
     if (lowerName.includes('stock')) {
       return 'Stock';
     }
+    if (lowerName.includes('revenue')) {
+      return 'Revenue';
+    }
     if (lowerName.includes('production')) {
       return 'Production';
     }
@@ -123,6 +130,11 @@ export class ColorManager {
   static isStockDataset(datasetName: string): boolean {
     const lowerName = datasetName.toLowerCase();
     return lowerName.includes('stock') || lowerName.includes('inventory');
+  }
+
+  static isRevenueDataset(datasetName: string): boolean {
+    const lowerName = datasetName.toLowerCase();
+    return lowerName.includes('revenue');
   }
 
   static resetColorAssignments(): void {
