@@ -4,6 +4,7 @@ import {
   Sun,
   Moon,
   Download,
+  Filter,
   User,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
