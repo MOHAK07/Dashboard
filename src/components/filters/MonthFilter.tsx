@@ -12,7 +12,7 @@ interface MonthFilterProps {
 
 export function MonthFilter({
   selectedMonths,
-  availableMonths,
+  availableMonths, // This will always be all 12 months now
   onChange,
   onReset,
   isLoading = false
@@ -29,14 +29,14 @@ export function MonthFilter({
   };
 
   const handleSelectAll = () => {
-    if (selectedMonths.length === availableMonths.length) {
+    if (selectedMonths.length === 12) {
       onChange([]);
     } else {
       onChange([...availableMonths]);
     }
   };
 
-  const isAllSelected = selectedMonths.length === availableMonths.length && availableMonths.length > 0;
+  const isAllSelected = selectedMonths.length === 12;
 
   return (
     <div className="space-y-4">
@@ -56,89 +56,60 @@ export function MonthFilter({
         )}
       </div>
 
-      <div className="relative">
+      {/* Select All Option */}
+      <div className="mb-4">
         <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          disabled={isLoading}
-          className="input-field w-full flex items-center justify-between text-left"
+          onClick={handleSelectAll}
+          className="w-full flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <span className={selectedMonths.length === 0 ? 'text-gray-500 dark:text-gray-400' : ''}>
-            {selectedMonths.length === 0 
-              ? 'Select months...'
-              : selectedMonths.length === 1
-              ? selectedMonths[0]
-              : `${selectedMonths.length} months selected`
-            }
-          </span>
-          <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {isDropdownOpen && (
-          <div className="absolute top-full mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
-            {/* Select All Option */}
-            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-              <button
-                onClick={handleSelectAll}
-                className="w-full flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors"
-              >
-                <div className={`w-4 h-4 border-2 rounded flex items-center justify-center ${
-                  isAllSelected 
-                    ? 'bg-primary-500 border-primary-500' 
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}>
-                  {isAllSelected && <Check className="h-3 w-3 text-white" />}
-                </div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select All ({availableMonths.length})
-                </span>
-              </button>
-            </div>
-
-            {/* Month Options */}
-            <div className="p-1">
-              {availableMonths.map(month => {
-                const isSelected = selectedMonths.includes(month);
-                const isAvailable = availableMonths.includes(month);
-                
-                return (
-                  <button
-                    key={month}
-                    onClick={() => handleMonthToggle(month)}
-                    disabled={!isAvailable}
-                    className={`
-                      w-full flex items-center space-x-2 p-2 rounded transition-colors
-                      ${isSelected 
-                        ? 'bg-primary-50 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300' 
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }
-                      ${!isAvailable ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    <div className={`w-4 h-4 border-2 rounded flex items-center justify-center ${
-                      isSelected 
-                        ? 'bg-primary-500 border-primary-500' 
-                        : 'border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {isSelected && <Check className="h-3 w-3 text-white" />}
-                    </div>
-                    <span className="text-sm">{month}</span>
-                  </button>
-                );
-              })}
-            </div>
+          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center ${
+            isAllSelected 
+              ? 'bg-primary-500 border-primary-500' 
+              : 'border-gray-300 dark:border-gray-600'
+          }`}>
+            {isAllSelected && <Check className="h-4 w-4 text-white" />}
           </div>
-        )}
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Select All Months
+          </span>
+        </button>
+      </div>
+
+      {/* Month Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {availableMonths.map(month => {
+          const isSelected = selectedMonths.includes(month);
+          
+          return (
+            <button
+              key={month}
+              onClick={() => handleMonthToggle(month)}
+              disabled={isLoading}
+              className={`
+                flex items-center space-x-2 p-3 border-2 rounded-lg transition-all duration-200
+                ${isSelected 
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300' 
+                  : 'border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }
+                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              <div className={`w-4 h-4 border-2 rounded flex items-center justify-center ${
+                isSelected 
+                  ? 'bg-primary-500 border-primary-500' 
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}>
+                {isSelected && <Check className="h-3 w-3 text-white" />}
+              </div>
+              <span className="text-sm font-medium">{month}</span>
+            </button>
+          );
+        })}
       </div>
 
       {selectedMonths.length > 0 && (
         <div className="text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg p-2">
           <p>Selected: {selectedMonths.join(', ')}</p>
-        </div>
-      )}
-
-      {availableMonths.length === 0 && (
-        <div className="text-xs text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-900/20 rounded-lg p-2">
-          <p>No month data available in current dataset</p>
         </div>
       )}
     </div>

@@ -316,6 +316,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error loading saved state:", error);
     }
+
+    // Listen for global filter events
+    const handleGlobalFiltersApplied = (event: CustomEvent) => {
+      dispatch({ type: "SET_FILTERED_DATA", payload: event.detail.filteredData });
+    };
+
+    window.addEventListener('global-filters-applied', handleGlobalFiltersApplied as EventListener);
+    
+    return () => {
+      window.removeEventListener('global-filters-applied', handleGlobalFiltersApplied as EventListener);
+    };
   }, []);
 
   // Update auth state when user changes
@@ -345,7 +356,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let currentFilteredData = state.data;
 
-    // ... (rest of the filtering logic is unchanged)
+    // Apply drill-down filters only (global filters are handled by GlobalFilterContext)
     const { start, end } = state.filters.dateRange;
     if (start && end) {
       const dateColumn =
@@ -420,6 +431,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Apply drill-down filters
     const drillDownFilters = state.filters.drillDownFilters;
     if (Object.keys(drillDownFilters).length > 0) {
       currentFilteredData = currentFilteredData.filter((row) => {
@@ -427,10 +439,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return String(row[key] || "") === String(value);
         });
       });
+      
+      // Only update filtered data if drill-down filters are applied
+      dispatch({ type: "SET_FILTERED_DATA", payload: currentFilteredData });
     }
-
-    dispatch({ type: "SET_FILTERED_DATA", payload: currentFilteredData });
-  }, [state.data, state.filters, dispatch]);
+  }, [state.data, state.filters.drillDownFilters, state.filters.selectedValues, state.filters.dateRange]);
 
   // Save state to sessionStorage whenever it changes
   // useEffect(() => {

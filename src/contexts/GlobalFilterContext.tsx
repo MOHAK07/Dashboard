@@ -38,37 +38,24 @@ export function GlobalFilterProvider({ children }: GlobalFilterProviderProps) {
     if (filterState.filters.isActive) {
       const filteredData = getFilteredData(state.data);
       
-      // Update the app context with filtered data
-      setFilters({
-        dateRange: {
-          start: filterState.filters.dateRange.startDate,
-          end: filterState.filters.dateRange.endDate
-        },
-        selectedValues: {
-          ...(filterState.filters.months.selectedMonths.length > 0 && {
-            Month: filterState.filters.months.selectedMonths
-          }),
-          ...(filterState.filters.buyerTypes.selectedTypes.length > 0 && {
-            'Buyer Type': filterState.filters.buyerTypes.selectedTypes
-          })
-        },
-        selectedProducts: [],
-        selectedPlants: [],
-        selectedFactories: [],
-        drillDownFilters: state.filters.drillDownFilters
-      });
+      // Directly update filtered data in app context
+      if (JSON.stringify(filteredData) !== JSON.stringify(state.filteredData)) {
+        // Use dispatch to update filtered data directly
+        const event = new CustomEvent('global-filters-applied', {
+          detail: { filteredData }
+        });
+        window.dispatchEvent(event);
+      }
     } else {
-      // Clear filters in app context
-      setFilters({
-        dateRange: { start: '', end: '' },
-        selectedValues: {},
-        selectedProducts: [],
-        selectedPlants: [],
-        selectedFactories: [],
-        drillDownFilters: state.filters.drillDownFilters
-      });
+      // Reset to original data when no filters are active
+      if (JSON.stringify(state.data) !== JSON.stringify(state.filteredData)) {
+        const event = new CustomEvent('global-filters-applied', {
+          detail: { filteredData: state.data }
+        });
+        window.dispatchEvent(event);
+      }
     }
-  }, [filterState.filters, getFilteredData, state.data, state.filters.drillDownFilters, setFilters]);
+  }, [filterState.filters, getFilteredData, state.data, state.filteredData]);
 
   const contextValue: GlobalFilterContextType = {
     filterState,

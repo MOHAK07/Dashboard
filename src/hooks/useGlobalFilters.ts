@@ -17,38 +17,25 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
 
   // Calculate available filter options based on current data
   const availableOptions = useMemo(() => {
-    if (data.length === 0) {
-      return {
-        dateRange: { min: '', max: '' },
-        months: [],
-        buyerTypes: []
-      };
-    }
-
     // Get date range from data
-    const dateRange = DataProcessor.getDateRange(data);
+    const dateRange = data.length > 0 ? DataProcessor.getDateRange(data) : { start: '', end: '' };
     
-    // Get available months from data
-    const monthColumn = Object.keys(data[0]).find(col => 
-      col.toLowerCase() === 'month' || col.toLowerCase().includes('month')
-    );
-    
-    const availableMonths = monthColumn 
-      ? [...new Set(data.map(row => String(row[monthColumn] || '')).filter(Boolean))]
-        .filter(month => MONTHS.includes(month as any))
-      : [...MONTHS];
+    // Always show all 12 months regardless of data
+    const availableMonths = [...MONTHS];
 
     // Get available buyer types from data
-    const buyerTypeColumn = Object.keys(data[0]).find(col => {
-      const lowerCol = col.toLowerCase().replace(/\s+/g, '');
-      return lowerCol.includes('buyer') && lowerCol.includes('type');
-    });
-    
-    const availableBuyerTypes = buyerTypeColumn
-      ? [...new Set(data.map(row => String(row[buyerTypeColumn] || '')).filter(Boolean))]
-        .map(type => type.toUpperCase().trim())
-        .filter(type => BUYER_TYPES.includes(type as any)) as ('B2B' | 'B2C')[]
-      : [...BUYER_TYPES];
+    const availableBuyerTypes = data.length > 0 ? (() => {
+      const buyerTypeColumn = Object.keys(data[0]).find(col => {
+        const lowerCol = col.toLowerCase().replace(/\s+/g, '');
+        return lowerCol.includes('buyer') && lowerCol.includes('type');
+      });
+      
+      return buyerTypeColumn 
+        ? [...new Set(data.map(row => String(row[buyerTypeColumn] || '')).filter(Boolean))]
+          .map(type => type.toUpperCase().trim())
+          .filter(type => BUYER_TYPES.includes(type as any)) as ('B2B' | 'B2C')[]
+        : [...BUYER_TYPES];
+    })() : [...BUYER_TYPES];
 
     return {
       dateRange,
@@ -122,13 +109,16 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
   // Apply filters to data
   const applyFilters = useCallback((data: FlexibleDataRow[], filters: GlobalFilters): FlexibleDataRow[] => {
     if (!filters.isActive) return data;
+    if (data.length === 0) return data;
 
     let filteredData = [...data];
 
     try {
       // Apply date range filter
       if (filters.dateRange.startDate && filters.dateRange.endDate) {
-        const dateColumn = DataProcessor.findDateColumn(data);
+        const dateColumn = Object.keys(data[0]).find(col => 
+          col.toLowerCase() === 'date' || col.toLowerCase().includes('date')
+        );
         
         if (dateColumn) {
           const startDate = new Date(filters.dateRange.startDate);
@@ -138,17 +128,19 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
             const dateValue = row[dateColumn];
             if (!dateValue) return false;
             
-            // Handle different date formats
+            // Enhanced date parsing
             let dateStr = String(dateValue);
             
-            // Convert various date formats to YYYY-MM-DD
+            // Handle MM/DD/YYYY and DD/MM/YYYY formats
             if (dateStr.includes('/')) {
               const parts = dateStr.split('/');
               if (parts.length === 3) {
                 let month, day, year;
                 if (parseInt(parts[0]) > 12) {
+                  // DD/MM/YYYY format
                   [day, month, year] = parts;
                 } else {
+                  // MM/DD/YYYY format
                   [month, day, year] = parts;
                 }
                 if (year.length === 2) {
@@ -158,6 +150,7 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
               }
             }
             
+            // Handle DD-MM-YYYY format
             if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
               const parts = dateStr.split('-');
               if (parts.length === 3) {

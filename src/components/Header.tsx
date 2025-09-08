@@ -9,7 +9,7 @@ import {
 import { useApp } from "../contexts/AppContext";
 import { ExportUtils } from "../utils/exportUtils";
 import { DatabaseSyncIndicator } from "./DatabaseSyncIndicator";
-import { GlobalFilterPanel } from "./filters/GlobalFilterPanel";
+import { GlobalFilterDialog } from "./filters/GlobalFilterDialog";
 import { ActiveFiltersDisplay } from "./filters/ActiveFiltersDisplay";
 import { SavedFilters } from "./SavedFilters";
 import { useGlobalFilterContext } from "../contexts/GlobalFilterContext";
@@ -39,6 +39,7 @@ export function Header({
   const { user, signOut } = useAuth();
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showGlobalFilters, setShowGlobalFilters] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -128,15 +129,44 @@ export function Header({
 
           {/* Global Filters */}
           {state.data.length > 0 && (
-            <GlobalFilterPanel
-              filters={filterState.filters}
-              availableOptions={filterState.availableOptions}
-              onFiltersChange={updateFilters}
-              onClearFilters={clearFilters}
-              onResetFilter={resetFilter}
-              isLoading={filterState.isLoading}
-              error={filterState.error}
-            />
+            <>
+              <button
+                onClick={() => setShowGlobalFilters(true)}
+                className={`
+                  p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500
+                  ${hasActiveFilters 
+                    ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm' 
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  }
+                `}
+                title="Open Global Filters"
+              >
+                <div className="relative">
+                  <Filter className="h-5 w-5" />
+                  {hasActiveFilters && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-bold">
+                        {(filterState.filters.dateRange.startDate ? 1 : 0) +
+                         filterState.filters.months.selectedMonths.length > 0 ? 1 : 0 +
+                         filterState.filters.buyerTypes.selectedTypes.length > 0 ? 1 : 0}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </button>
+
+              <GlobalFilterDialog
+                isOpen={showGlobalFilters}
+                onClose={() => setShowGlobalFilters(false)}
+                filters={filterState.filters}
+                availableOptions={filterState.availableOptions}
+                onFiltersChange={updateFilters}
+                onClearFilters={clearFilters}
+                onResetFilter={resetFilter}
+                isLoading={filterState.isLoading}
+                error={filterState.error}
+              />
+            </>
           )}
 
           {/* Export Menu */}
@@ -261,9 +291,7 @@ export function Header({
                   <div key={dataset.id} className="flex items-center space-x-2">
                     <div
                       className="w-2 h-2 rounded-full"
-                      style={{
-                        backgroundColor: dataset.color
-                      }}
+                      style={{ backgroundColor: dataset.color }}
                     />
                     <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {dataset.name}
