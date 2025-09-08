@@ -41,6 +41,36 @@ function parseStringDate(dateString: string): Date | null {
 }
 
 export class DatabaseService {
+  // Get current user's profile with role information
+  static async getCurrentUserProfile(): Promise<{ role: string } | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('Profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Unexpected error fetching user profile:', err);
+      return null;
+    }
+  }
+
+  // Check if current user has admin role
+  static async isCurrentUserAdmin(): Promise<boolean> {
+    const profile = await this.getCurrentUserProfile();
+    return profile?.role === 'admin';
+  }
+
   // Generic CRUD operations
   static async fetchAll<T extends DatabaseRecord>(tableName: TableName): Promise<DatabaseResponse<T>> {
     try {
@@ -82,6 +112,17 @@ export class DatabaseService {
     tableName: TableName, 
     record: Partial<T>
   ): Promise<DatabaseResponse<T>> {
+    // Check if user has permission to insert
+    const isAdmin = await this.isCurrentUserAdmin();
+    if (!isAdmin) {
+      return {
+        data: null,
+        error: {
+          message: 'Access denied: Only administrators can create records'
+        }
+      };
+    }
+
     try {
       // Clean the record before insertion
       const cleanedRecord = this.convertToTableRecord(record as FlexibleDataRow, tableName);
@@ -123,6 +164,17 @@ export class DatabaseService {
     tableName: TableName, 
     records: Partial<T>[]
   ): Promise<DatabaseResponse<T>> {
+    // Check if user has permission to insert
+    const isAdmin = await this.isCurrentUserAdmin();
+    if (!isAdmin) {
+      return {
+        data: null,
+        error: {
+          message: 'Access denied: Only administrators can upload data'
+        }
+      };
+    }
+
     try {
       // Supabase has a limit on batch inserts, so we'll chunk them
       const BATCH_SIZE = 1000;
@@ -179,6 +231,17 @@ export class DatabaseService {
     updates: Partial<T>,
     idColumn: string = 'id'
   ): Promise<DatabaseResponse<T>> {
+    // Check if user has permission to update
+    const isAdmin = await this.isCurrentUserAdmin();
+    if (!isAdmin) {
+      return {
+        data: null,
+        error: {
+          message: 'Access denied: Only administrators can update records'
+        }
+      };
+    }
+
     try {
       // Clean the updates before applying
       const cleanedUpdates = this.convertToTableRecord(updates as FlexibleDataRow, tableName);
@@ -222,6 +285,17 @@ export class DatabaseService {
     id: number | string,
     idColumn: string = 'id'
   ): Promise<DatabaseResponse<any>> {
+    // Check if user has permission to delete
+    const isAdmin = await this.isCurrentUserAdmin();
+    if (!isAdmin) {
+      return {
+        data: null,
+        error: {
+          message: 'Access denied: Only administrators can delete records'
+        }
+      };
+    }
+
     try {
       const { data, error } = await supabase
         .from(tableName)

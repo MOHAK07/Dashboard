@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { User, AuthState, LoginCredentials, SignUpCredentials } from '../types/auth';
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
+import {
+  User,
+  AuthState,
+  LoginCredentials,
+  SignUpCredentials,
+} from "../types/auth";
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -14,19 +19,19 @@ export function useAuth() {
     const fetchUserProfile = async (user: User) => {
       try {
         const { data: profile, error } = await supabase
-          .from('Profiles')
-          .select('role')
-          .eq('id', user.id)
+          .from("Profiles")
+          .select("role")
+          .eq("id", user.id)
           .single();
 
         if (error) {
-          console.error('Error fetching user profile:', error);
-          return 'operator';
+          console.error("Error fetching user profile:", error);
+          return "operator";
         }
-        return profile?.role || 'operator';
+        return profile?.role || "operator";
       } catch (err) {
-        console.error('Unexpected error fetching profile:', err);
-        return 'operator';
+        console.error("Unexpected error fetching profile:", err);
+        return "operator";
       }
     };
 
@@ -34,14 +39,19 @@ export function useAuth() {
       if (session?.user) {
         const user: User = {
           id: session.user.id,
-          email: session.user.email || '',
+          email: session.user.email || "",
           created_at: session.user.created_at,
           last_sign_in_at: session.user.last_sign_in_at,
         };
         const role = await fetchUserProfile(user);
         setAuthState({ user, role, isLoading: false, error: null });
       } else {
-        setAuthState({ user: null, role: undefined, isLoading: false, error: null });
+        setAuthState({
+          user: null,
+          role: undefined,
+          isLoading: false,
+          error: null,
+        });
       }
     };
 
@@ -49,32 +59,40 @@ export function useAuth() {
       handleSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event);
-        handleSession(session);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event);
+      handleSession(session);
+    });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
-  
+
   const signIn = async (credentials: LoginCredentials) => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
     const { error } = await supabase.auth.signInWithPassword(credentials);
     if (error) {
-      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message }));
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+      }));
     }
     return { error };
   };
-  
+
   const signUp = async (credentials: SignUpCredentials) => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
     if (credentials.password !== credentials.confirmPassword) {
-      const error = { message: 'Passwords do not match' };
-      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message }));
+      const error = { message: "Passwords do not match" };
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+      }));
       return { error };
     }
     const { error } = await supabase.auth.signUp({
@@ -82,7 +100,11 @@ export function useAuth() {
       password: credentials.password,
     });
     if (error) {
-      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message }));
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+      }));
     }
     return { error }; // Return error to the component
   };
