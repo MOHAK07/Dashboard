@@ -15,36 +15,29 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
     }
   });
 
-  // Calculate available filter options based on current data
+  // Calculate available filter options - STATIC approach
   const availableOptions = useMemo(() => {
-    // Get date range from data
-    const dateRange = data.length > 0 ? DataProcessor.getDateRange(data) : { start: '', end: '' };
+    // Static date range - always show full range regardless of data
+    const currentYear = new Date().getFullYear();
+    const staticDateRange = {
+      min: `${currentYear - 5}-01-01`, // 5 years ago
+      max: `${currentYear + 1}-12-31`  // Next year
+    };
     
     // Always show all 12 months regardless of data
     const availableMonths = [...MONTHS];
 
-    // Get available buyer types from data
-    const availableBuyerTypes = data.length > 0 ? (() => {
-      const buyerTypeColumn = Object.keys(data[0]).find(col => {
-        const lowerCol = col.toLowerCase().replace(/\s+/g, '');
-        return lowerCol.includes('buyer') && lowerCol.includes('type');
-      });
-      
-      return buyerTypeColumn 
-        ? [...new Set(data.map(row => String(row[buyerTypeColumn] || '')).filter(Boolean))]
-          .map(type => type.toUpperCase().trim())
-          .filter(type => BUYER_TYPES.includes(type as any)) as ('B2B' | 'B2C')[]
-        : [...BUYER_TYPES];
-    })() : [...BUYER_TYPES];
+    // Always show both buyer types regardless of data
+    const availableBuyerTypes = [...BUYER_TYPES];
 
     return {
-      dateRange,
+      dateRange: staticDateRange,
       months: availableMonths,
       buyerTypes: availableBuyerTypes
     };
-  }, [data]);
+  }, []); // No dependencies - completely static
 
-  // Update available options when data changes
+  // Update available options when component mounts
   useEffect(() => {
     setFilterState(prev => ({
       ...prev,
@@ -65,38 +58,6 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
       if (startDate > endDate) {
         errors.push('Start date cannot be after end date');
       }
-      
-      const { min, max } = availableOptions.dateRange;
-      if (min && max) {
-        const minDate = new Date(min);
-        const maxDate = new Date(max);
-        
-        if (startDate < minDate || endDate > maxDate) {
-          warnings.push(`Date range is outside available data range (${min} to ${max})`);
-        }
-      }
-    }
-
-    // Validate months
-    if (filters.months.selectedMonths.length > 0) {
-      const invalidMonths = filters.months.selectedMonths.filter(
-        month => !availableOptions.months.includes(month)
-      );
-      
-      if (invalidMonths.length > 0) {
-        warnings.push(`Some selected months are not available in current data: ${invalidMonths.join(', ')}`);
-      }
-    }
-
-    // Validate buyer types
-    if (filters.buyerTypes.selectedTypes.length > 0) {
-      const invalidTypes = filters.buyerTypes.selectedTypes.filter(
-        type => !availableOptions.buyerTypes.includes(type)
-      );
-      
-      if (invalidTypes.length > 0) {
-        warnings.push(`Some selected buyer types are not available in current data: ${invalidTypes.join(', ')}`);
-      }
     }
 
     return {
@@ -104,12 +65,56 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
       errors,
       warnings
     };
-  }, [availableOptions]);
+  }, []);
 
-  // Apply filters to data
+  // Enhanced date parsing function
+  const parseRowDate = useCallback((dateValue: any): Date | null => {
+    if (!dateValue) return null;
+    
+    let dateStr = String(dateValue).trim();
+    
+    // Handle MM/DD/YYYY format
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        let month, day, year;
+        
+        // Detect format based on first part
+        if (parseInt(parts[0]) > 12) {
+          // DD/MM/YYYY format
+          [day, month, year] = parts;
+        } else {
+          // MM/DD/YYYY format
+          [month, day, year] = parts;
+        }
+        
+        // Ensure 4-digit year
+        if (year.length === 2) {
+          year = parseInt(year) < 50 ? '20' + year : '19' + year;
+        }
+        
+        dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+    
+    // Handle DD-MM-YYYY format
+    if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const [day, month, year] = parts;
+        const fullYear = year.length === 2 ? 
+          (parseInt(year) < 50 ? '20' + year : '19' + year) : year;
+        dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+    
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  }, []);
+
+  // Apply filters to data - FIXED LOGIC
   const applyFilters = useCallback((data: FlexibleDataRow[], filters: GlobalFilters): FlexibleDataRow[] => {
-    if (!filters.isActive) return data;
-    if (data.length === 0) return data;
+    if (!filters.isActive || data.length === 0) return data;
 
     let filteredData = [...data];
 
@@ -125,50 +130,15 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
           const endDate = new Date(filters.dateRange.endDate);
           
           filteredData = filteredData.filter(row => {
-            const dateValue = row[dateColumn];
-            if (!dateValue) return false;
-            
-            // Enhanced date parsing
-            let dateStr = String(dateValue);
-            
-            // Handle MM/DD/YYYY and DD/MM/YYYY formats
-            if (dateStr.includes('/')) {
-              const parts = dateStr.split('/');
-              if (parts.length === 3) {
-                let month, day, year;
-                if (parseInt(parts[0]) > 12) {
-                  // DD/MM/YYYY format
-                  [day, month, year] = parts;
-                } else {
-                  // MM/DD/YYYY format
-                  [month, day, year] = parts;
-                }
-                if (year.length === 2) {
-                  year = '20' + year;
-                }
-                dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-              }
-            }
-            
-            // Handle DD-MM-YYYY format
-            if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
-              const parts = dateStr.split('-');
-              if (parts.length === 3) {
-                const [day, month, year] = parts;
-                const fullYear = year.length === 2 ? '20' + year : year;
-                dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-              }
-            }
-            
-            const rowDate = new Date(dateStr);
-            if (isNaN(rowDate.getTime())) return false;
+            const rowDate = parseRowDate(row[dateColumn]);
+            if (!rowDate) return false;
             
             return rowDate >= startDate && rowDate <= endDate;
           });
         }
       }
 
-      // Apply month filter
+      // Apply month filter - FIXED LOGIC
       if (filters.months.selectedMonths.length > 0) {
         const monthColumn = Object.keys(data[0] || {}).find(col => 
           col.toLowerCase() === 'month' || col.toLowerCase().includes('month')
@@ -177,12 +147,13 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
         if (monthColumn) {
           filteredData = filteredData.filter(row => {
             const monthValue = String(row[monthColumn] || '').trim();
+            // Exact match for selected months
             return filters.months.selectedMonths.includes(monthValue);
           });
         }
       }
 
-      // Apply buyer type filter
+      // Apply buyer type filter - FIXED LOGIC
       if (filters.buyerTypes.selectedTypes.length > 0) {
         const buyerTypeColumn = Object.keys(data[0] || {}).find(col => {
           const lowerCol = col.toLowerCase().replace(/\s+/g, '');
@@ -207,7 +178,7 @@ export function useGlobalFilters(data: FlexibleDataRow[]) {
     }
 
     return filteredData;
-  }, []);
+  }, [parseRowDate]);
 
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<GlobalFilters>) => {

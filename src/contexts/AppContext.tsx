@@ -354,84 +354,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Effect to apply filters whenever data or filters change
   useEffect(() => {
-    let currentFilteredData = state.data;
-
-    // Apply drill-down filters only (global filters are handled by GlobalFilterContext)
-    const { start, end } = state.filters.dateRange;
-    if (start && end) {
-      const dateColumn =
-        currentFilteredData.length > 0
-          ? Object.keys(currentFilteredData[0]).find(
-              (col) =>
-                col.toLowerCase() === "date" ||
-                col.toLowerCase().includes("date")
-            )
-          : null;
-
-      if (dateColumn) {
-        currentFilteredData = currentFilteredData.filter((row) => {
-          const dateValue = row[dateColumn];
-          if (!dateValue) return false;
-
-          let dateStr = String(dateValue);
-
-          if (dateStr.includes("/")) {
-            const parts = dateStr.split("/");
-            if (parts.length === 3) {
-              let month, day, year;
-              if (parseInt(parts[0]) > 12) {
-                [day, month, year] = parts;
-              } else {
-                [month, day, year] = parts;
-              }
-              if (year.length === 2) {
-                year = "20" + year;
-              }
-              dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(
-                2,
-                "0"
-              )}`;
-            }
-          }
-
-          if (dateStr.includes("-") && dateStr.split("-")[0].length <= 2) {
-            const parts = dateStr.split("-");
-            if (parts.length === 3) {
-              const [day, month, year] = parts;
-              const fullYear = year.length === 2 ? "20" + year : year;
-              dateStr = `${fullYear}-${month.padStart(2, "0")}-${day.padStart(
-                2,
-                "0"
-              )}`;
-            }
-          }
-
-          const rowDate = new Date(dateStr);
-          const startDate = new Date(start);
-          const endDate = new Date(end);
-
-          if (isNaN(rowDate.getTime())) return false;
-
-          return rowDate >= startDate && rowDate <= endDate;
-        });
-      }
-    }
-
-    Object.entries(state.filters.selectedValues).forEach(([column, values]) => {
-      if (values.length > 0) {
-        currentFilteredData = currentFilteredData.filter((row) => {
-          const rowValue = String(row[column] || "")
-            .toLowerCase()
-            .trim();
-          return values.some(
-            (filterValue: string) =>
-              String(filterValue).toLowerCase().trim() === rowValue
-          );
-        });
-      }
-    });
-
-    // Apply drill-down filters
+    // Only apply drill-down filters here (global filters are handled by GlobalFilterContext)
+    let currentFilteredData = state.filteredData; // Use already filtered data from global filters
+    
     const drillDownFilters = state.filters.drillDownFilters;
     if (Object.keys(drillDownFilters).length > 0) {
       currentFilteredData = currentFilteredData.filter((row) => {
@@ -439,11 +364,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return String(row[key] || "") === String(value);
         });
       });
-      
-      // Only update filtered data if drill-down filters are applied
+    }
+    
+    // Update filtered data only if drill-down filters changed the data
+    if (JSON.stringify(currentFilteredData) !== JSON.stringify(state.filteredData)) {
       dispatch({ type: "SET_FILTERED_DATA", payload: currentFilteredData });
     }
-  }, [state.data, state.filters.drillDownFilters, state.filters.selectedValues, state.filters.dateRange]);
+  }, [state.filteredData, state.filters.drillDownFilters, dispatch]);
 
   // Save state to sessionStorage whenever it changes
   // useEffect(() => {

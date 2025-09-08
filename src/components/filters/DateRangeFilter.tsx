@@ -80,16 +80,24 @@ export function DateRangeFilter({
         </div>
       </div>
 
-      {minDate && maxDate && (
-        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
-          <p>Available range: {minDate} to {maxDate}</p>
+      {/* Static date range info */}
+      <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+        <p className="font-medium mb-1">Available Date Range:</p>
+        <p>From: {minDate || 'Any date'}</p>
+        <p>To: {maxDate || 'Any date'}</p>
+      </div>
+
+      {startDate && endDate && (
+        <div className="text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3">
+          <p className="font-medium mb-1">Selected Range:</p>
+          <p>{startDate} to {endDate}</p>
+          <p className="mt-1">Duration: {Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))} days</p>
         </div>
       )}
 
-      {startDate && endDate && (
-        <div className="text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg p-2">
-          <p>Selected: {startDate} to {endDate}</p>
-          <p>Duration: {Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))} days</p>
+      {!startDate && !endDate && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+          <p>No date range selected - showing data for all dates</p>
         </div>
       )}
     </div>

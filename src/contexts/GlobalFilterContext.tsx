@@ -21,7 +21,7 @@ interface GlobalFilterProviderProps {
 }
 
 export function GlobalFilterProvider({ children }: GlobalFilterProviderProps) {
-  const { state, setFilters } = useApp();
+  const { state, dispatch } = useApp();
   
   const {
     filterState,
@@ -33,29 +33,22 @@ export function GlobalFilterProvider({ children }: GlobalFilterProviderProps) {
     availableOptions
   } = useGlobalFilters(state.data);
 
-  // Sync global filters with app context when filters change
+  // Apply filters whenever filter state or data changes
   useEffect(() => {
-    if (filterState.filters.isActive) {
-      const filteredData = getFilteredData(state.data);
-      
-      // Directly update filtered data in app context
-      if (JSON.stringify(filteredData) !== JSON.stringify(state.filteredData)) {
-        // Use dispatch to update filtered data directly
-        const event = new CustomEvent('global-filters-applied', {
-          detail: { filteredData }
-        });
-        window.dispatchEvent(event);
-      }
-    } else {
-      // Reset to original data when no filters are active
-      if (JSON.stringify(state.data) !== JSON.stringify(state.filteredData)) {
-        const event = new CustomEvent('global-filters-applied', {
-          detail: { filteredData: state.data }
-        });
-        window.dispatchEvent(event);
-      }
-    }
-  }, [filterState.filters, getFilteredData, state.data, state.filteredData]);
+    if (state.data.length === 0) return;
+
+    const filteredData = getFilteredData(state.data);
+    
+    // Update filtered data in app context
+    dispatch({ type: 'SET_FILTERED_DATA', payload: filteredData });
+    
+    console.log('Global filters applied:', {
+      originalDataLength: state.data.length,
+      filteredDataLength: filteredData.length,
+      activeFilters: filterState.filters,
+      hasActiveFilters
+    });
+  }, [filterState.filters, state.data, getFilteredData, hasActiveFilters, dispatch]);
 
   const contextValue: GlobalFilterContextType = {
     filterState,

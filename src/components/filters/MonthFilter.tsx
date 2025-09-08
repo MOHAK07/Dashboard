@@ -12,13 +12,15 @@ interface MonthFilterProps {
 
 export function MonthFilter({
   selectedMonths,
-  availableMonths, // This will always be all 12 months now
+  availableMonths, // This parameter is now ignored - we always show all 12 months
   onChange,
   onReset,
   isLoading = false
 }: MonthFilterProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const hasSelection = selectedMonths.length > 0;
+
+  // Always use all 12 months regardless of available data
+  const allMonths = [...MONTHS];
 
   const handleMonthToggle = (month: string) => {
     if (selectedMonths.includes(month)) {
@@ -32,7 +34,7 @@ export function MonthFilter({
     if (selectedMonths.length === 12) {
       onChange([]);
     } else {
-      onChange([...availableMonths]);
+      onChange([...allMonths]);
     }
   };
 
@@ -60,7 +62,8 @@ export function MonthFilter({
       <div className="mb-4">
         <button
           onClick={handleSelectAll}
-          className="w-full flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          disabled={isLoading}
+          className="w-full flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className={`w-5 h-5 border-2 rounded flex items-center justify-center ${
             isAllSelected 
@@ -75,9 +78,9 @@ export function MonthFilter({
         </button>
       </div>
 
-      {/* Month Grid */}
+      {/* Month Grid - Always show all 12 months */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {availableMonths.map(month => {
+        {allMonths.map(month => {
           const isSelected = selectedMonths.includes(month);
           
           return (
@@ -108,8 +111,15 @@ export function MonthFilter({
       </div>
 
       {selectedMonths.length > 0 && (
-        <div className="text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg p-2">
-          <p>Selected: {selectedMonths.join(', ')}</p>
+        <div className="text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3">
+          <p className="font-medium mb-1">Selected Months ({selectedMonths.length}):</p>
+          <p>{selectedMonths.join(', ')}</p>
+        </div>
+      )}
+
+      {selectedMonths.length === 0 && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+          <p>No months selected - showing data for all months</p>
         </div>
       )}
     </div>

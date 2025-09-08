@@ -92,10 +92,17 @@ export function Header({
     }
   };
 
+  // Calculate active filter count for display
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filterState.filters.dateRange.startDate || filterState.filters.dateRange.endDate) count++;
+    if (filterState.filters.months.selectedMonths.length > 0) count++;
+    if (filterState.filters.buyerTypes.selectedTypes.length > 0) count++;
+    return count;
+  };
+
   return (
-    <header
-      className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 lg:px-6 transition-all duration-300`}
-    >
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 lg:px-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center space-x-4">
@@ -128,46 +135,28 @@ export function Header({
           {/* Saved Filters */}
           {state.data.length > 0 && <SavedFilters />}
 
-          {/* Global Filters */}
+          {/* Global Filters Button */}
           {state.data.length > 0 && (
-            <>
-              <button
-                onClick={() => setShowGlobalFilters(true)}
-                className={`
-                  p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500
-                  ${hasActiveFilters 
-                    ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm' 
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }
-                `}
-                title="Open Global Filters"
-              >
-                <div className="relative">
-                  <Filter className="h-5 w-5" />
-                  {hasActiveFilters && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full flex items-center justify-center">
-                      <span className="text-xs text-white font-bold">
-                        {(filterState.filters.dateRange.startDate ? 1 : 0) +
-                         filterState.filters.months.selectedMonths.length > 0 ? 1 : 0 +
-                         filterState.filters.buyerTypes.selectedTypes.length > 0 ? 1 : 0}
-                      </span>
-                    </div>
-                  )}
+            <button
+              onClick={() => setShowGlobalFilters(true)}
+              className={`
+                relative p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500
+                ${hasActiveFilters 
+                  ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }
+              `}
+              title="Open Global Filters"
+            >
+              <Filter className="h-5 w-5" />
+              {hasActiveFilters && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs text-white font-bold">
+                    {getActiveFilterCount()}
+                  </span>
                 </div>
-              </button>
-
-              <GlobalFilterDialog
-                isOpen={showGlobalFilters}
-                onClose={() => setShowGlobalFilters(false)}
-                filters={filterState.filters}
-                availableOptions={filterState.availableOptions}
-                onFiltersChange={updateFilters}
-                onClearFilters={clearFilters}
-                onResetFilter={resetFilter}
-                isLoading={filterState.isLoading}
-                error={filterState.error}
-              />
-            </>
+              )}
+            </button>
           )}
 
           {/* Export Menu */}
@@ -306,6 +295,19 @@ export function Header({
           </div>
         </div>
       )}
+
+      {/* Global Filter Dialog */}
+      <GlobalFilterDialog
+        isOpen={showGlobalFilters}
+        onClose={() => setShowGlobalFilters(false)}
+        filters={filterState.filters}
+        availableOptions={filterState.availableOptions}
+        onFiltersChange={updateFilters}
+        onClearFilters={clearFilters}
+        onResetFilter={resetFilter}
+        isLoading={filterState.isLoading}
+        error={filterState.error}
+      />
     </header>
   );
 }
