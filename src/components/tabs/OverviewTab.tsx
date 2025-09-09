@@ -40,8 +40,8 @@ export function OverviewTab({ data }: OverviewTabProps) {
   const hasRevenueData = state.datasets.some(
     (dataset) =>
       state.activeDatasetIds.includes(dataset.id) &&
-      (dataset.name.toLowerCase().includes('revenue') || 
-       dataset.fileName.toLowerCase().includes('revenue'))
+      (dataset.name.toLowerCase().includes("revenue") ||
+        dataset.fileName.toLowerCase().includes("revenue"))
   );
 
   const hasFOMData = state.datasets.some(
@@ -58,7 +58,9 @@ export function OverviewTab({ data }: OverviewTabProps) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
         <div className="text-center">
-          <p className="text-lg font-medium">No data available for the selected filters.</p>
+          <p className="text-lg font-medium">
+            No data available for the selected filters.
+          </p>
           <p className="text-sm">Try adjusting your filter criteria.</p>
         </div>
       </div>
@@ -66,28 +68,51 @@ export function OverviewTab({ data }: OverviewTabProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DrillDownBreadcrumb />
 
       {/* Pass the filtered 'data' prop to all child components */}
-      <DatasetSpecificKPIs data={data} />
-      {hasRevenueData && <RevenueKPICards data={data} />}
-      {hasStockData && <StockKPICards data={data} />}
-      {hasMDAClaimData && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MDAClaimKPI data={data} />
+      <div id="kpi-cards-container" className=" gap-4 grid grid-cols-1">
+        <DatasetSpecificKPIs />
+        {hasRevenueData && <RevenueKPICards />}
+        {hasStockData && <StockKPICards />}
+
+        {hasMDAClaimData && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <MDAClaimKPI />
+          </div>
+        )}
+      </div>
+
+      <div className="printable-chart-container grid grid-cols-1">
+        <WeeklyDataDistributionChart />
+      </div>
+
+      {hasFOMData && (
+        <div className="printable-chart-container">
+          <BuyerTypeAnalysisChart />
         </div>
       )}
 
-      <div className="grid grid-cols-1">
-        <WeeklyDataDistributionChart data={data} />
+      <div className="printable-chart-container">
+        <DatasetTimeSeriesChart />
       </div>
 
-      {hasFOMData && <BuyerTypeAnalysisChart data={data} />}
-      <DatasetTimeSeriesChart data={data} />
-      <DynamicRevenueBreakdownChart data={data} />
-      {hasStockData && <StockAnalysisChart data={data} />}
-      {hasMDAClaimData && <MDAClaimChart data={data} />}
+      <div className="printable-chart-container">
+        <DynamicRevenueBreakdownChart />
+      </div>
+
+      {hasStockData && (
+        <div className="printable-chart-container">
+          <StockAnalysisChart />
+        </div>
+      )}
+
+      {hasMDAClaimData && (
+        <div className="printable-chart-container">
+          <MDAClaimChart />
+        </div>
+      )}
     </div>
   );
 }

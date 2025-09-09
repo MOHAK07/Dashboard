@@ -4,12 +4,13 @@ import { ApexOptions } from 'apexcharts';
 import { FlexibleDataRow } from '../../types';
 import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
+import { useGlobalFilterContext } from '../../contexts/GlobalFilterContext';
 import { DataProcessor } from '../../utils/dataProcessing';
 
 // Use the same color function for consistency
 const getDatasetColorByName = (datasetName: string) => {
   const lowerName = datasetName.toLowerCase();
-  
+
   // Fixed color mapping based on dataset type
   if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
     return '#3b82f6'; // Blue for POS FOM
@@ -20,18 +21,18 @@ const getDatasetColorByName = (datasetName: string) => {
   } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
     return '#f97316'; // Orange for FOM
   }
-  
+
   // Fallback colors for other datasets
   const baseColors = [
     '#ef4444', '#8b5cf6', '#06b6d4', '#f59e0b', '#dc2626', '#84cc16', '#059669'
   ];
-  
+
   return baseColors[Math.abs(datasetName.length) % baseColors.length];
 };
 
 const getDatasetDisplayName = (datasetName: string) => {
   const lowerName = datasetName.toLowerCase();
-  
+
   if (lowerName.includes('pos') && lowerName.includes('fom') && !lowerName.includes('lfom')) {
     return 'POS FOM';
   } else if (lowerName.includes('pos') && lowerName.includes('lfom')) {
@@ -41,7 +42,7 @@ const getDatasetDisplayName = (datasetName: string) => {
   } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
     return 'FOM';
   }
-  
+
   return datasetName;
 };
 
@@ -51,6 +52,7 @@ interface DynamicRevenueBreakdownChartProps {
 
 export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueBreakdownChartProps) {
   const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
   const [chartType, setChartType] = useState<'donut' | 'pie'>('donut');
   const isDarkMode = state.settings.theme === 'dark';
 
@@ -64,18 +66,18 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
     const allowedDatasets = state.datasets.filter(dataset => {
       const isActive = state.activeDatasetIds.includes(dataset.id);
       const name = dataset.name.toLowerCase();
-      
+
       // Exclude MDA claim and stocks datasets
       if (name.includes('mda') || name.includes('claim') || name.includes('stock')) {
         return false;
       }
-      
+
       // Include only FOM, LFOM, POS FOM, POS LFOM
       const isFOM = name.includes('fom') && !name.includes('pos') && !name.includes('lfom');
       const isLFOM = name.includes('lfom') && !name.includes('pos');
       const isPOSFOM = name.includes('pos') && name.includes('fom') && !name.includes('lfom');
       const isPOSLFOM = name.includes('pos') && name.includes('lfom');
-      
+
       return isActive && (isFOM || isLFOM || isPOSFOM || isPOSLFOM);
     });
 
@@ -87,29 +89,31 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
     let totalRevenue = 0;
 
     allowedDatasets.forEach((dataset, index) => {
+        const filteredData = getFilteredData(dataset.data);
+        if (filteredData.length === 0) return;
       // Determine which column to use based on dataset type with case-insensitive matching
       const lowerName = dataset.name.toLowerCase();
       let revenueColumn: string | undefined;
-      
+
       // For POS datasets (POS FOM and POS LFOM), use Revenue column
       if (lowerName.includes('pos') && (lowerName.includes('fom') || lowerName.includes('lfom'))) {
-        revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
+        revenueColumn = Object.keys(filteredData[0] || {}).find(col =>
           col.toLowerCase() === 'revenue' ||
           col.toLowerCase().includes('revenue')
         );
       }
-      
+
       // For FOM and LFOM datasets (non-POS), use Price column
       if (!revenueColumn) {
-        revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
+        revenueColumn = Object.keys(filteredData[0] || {}).find(col =>
           col.toLowerCase() === 'price'
         );
       }
-      
+
       // Fallback to any revenue/amount/value column
       if (!revenueColumn) {
-        revenueColumn = Object.keys(dataset.data[0] || {}).find(col => 
-          col.toLowerCase().includes('revenue') || 
+        revenueColumn = Object.keys(filteredData[0] || {}).find(col =>
+          col.toLowerCase().includes('revenue') ||
           col.toLowerCase().includes('amount') ||
           col.toLowerCase().includes('value')
         );
@@ -120,7 +124,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
       }
 
       // Calculate total revenue for this dataset
-      const datasetRevenue = dataset.data.reduce((sum, row) => {
+      const datasetRevenue = filteredData.reduce((sum, row) => {
         const value = parseFloat(String(row[revenueColumn!] || '0')) || 0;
         return sum + value;
       }, 0);
@@ -147,7 +151,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
       hasData: true,
       totalRevenue: Math.round(totalRevenue * 100) / 100
     };
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   if (!processRevenueData.hasData) {
     return (
@@ -180,10 +184,10 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
         speed: 800
       }
     },
-    
+
     labels: processRevenueData.labels,
     colors: processRevenueData.colors,
-    
+
     legend: {
       position: 'bottom',
       labels: { colors: isDarkMode ? '#9ca3af' : '#6b7280' },
@@ -193,7 +197,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
         radius: 6
       }
     },
-    
+
     plotOptions: {
       pie: {
         donut: {
@@ -236,11 +240,11 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
         expandOnClick: false
       }
     },
-    
+
     dataLabels: {
       enabled: true,
       formatter: (val: number) => `${val.toFixed(1)}%`,
-      style: { 
+      style: {
         colors: ['#ffffff'],
         fontSize: '14px',
         fontWeight: 'bold'
@@ -253,7 +257,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
         opacity: 0.8
       }
     },
-    
+
     tooltip: {
       theme: isDarkMode ? 'dark' : 'light',
       y: {
@@ -266,7 +270,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
         }
       }
     },
-    
+
     responsive: [{
       breakpoint: 768,
       options: {
@@ -308,7 +312,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
           />
         </div>
       </div>
-      
+
       {/* Revenue Summary */}
       <div className="mt-4 text-center">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">

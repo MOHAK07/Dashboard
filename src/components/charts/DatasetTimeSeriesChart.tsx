@@ -3,6 +3,7 @@ import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { ChartContainer } from "./ChartContainer";
 import { useApp } from "../../contexts/AppContext";
+import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
 import { DataProcessor } from "../../utils/dataProcessing";
 import { Database } from "lucide-react";
 
@@ -74,11 +75,22 @@ interface DatasetTimeSeriesChartProps {
 export function DatasetTimeSeriesChart({
   className = "",
 }: DatasetTimeSeriesChartProps) {
-  const { state, getMultiDatasetData } = useApp();
+  const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
   const [chartType, setChartType] = useState<"line" | "area" | "bar">("line");
   const isDarkMode = state.settings.theme === "dark";
 
-  const multiDatasetData = getMultiDatasetData();
+  const multiDatasetData = useMemo(() => {
+    return state.datasets
+      .filter((d) => state.activeDatasetIds.includes(d.id))
+      .map((dataset) => ({
+        datasetId: dataset.id,
+        datasetName: dataset.name,
+        data: getFilteredData(dataset.data),
+        color: dataset.color,
+      }));
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
+
   const isMultiDataset = multiDatasetData.length > 1;
 
   // Process time series data for each dataset
@@ -91,9 +103,7 @@ export function DatasetTimeSeriesChart({
     const datasetSeries: any[] = [];
 
     // Process each active dataset
-    state.datasets
-      .filter((dataset) => state.activeDatasetIds.includes(dataset.id))
-      .forEach((dataset, index) => {
+    multiDatasetData.forEach((dataset, index) => {
         // Find quantity and month columns
         const quantityColumn = Object.keys(dataset.data[0] || {}).find(
           (col) => col.toLowerCase() === "quantity"
@@ -120,13 +130,15 @@ export function DatasetTimeSeriesChart({
           }
         });
 
-        // Determine dataset display name
-        datasetSeries.push({
-          name: DataProcessor.getDatasetDisplayName(dataset.name),
-          data: monthlyData,
-          color: DataProcessor.getDatasetColorByName(dataset.name),
-          datasetId: dataset.id,
-        });
+        if (monthlyData.size > 0) {
+            // Determine dataset display name
+            datasetSeries.push({
+              name: DataProcessor.getDatasetDisplayName(dataset.datasetName),
+              data: monthlyData,
+              color: DataProcessor.getDatasetColorByName(dataset.datasetName),
+              datasetId: dataset.datasetId,
+            });
+        }
       });
 
     // Sort months chronologically
@@ -161,9 +173,9 @@ export function DatasetTimeSeriesChart({
     return {
       categories: sortedMonths,
       series: finalSeries,
-      hasData: finalSeries.length > 0 && sortedMonths.length > 0,
+      hasData: finalSeries.length > 0 && sortedMonths.length > 0 && finalSeries.some(s => s.data.some(d => d > 0)),
     };
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   if (!processTimeSeriesData.hasData) {
     return (

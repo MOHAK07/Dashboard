@@ -3,6 +3,7 @@ import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
 import { ChartContainer } from './ChartContainer';
 import { useApp } from '../../contexts/AppContext';
+import { useGlobalFilterContext } from '../../contexts/GlobalFilterContext';
 import { DataProcessor } from '../../utils/dataProcessing';
 
 interface WeeklyDataDistributionChartProps {
@@ -10,12 +11,12 @@ interface WeeklyDataDistributionChartProps {
 }
 
 export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistributionChartProps) {
-  const { state, getMultiDatasetData } = useApp();
+  const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
   const [chartType, setChartType] = useState<'bar' | 'horizontalBar'>('bar');
   const isDarkMode = state.settings.theme === 'dark';
   const isHorizontal = chartType === 'horizontalBar';
 
-  // Process weekly data (same as before)
   const { categories, series, hasData } = useMemo(() => {
     const allWeekMonthCombos = new Set<string>();
     const datasetSeries: { name: string; dataMap: Map<string, number>; color: string }[] = [];
@@ -23,29 +24,32 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     state.datasets
       .filter(ds => state.activeDatasetIds.includes(ds.id))
       .forEach(ds => {
-        const data = ds.data;
+        const data = getFilteredData(ds.data); // Apply global filters here
         if (!data.length) return;
-        const qtyCol   = Object.keys(data[0]).find(c => c.toLowerCase() === 'quantity');
-        const weekCol  = Object.keys(data[0]).find(c => c.toLowerCase() === 'week');
+
+        const qtyCol = Object.keys(data[0]).find(c => c.toLowerCase() === 'quantity');
+        const weekCol = Object.keys(data[0]).find(c => c.toLowerCase() === 'week');
         const monthCol = Object.keys(data[0]).find(c => c.toLowerCase() === 'month');
         if (!qtyCol || !weekCol || !monthCol) return;
 
         const map = new Map<string, number>();
         data.forEach(row => {
-          const week  = String(row[weekCol]).trim();
+          const week = String(row[weekCol]).trim();
           const month = String(row[monthCol]).trim();
-          const qty   = parseFloat(String(row[qtyCol]).replace(/[, ]/g, '')) || 0;
+          const qty = parseFloat(String(row[qtyCol]).replace(/[, ]/g, '')) || 0;
           if (!week || !month) return;
           const key = `${week}-${month}`;
           allWeekMonthCombos.add(key);
           map.set(key, (map.get(key) || 0) + qty);
         });
 
-        datasetSeries.push({
-          name: DataProcessor.getDatasetDisplayName(ds.name),
-          dataMap: map,
-          color: DataProcessor.getDatasetColorByName(ds.name)
-        });
+        if (map.size > 0) {
+            datasetSeries.push({
+                name: DataProcessor.getDatasetDisplayName(ds.name),
+                dataMap: map,
+                color: DataProcessor.getDatasetColorByName(ds.name)
+            });
+        }
       });
 
     const sortedKeys = Array.from(allWeekMonthCombos).sort((a, b) => {
@@ -58,7 +62,6 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       return parseInt(wA.replace(/\D/g, '')) - parseInt(wB.replace(/\D/g, ''));
     });
 
-    // Aggregate for horizontal if too many
     const aggregate = (keys: string[], map: Map<string, number>) => {
       if (keys.length <= 15) return { keys, map };
       const aggKeys: string[] = [];
@@ -75,8 +78,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     let finalKeys = sortedKeys;
     let finalMaps = datasetSeries.map(s => s.dataMap);
     if (isHorizontal) {
-      // aggregate each dataset's map
-      const { keys, map: _ } = aggregate(sortedKeys, new Map());
+      const { keys } = aggregate(sortedKeys, new Map());
       finalKeys = keys;
       finalMaps = datasetSeries.map(s => aggregate(sortedKeys, s.dataMap).map);
     }
@@ -95,9 +97,9 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
     return {
       categories: formattedCategories,
       series: finalSeries,
-      hasData: finalSeries.length > 0 && finalKeys.length > 0
+      hasData: finalSeries.length > 0 && finalKeys.length > 0 && finalSeries.some(s => s.data.some(d => d > 0))
     };
-  }, [state.datasets, state.activeDatasetIds, chartType]);
+  }, [state.datasets, state.activeDatasetIds, chartType, getFilteredData]);
 
   if (!hasData) {
     return (
@@ -109,13 +111,12 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
         className={className}
       >
         <div className="flex items-center justify-center h-64 text-gray-500">
-          <p>No weekly data available.</p>
+          <p>No weekly data available for the selected filters.</p>
         </div>
       </ChartContainer>
     );
   }
 
-  // Calculate dynamic height: 40px per category + 200px buffer
   const dynamicHeight = isHorizontal
     ? Math.max(400, categories.length * 40 + 200)
     : 500;
@@ -145,20 +146,20 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
         rotate: isHorizontal ? 0 : -45
       },
       title: {
-        text: isHorizontal ? 'Quantity' : 'Week (Month)',
+        text: isHorizontal ? 'Quantity (mt)' : 'Week (Month)',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
     yaxis: {
       labels: {
         formatter: (val: number) =>
-          val.toString().includes('.') 
-            ? Math.round(val).toLocaleString() 
+          val.toString().includes('.')
+            ? Math.round(val).toLocaleString()
             : val.toLocaleString(),
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
       },
       title: {
-        text: isHorizontal ? 'Week (Month)' : 'Quantity',
+        text: isHorizontal ? 'Week (Month)' : 'Quantity (mt)',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },

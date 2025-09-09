@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
 import { useApp } from '../../contexts/AppContext';
+import { useGlobalFilterContext } from '../../contexts/GlobalFilterContext';
 import { ChartContainer } from './ChartContainer';
 import { DataProcessor } from '../../utils/dataProcessing';
 import { ColorManager } from '../../utils/colorManager';
@@ -17,22 +18,23 @@ interface BuyerTypeData {
 
 export function BuyerTypeAnalysisChart() {
   const { state } = useApp();
-  
+  const { getFilteredData } = useGlobalFilterContext();
+
   // Get all active datasets and process buyer type data from each
   const buyerTypeAnalysis = useMemo((): BuyerTypeData[] => {
     const activeDatasets = state.datasets.filter(d => state.activeDatasetIds.includes(d.id));
-    
+
     if (activeDatasets.length === 0) return [];
 
     // Initialize buyer type aggregation
     const buyerTypeMap = new Map<string, { total: number; totalQuantity: number; count: number; prices: number[] }>();
-    
+
     // Initialize both buyer types to ensure they always appear
     buyerTypeMap.set('B2B', { total: 0, totalQuantity: 0, count: 0, prices: [] });
     buyerTypeMap.set('B2C', { total: 0, totalQuantity: 0, count: 0, prices: [] });
 
     activeDatasets.forEach(dataset => {
-      const data = dataset.data;
+      const data = getFilteredData(dataset.data);
       if (!data || data.length === 0) return;
 
       // Find the buyer type column (case insensitive and flexible matching)
@@ -40,14 +42,14 @@ export function BuyerTypeAnalysisChart() {
         const lowerCol = col.toLowerCase().replace(/\s+/g, '');
         return lowerCol.includes('buyer') && lowerCol.includes('type');
       });
-      
+
       // Find the price column (case insensitive)
-      const priceColumn = Object.keys(data[0] || {}).find(col => 
+      const priceColumn = Object.keys(data[0] || {}).find(col =>
         col.toLowerCase() === 'price' || col.toLowerCase().includes('price')
       );
 
       // Find the quantity column (case insensitive)
-      const quantityColumn = Object.keys(data[0] || {}).find(col => 
+      const quantityColumn = Object.keys(data[0] || {}).find(col =>
         col.toLowerCase() === 'quantity' || col.toLowerCase().includes('quantity')
       );
 
@@ -102,7 +104,7 @@ export function BuyerTypeAnalysisChart() {
 
         // More robust buyer type parsing
         let buyerType = String(buyerTypeRaw || '').toUpperCase().trim();
-        
+
         // Handle common variations
         if (buyerType === 'B2B' || buyerType === 'B-2-B' || buyerType === 'B 2 B') {
           buyerType = 'B2B';
@@ -149,22 +151,22 @@ export function BuyerTypeAnalysisChart() {
       count: data.count,
       averagePrice: data.count > 0 ? data.total / data.count : 0,
     })).sort((a, b) => b.totalSales - a.totalSales);
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   // Get primary dataset color (preferably FOM if available)
   const primaryColor = useMemo(() => {
     const activeDatasets = state.datasets.filter(d => state.activeDatasetIds.includes(d.id));
-    const fomDataset = activeDatasets.find(dataset => 
+    const fomDataset = activeDatasets.find(dataset =>
       dataset.name.toLowerCase().includes('fom') ||
       dataset.fileName.toLowerCase().includes('fom')
     );
-    
+
     if (fomDataset) {
       return fomDataset.color || ColorManager.getDatasetColor(fomDataset.name);
     }
-    
+
     // Fall back to first active dataset color
-    return activeDatasets.length > 0 
+    return activeDatasets.length > 0
       ? (activeDatasets[0].color || ColorManager.getDatasetColor(activeDatasets[0].name))
       : '#3B82F6';
   }, [state.datasets, state.activeDatasetIds]);
@@ -288,7 +290,7 @@ export function BuyerTypeAnalysisChart() {
     .join(', ');
 
   return (
-    <ChartContainer 
+    <ChartContainer
       title={`Sales Analysis by Buyer Type (B2B vs B2C) - ${activeDatasetNames}`}
       className="col-span-1 lg:col-span-2"
     >
@@ -300,13 +302,13 @@ export function BuyerTypeAnalysisChart() {
           height="100%"
         />
       </div>
-      
+
       {/* Summary Statistics */}
       <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {buyerTypeAnalysis.map((data, index) => (
           <div key={data.buyerType} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <div className="text-center">
-              <div 
+              <div
                 className="w-4 h-4 rounded-full mx-auto mb-2"
                 style={{ backgroundColor: primaryColor }}
               ></div>
@@ -322,11 +324,11 @@ export function BuyerTypeAnalysisChart() {
             </div>
           </div>
         ))}
-        
+
         {/* Total Summary */}
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
           <div className="text-center">
-            <div 
+            <div
               className="w-4 h-4 rounded-full mx-auto mb-2"
               style={{ backgroundColor: primaryColor }}
             ></div>

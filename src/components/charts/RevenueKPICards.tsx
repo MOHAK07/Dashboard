@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { TrendingUp, DollarSign, Calendar, BarChart3 } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
-import { ColorManager } from "../../utils/colorManager";
+import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
 import { DataProcessor } from "../../utils/dataProcessing";
 
 interface RevenueKPICardsProps {
@@ -18,6 +18,7 @@ interface RevenueData {
 
 export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
   const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
 
   // Process revenue data from Revenue table
   const revenueData = useMemo((): RevenueData[] => {
@@ -34,7 +35,7 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
     }
 
     // Combine all revenue data
-    const allRevenueData = revenueDatasets.flatMap((dataset) => dataset.data);
+    const allRevenueData = revenueDatasets.flatMap((dataset) => getFilteredData(dataset.data));
 
     if (allRevenueData.length === 0) {
       return [];
@@ -147,30 +148,12 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
       const bIndex = monthOrder.indexOf(b.month);
       return aIndex - bIndex;
     });
-  }, [state.datasets, state.activeDatasetIds]);
-
-  // Apply global filters to revenue data
-  const filteredRevenueData = useMemo(() => {
-    if (revenueData.length === 0) return [];
-
-    let filtered = revenueData;
-
-    const monthFilters =
-      state.filters.selectedValues["Months"] ||
-      state.filters.selectedValues["Month"] ||
-      [];
-
-    if (monthFilters.length > 0) {
-      filtered = filtered.filter((item) => monthFilters.includes(item.month));
-    }
-
-    return filtered;
-  }, [revenueData, state.filters]);
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   // Get latest month data from the (potentially filtered) data
   const latestMonthData =
-    filteredRevenueData.length > 0
-      ? filteredRevenueData[filteredRevenueData.length - 1]
+    revenueData.length > 0
+      ? revenueData[revenueData.length - 1]
       : null;
 
   if (!latestMonthData) {

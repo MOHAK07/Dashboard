@@ -3,6 +3,7 @@ import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { ChartContainer } from "./ChartContainer";
 import { useApp } from "../../contexts/AppContext";
+import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
 
 interface StockAnalysisChartProps {
   className?: string;
@@ -40,13 +41,14 @@ export function StockAnalysisChart({
   className = "",
 }: StockAnalysisChartProps) {
   const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
   const [chartType, setChartType] = useState<"area" | "bar">("area");
   const isDarkMode = state.settings.theme === "dark";
 
   const processedData = useMemo(() => {
     const activeData = state.datasets
       .filter((d) => state.activeDatasetIds.includes(d.id))
-      .flatMap((d) => d.data);
+      .flatMap((d) => getFilteredData(d.data));
 
     if (activeData.length === 0) {
       return { rcfData: null, boomiData: null, hasData: false };
@@ -181,7 +183,7 @@ export function StockAnalysisChart({
     };
 
     return { rcfData, boomiData, hasData: true };
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   if (!processedData.hasData) return null;
 
@@ -284,7 +286,7 @@ export function StockAnalysisChart({
   };
 
   return (
-    <div className={`space-y-8 ${className}`}>
+    <div className={`space-y-5 ${className}`}>
       {renderChart(
         processedData.rcfData,
         "RCF: Production, Sales, and Unsold Stock Over Time"

@@ -1,7 +1,7 @@
 import React from "react";
 import { TrendingUp, Database, BarChart3, Package } from "lucide-react";
-import { FlexibleDataRow } from "../../types";
 import { useApp } from "../../contexts/AppContext";
+import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
 import { DataProcessor } from "../../utils/dataProcessing";
 
 // Use the same color function for consistency
@@ -73,6 +73,7 @@ export function DatasetSpecificKPIs({
   className = "",
 }: DatasetSpecificKPIsProps) {
   const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
 
   // Calculate exact quantity totals for each dataset, excluding MDA claim and stock datasets
   const calculateDatasetKPIs = () => {
@@ -90,6 +91,8 @@ export function DatasetSpecificKPIs({
         );
       })
       .map((dataset) => {
+        const filteredDatasetData = getFilteredData(dataset.data);
+
         // Find quantity column (exact match, case insensitive)
         const quantityColumn = Object.keys(dataset.data[0] || {}).find(
           (col) => col.toLowerCase().trim() === "quantity"
@@ -97,7 +100,7 @@ export function DatasetSpecificKPIs({
 
         let totalQuantity = 0;
         if (quantityColumn) {
-          totalQuantity = dataset.data.reduce((sum, row) => {
+          totalQuantity = filteredDatasetData.reduce((sum, row) => {
             const quantity =
               parseFloat(String(row[quantityColumn] || "0")) || 0;
             return sum + quantity;
@@ -108,7 +111,7 @@ export function DatasetSpecificKPIs({
           id: dataset.id,
           name: getDatasetDisplayName(dataset.name),
           totalQuantity: Math.round(totalQuantity * 100) / 100,
-          rowCount: dataset.rowCount,
+          rowCount: filteredDatasetData.length,
           isActive: state.activeDatasetIds.includes(dataset.id),
           color: getDatasetColorByName(dataset.name),
           hasQuantityData: !!quantityColumn,

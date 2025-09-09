@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Percent } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import { useGlobalFilterContext } from '../../contexts/GlobalFilterContext';
 import { ColorManager } from '../../utils/colorManager';
 
 interface MDAClaimKPIProps {
@@ -9,137 +10,105 @@ interface MDAClaimKPIProps {
 
 export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
   const { state } = useApp();
+  const { filterState } = useGlobalFilterContext(); // Use filterState for direct access
 
-  // Calculate MDA claim KPIs
   const mdaKPIs = useMemo(() => {
-    // Find MDA claim datasets
-    const mdaDatasets = state.datasets.filter(dataset => 
-      state.activeDatasetIds.includes(dataset.id) && 
+    const mdaDatasets = state.datasets.filter(dataset =>
+      state.activeDatasetIds.includes(dataset.id) &&
       ColorManager.isMDAClaimDataset(dataset.name)
     );
 
     if (mdaDatasets.length === 0) {
-      console.log('MDA KPI: No MDA datasets found');
       return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
     }
 
-    // Combine all MDA claim data
-    const allMDAData = mdaDatasets.flatMap(dataset => dataset.data);
+    let allMDAData = mdaDatasets.flatMap(dataset => dataset.data);
 
     if (allMDAData.length === 0) {
-      console.log('MDA KPI: No data in MDA datasets');
       return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
     }
 
-    // Find required columns (exact match first, then case-insensitive)
     const sampleRow = allMDAData[0];
     const columns = Object.keys(sampleRow);
-    
-    console.log('MDA KPI: Available columns:', columns);
-    
-    // Find Eligible Amount column
-    const eligibleAmountColumn = columns.find(col => {
-      const lowerCol = col.toLowerCase().trim();
-      return lowerCol === 'eligible amount' ||
-             (lowerCol.includes('eligible') && lowerCol.includes('amount')) ||
-             lowerCol.includes('eligible_amount') ||
-             lowerCol.includes('eligibleamount');
-    });
-    
-    // Find Amount Received column
-    const amountReceivedColumn = columns.find(col => {
-      const lowerCol = col.toLowerCase().trim();
-      return lowerCol === 'amount received' ||
-             (lowerCol.includes('amount') && lowerCol.includes('received')) ||
-             lowerCol.includes('amount_received') ||
-             lowerCol.includes('amountreceived') ||
-             lowerCol.includes('received_amount');
-    });
+    const monthColumn = columns.find((col) => col.toLowerCase().includes("month"));
+    const yearColumn = columns.find((col) => col.toLowerCase().includes("year"));
+    const eligibleAmountColumn = columns.find(col => col.toLowerCase().includes('eligible'));
+    const amountReceivedColumn = columns.find(col => col.toLowerCase().includes('received'));
 
-    console.log('MDA KPI: Column detection results:', {
-      eligibleAmountColumn,
-      amountReceivedColumn
-    });
-
-    if (!eligibleAmountColumn || !amountReceivedColumn) {
+    if (!monthColumn || !yearColumn || !eligibleAmountColumn || !amountReceivedColumn) {
       console.warn('MDA KPI: Missing required columns');
       return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
     }
 
-    // Calculate totals with improved parsing
+    const { startDate, endDate } = filterState.filters.dateRange;
+    const { selectedMonths } = filterState.filters.months;
+    const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    let filteredData = allMDAData;
+
+    // Apply Custom Date Range Filter using the robust numeric method
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const startYearMonth = start.getUTCFullYear() * 100 + start.getUTCMonth();
+      const endYearMonth = end.getUTCFullYear() * 100 + end.getUTCMonth();
+
+      filteredData = filteredData.filter(row => {
+        const year = parseInt(String(row[yearColumn]));
+        const monthIndex = monthOrder.indexOf(String(row[monthColumn]));
+        if (isNaN(year) || monthIndex === -1) return false;
+        const rowYearMonth = year * 100 + monthIndex;
+        return rowYearMonth >= startYearMonth && rowYearMonth <= endYearMonth;
+      });
+    }
+
+    // Apply Month Name Filter
+    if (selectedMonths.length > 0) {
+      filteredData = filteredData.filter(row => selectedMonths.includes(String(row[monthColumn])));
+    }
+
+    if (filteredData.length === 0) {
+        return { hasData: false, recoveryPercentage: 0, totalEligible: 0, totalReceived: 0 };
+    }
+
     let totalEligible = 0;
     let totalReceived = 0;
-    let validRowCount = 0;
 
-    // Enhanced parsing function for amounts
     const parseAmount = (value: any): number => {
-      if (value === null || value === undefined || value === '-' || value === '' || 
-          String(value).trim() === '' || String(value).toLowerCase() === 'nan') {
-        return 0;
-      }
-      
-      // Convert to string and clean
-      let cleaned = String(value).replace(/[",\s]/g, '');
-      
-      // Handle cases where .00 is at the end
-      if (cleaned.endsWith('.00')) {
-        cleaned = cleaned.slice(0, -3);
-      }
-      
+      if (value === null || value === undefined || value === '-' || String(value).trim() === '') return 0;
+      let cleaned = String(value).replace(/[",\s]/g, "");
+      if (cleaned.endsWith(".00")) cleaned = cleaned.slice(0, -3);
       const parsed = parseFloat(cleaned);
-      
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    allMDAData.forEach((row, index) => {
-      const eligibleRaw = row[eligibleAmountColumn];
-      const receivedRaw = row[amountReceivedColumn];
-      
-      const eligible = parseAmount(eligibleRaw);
-      const received = parseAmount(receivedRaw);
-      
-      if (index < 10) { // Log first 10 rows for debugging
-        console.log(`MDA KPI Row ${index + 1}: Eligible=${eligibleRaw} -> ${eligible}, Received=${receivedRaw} -> ${received}`);
-      }
-
-      // Only include rows where at least one amount is greater than 0
+    filteredData.forEach(row => {
+      const eligible = parseAmount(row[eligibleAmountColumn]);
+      const received = parseAmount(row[amountReceivedColumn]);
       if (eligible > 0 || received > 0) {
         totalEligible += eligible;
         totalReceived += received;
-        validRowCount++;
       }
-    });
-
-    console.log('MDA KPI: Final calculation results:', {
-      totalEligible,
-      totalReceived,
-      validRowCount,
-      recoveryPercentage: totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0
     });
 
     const recoveryPercentage = totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0;
 
     return {
-      hasData: validRowCount > 0,
+      hasData: totalEligible > 0 || totalReceived > 0,
       recoveryPercentage: Math.round(recoveryPercentage * 100) / 100,
       totalEligible,
       totalReceived
     };
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, filterState]);
 
   if (!mdaKPIs.hasData) {
-    console.log('MDA KPI: No data to display, component will not render');
     return null;
   }
 
   const formatAmount = (amount: number): string => {
-    if (amount >= 10000000) { // 1 crore
-      return `₹${(amount / 10000000).toFixed(2)}Cr`;
-    } else if (amount >= 100000) { // 1 lakh
-      return `₹${(amount / 100000).toFixed(2)}L`;
-    } else if (amount >= 1000) { // 1 thousand
-      return `₹${(amount / 1000).toFixed(2)}K`;
-    }
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)}Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(2)}K`;
     return `₹${amount.toFixed(2)}`;
   };
 
@@ -171,11 +140,11 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
           <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {mdaKPIs.recoveryPercentage.toFixed(2)}%
           </p>
-          
+
           <div className={`flex items-center space-x-1.5 mb-3 ${getChangeColor(mdaKPIs.recoveryPercentage)}`}>
             {getChangeIcon(mdaKPIs.recoveryPercentage)}
             <span className="text-sm font-medium">
-              {mdaKPIs.recoveryPercentage >= 75 ? 'Excellent' : 
+              {mdaKPIs.recoveryPercentage >= 75 ? 'Excellent' :
                mdaKPIs.recoveryPercentage >= 50 ? 'Good' : 'Needs Improvement'}
             </span>
           </div>
@@ -191,7 +160,7 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
             </div>
           </div>
         </div>
-        
+
         <div className={`p-3 rounded-lg ${getBackgroundColor(mdaKPIs.recoveryPercentage)}`}>
           <Percent className={`h-6 w-6 ${
             mdaKPIs.recoveryPercentage >= 75 ? 'text-success-600 dark:text-success-400' :
@@ -201,14 +170,13 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="mt-4">
         <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
           <span>Recovery Progress</span>
           <span>{mdaKPIs.recoveryPercentage.toFixed(2)}%</span>
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div 
+          <div
             className={`h-2 rounded-full transition-all duration-500 ${
               mdaKPIs.recoveryPercentage >= 75 ? 'bg-success-500' :
               mdaKPIs.recoveryPercentage >= 50 ? 'bg-warning-500' :

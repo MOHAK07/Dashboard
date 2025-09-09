@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Package, TrendingUp, TrendingDown, Factory, ShoppingCart } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import { useGlobalFilterContext } from '../../contexts/GlobalFilterContext';
 import { ColorManager } from '../../utils/colorManager';
 
 interface StockKPICardsProps {
@@ -9,19 +10,20 @@ interface StockKPICardsProps {
 
 export function StockKPICards({ className = '' }: StockKPICardsProps) {
   const { state } = useApp();
+  const { getFilteredData } = useGlobalFilterContext();
 
   // Calculate production and sales KPIs for both products
   const productionSalesKPIs = useMemo(() => {
     // Find stock datasets
-    const stockDatasets = state.datasets.filter(dataset => 
-      state.activeDatasetIds.includes(dataset.id) && 
+    const stockDatasets = state.datasets.filter(dataset =>
+      state.activeDatasetIds.includes(dataset.id) &&
       ColorManager.isStockDataset(dataset.name)
     );
 
     if (stockDatasets.length === 0) {
-      return { 
-        hasData: false, 
-        rcfProductionAvg: 0, 
+      return {
+        hasData: false,
+        rcfProductionAvg: 0,
         rcfSalesAvg: 0,
         boomiProductionAvg: 0,
         boomiSalesAvg: 0
@@ -29,12 +31,12 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
     }
 
     // Combine all stock data
-    const allStockData = stockDatasets.flatMap(dataset => dataset.data);
-    
+    const allStockData = stockDatasets.flatMap(dataset => getFilteredData(dataset.data));
+
     if (allStockData.length === 0) {
-      return { 
-        hasData: false, 
-        rcfProductionAvg: 0, 
+      return {
+        hasData: false,
+        rcfProductionAvg: 0,
         rcfSalesAvg: 0,
         boomiProductionAvg: 0,
         boomiSalesAvg: 0
@@ -44,22 +46,22 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
     // Find required columns (case-insensitive)
     const sampleRow = allStockData[0];
     const columns = Object.keys(sampleRow);
-    
+
     const rcfProductionColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
       return lowerCol.includes('rcf') && lowerCol.includes('production');
     });
-    
+
     const rcfSalesColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
       return lowerCol.includes('rcf') && lowerCol.includes('sales');
     });
-    
+
     const boomiProductionColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
       return lowerCol.includes('boomi') && lowerCol.includes('production');
     });
-    
+
     const boomiSalesColumn = columns.find(col => {
       const lowerCol = col.toLowerCase().trim();
       return lowerCol.includes('boomi') && lowerCol.includes('sales');
@@ -75,9 +77,9 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
 
     if (!rcfProductionColumn || !rcfSalesColumn || !boomiProductionColumn || !boomiSalesColumn) {
       console.warn('Production Sales KPI - Missing required columns');
-      return { 
-        hasData: false, 
-        rcfProductionAvg: 0, 
+      return {
+        hasData: false,
+        rcfProductionAvg: 0,
         rcfSalesAvg: 0,
         boomiProductionAvg: 0,
         boomiSalesAvg: 0
@@ -87,11 +89,11 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
     // Parse Indian number format
     const parseIndianNumber = (value: string): number => {
       if (!value || value === '-' || value === '' || value.trim() === '') return 0;
-      
+
       // Remove commas, quotes, and extra spaces, but keep decimal points
       const cleaned = value.replace(/[",\s]/g, '');
       const parsed = parseFloat(cleaned);
-      
+
       return isNaN(parsed) ? 0 : parsed;
     };
 
@@ -107,14 +109,14 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
       const rcfSalesRaw = String(row[rcfSalesColumn] || '').trim();
       const boomiProductionRaw = String(row[boomiProductionColumn] || '').trim();
       const boomiSalesRaw = String(row[boomiSalesColumn] || '').trim();
-      
+
       const rcfProduction = parseIndianNumber(rcfProductionRaw);
       const rcfSales = parseIndianNumber(rcfSalesRaw);
       const boomiProduction = parseIndianNumber(boomiProductionRaw);
       const boomiSales = parseIndianNumber(boomiSalesRaw);
-      
+
       console.log(`Production Sales KPI Row ${index + 1}: RCF Prod: ${rcfProductionRaw} -> ${rcfProduction}, RCF Sales: ${rcfSalesRaw} -> ${rcfSales}, Boomi Prod: ${boomiProductionRaw} -> ${boomiProduction}, Boomi Sales: ${boomiSalesRaw} -> ${boomiSales}`);
-      
+
       totalRCFProduction += rcfProduction;
       totalRCFSales += rcfSales;
       totalBoomiProduction += boomiProduction;
@@ -143,7 +145,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
       boomiProductionAvg: Math.round(boomiProductionAvg * 100) / 100,
       boomiSalesAvg: Math.round(boomiSalesAvg * 100) / 100
     };
-  }, [state.datasets, state.activeDatasetIds]);
+  }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   if (!productionSalesKPIs.hasData) {
     return null; // Don't render if no data
@@ -179,7 +181,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">
               RCF Product Performance
             </p>
-            
+
             {/* Production and Sales side by side */}
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div className="text-center">
@@ -194,7 +196,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
                   Avg: {productionSalesKPIs.rcfProductionAvg.toFixed(1)}
                 </p>
               </div>
-              
+
               <div className="text-center mb-1">
                 <div className="flex items-center justify-center mb-1">
                   <ShoppingCart className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
@@ -208,7 +210,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
                 </p>
               </div>
             </div>
-            
+
             <div className={`flex items-center space-x-1.5 ${
               rcfStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
               rcfStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
@@ -220,7 +222,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
               </span>
             </div>
           </div>
-          
+
           <div className={`p-3 rounded-lg ${
             rcfStatus.color === 'success' ? 'bg-success-100 dark:bg-success-900/50' :
             rcfStatus.color === 'warning' ? 'bg-warning-100 dark:bg-warning-900/50' :
@@ -242,7 +244,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">
               Boomi Samrudhi Product Performance
             </p>
-            
+
             {/* Production and Sales side by side */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center">
@@ -257,7 +259,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
                   Avg: {productionSalesKPIs.boomiProductionAvg.toFixed(1)}
                 </p>
               </div>
-              
+
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
                   <ShoppingCart className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
@@ -271,7 +273,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
                 </p>
               </div>
             </div>
-            
+
             <div className={`flex items-center space-x-1.5 ${
               boomiStatus.color === 'success' ? 'text-success-600 dark:text-success-400' :
               boomiStatus.color === 'warning' ? 'text-warning-600 dark:text-warning-400' :
@@ -283,7 +285,7 @@ export function StockKPICards({ className = '' }: StockKPICardsProps) {
               </span>
             </div>
           </div>
-          
+
           <div className={`p-3 rounded-lg ${
             boomiStatus.color === 'success' ? 'bg-success-100 dark:bg-success-900/50' :
             boomiStatus.color === 'warning' ? 'bg-warning-100 dark:bg-warning-900/50' :
