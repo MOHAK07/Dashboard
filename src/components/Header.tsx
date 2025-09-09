@@ -140,13 +140,13 @@ export function Header({
             <button
               onClick={() => setShowGlobalFilters(true)}
               className={`
-                relative p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500
+                relative p-2 rounded-lg transition-all duration-200 focus:outline-none
                 ${hasActiveFilters 
                   ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm' 
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                 }
               `}
-              title="Open Global Filters"
+              title="Global Filters"
             >
               <Filter className="h-5 w-5" />
               {hasActiveFilters && (
