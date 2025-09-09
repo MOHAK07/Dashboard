@@ -89,6 +89,18 @@ const initialState: AppState = {
 };
 
 // Helper function to combine data from active datasets
+// function combineActiveDatasets(
+//   datasets: Dataset[],
+//   activeDatasetIds: string[]
+// ): FlexibleDataRow[] {
+//   if (activeDatasetIds.length === 0) return [];
+
+//   const activeDatasets = datasets.filter((d) =>
+//     activeDatasetIds.includes(d.id)
+//   );
+//   return activeDatasets.flatMap((dataset) => dataset.data);
+// }
+
 function combineActiveDatasets(
   datasets: Dataset[],
   activeDatasetIds: string[]
@@ -98,7 +110,15 @@ function combineActiveDatasets(
   const activeDatasets = datasets.filter((d) =>
     activeDatasetIds.includes(d.id)
   );
-  return activeDatasets.flatMap((dataset) => dataset.data);
+  
+  return activeDatasets.flatMap((dataset) => 
+    dataset.data.map(row => ({
+      ...row, 
+      __datasetId: dataset.id,
+      __datasetName: dataset.name, 
+      __datasetColor: dataset.color 
+    }))
+  );
 }
 
 // Reducer function
