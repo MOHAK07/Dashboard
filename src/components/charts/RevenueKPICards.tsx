@@ -35,7 +35,9 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
     }
 
     // Combine all revenue data
-    const allRevenueData = revenueDatasets.flatMap((dataset) => getFilteredData(dataset.data));
+    const allRevenueData = revenueDatasets.flatMap((dataset) =>
+      getFilteredData(dataset.data)
+    );
 
     if (allRevenueData.length === 0) {
       return [];
@@ -152,9 +154,7 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
 
   // Get latest month data from the (potentially filtered) data
   const latestMonthData =
-    revenueData.length > 0
-      ? revenueData[revenueData.length - 1]
-      : null;
+    revenueData.length > 0 ? revenueData[revenueData.length - 1] : null;
 
   if (!latestMonthData) {
     return null;
@@ -167,37 +167,99 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
   const displayData = latestMonthData;
 
   return (
-    <div className={`grid grid-cols-1 gap-6 ${className}`}>
+    <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${className}`}>
       <div className="card hover:shadow-lg transition-all duration-200">
-        <div className="flex justify-between items-start">
+        {/* Mobile Layout - Stacked vertically */}
+        <div className="flex flex-col space-y-4 md:hidden">
+          {/* Total Revenue Section */}
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 mb-3">
+              <Calendar className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+              <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                Total Revenue for {displayData.month}
+              </p>
+            </div>
+            <p className="text-2xl sm:text-2xl font-semibold text-primary-900 dark:text-primary-100">
+              {formatCurrency(displayData.totalRevenue)}
+            </p>
+          </div>
+
+          {/* Horizontal Divider for Mobile */}
+          <div className="border-t border-gray-200 dark:border-gray-800"></div>
+
+          {/* Breakdown Section */}
+          <div className="space-y-3">
+            {/* Direct Sales FOM */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                <p className="text-sm sm:text-base font-small text-gray-700 dark:text-gray-200">
+                  Direct Sales FOM
+                </p>
+              </div>
+              <p className="text-base sm:text-lg font-semibold text-blue-600 dark:text-blue-400">
+                {formatCurrency(displayData.directSalesFOM)}
+              </p>
+            </div>
+
+            {/* Direct Sales LFOM */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"></div>
+                <p className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200">
+                  Direct Sales LFOM
+                </p>
+              </div>
+              <p className="text-base sm:text-lg font-semibold text-green-600 dark:text-green-400">
+                {formatCurrency(displayData.directSalesLFOM)}
+              </p>
+            </div>
+
+            {/* MDA Claim Received */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-purple-500 flex-shrink-0"></div>
+                <p className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200">
+                  MDA Claim Received
+                </p>
+              </div>
+              <p className="text-base sm:text-lg font-semibold text-purple-600 dark:text-purple-400">
+                {formatCurrency(displayData.mdaClaimReceived)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop/Tablet Layout - Side by side */}
+        <div className="hidden md:flex justify-between items-start">
           {/* Left Side: Total Revenue */}
-          <div className="flex-1">
+          <div className="flex-1 pr-4 lg:pr-6">
             <div className="flex items-center space-x-2 mb-2">
               <Calendar className="h-4 w-4 text-primary-600 dark:text-primary-400" />
               <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
                 Total Revenue for {displayData.month}
               </p>
             </div>
-            <p className="text-3xl font-semibold text-primary-900 dark:text-primary-100">
+            <p className="text-2xl lg:text-3xl xl:text-3xl font-semibold text-primary-900 dark:text-primary-100">
               {formatCurrency(displayData.totalRevenue)}
             </p>
           </div>
 
           {/* Vertical Divider */}
-          <div className="border-l border-gray-200 dark:border-gray-800 h-[7rem] self-center"></div>
+          <div className="border-l border-gray-200 dark:border-gray-800 h-24 lg:h-28 self-center"></div>
 
           {/* Right Side: Breakdown */}
-          <div className="flex-1 pl-6">
-            <div className="space-y-3">
+          <div className="flex-1 pl-4 lg:pl-6">
+            <div className="space-y-3 lg:space-y-4">
               {/* Direct Sales FOM */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
-                  <p className="text-[1.1rem] font-small text-gray-700 dark:text-gray-200">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                  <p className="text-sm lg:text-base xl:text-md font-medium text-gray-700 dark:text-gray-200">
                     Direct Sales FOM
                   </p>
                 </div>
-                <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                <p className="text-base lg:text-lg xl:text-lg font-semibold text-blue-600 dark:text-blue-400 text-right">
                   {formatCurrency(displayData.directSalesFOM)}
                 </p>
               </div>
@@ -205,12 +267,12 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
               {/* Direct Sales LFOM */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                  <p className="text-[1.1rem] font-small text-gray-700 dark:text-gray-200">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"></div>
+                  <p className="text-sm lg:text-base xl:text-md font-medium text-gray-700 dark:text-gray-200">
                     Direct Sales LFOM
                   </p>
                 </div>
-                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                <p className="text-base lg:text-lg xl:text-lg font-semibold text-green-600 dark:text-green-400 text-right">
                   {formatCurrency(displayData.directSalesLFOM)}
                 </p>
               </div>
@@ -218,12 +280,12 @@ export function RevenueKPICards({ className = "" }: RevenueKPICardsProps) {
               {/* MDA Claim Received */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div>
-                  <p className="text-[1.1rem] font-small text-gray-700 dark:text-gray-200">
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500 flex-shrink-0"></div>
+                  <p className="text-sm lg:text-base xl:text-md font-medium text-gray-700 dark:text-gray-200">
                     MDA Claim Received
                   </p>
                 </div>
-                <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                <p className="text-base lg:text-lg xl:text-lg font-semibold text-purple-600 dark:text-purple-400 text-right">
                   {formatCurrency(displayData.mdaClaimReceived)}
                 </p>
               </div>
