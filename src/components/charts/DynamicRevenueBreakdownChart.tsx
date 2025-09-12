@@ -19,7 +19,7 @@ const getDatasetColorByName = (datasetName: string) => {
   } else if (lowerName.includes('lfom') && !lowerName.includes('pos')) {
     return '#7ab839'; // Green for LFOM
   } else if (lowerName.includes('fom') && !lowerName.includes('pos') && !lowerName.includes('lfom')) {
-    return '#f97316'; // Orange for FOM
+    return '#ba0f0f'; // Dark red for FOM
   }
 
   // Fallback colors for other datasets

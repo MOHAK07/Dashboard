@@ -21,7 +21,7 @@ export class ColorManager {
     'pos_fom': '#3b82f6',     
     'pos_lfom': '#22c55e',    
     'lfom': '#f59e0b',        
-    'fom': '#f97316',         
+    'fom': '#ba0f0f',         
     'mda_claim': '#8b5cf6',   
     'stock': '#14b8a6',       
     'production': '#7ab839',

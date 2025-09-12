@@ -19,7 +19,7 @@ const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
   const baseColors = [
     '#3b82f6', // blue
     '#7ab839', // green
-    '#f97316', // orange
+    '#ba0f0f', // dark red for FOM
     '#ef4444', // red
     '#1A2885', // dark blue
     '#06b6d4', // cyan
@@ -30,7 +30,7 @@ const getUniqueDatasetColor = (datasetIndex: number, totalDatasets: number) => {
     '#8b5cf6', // purple
     '#ec4899', // pink
     '#14b8a6', // teal
-    '#f97316', // orange variant
+    '#ba0f0f', // dark red variant
     '#6366f1', // indigo
   ];
   

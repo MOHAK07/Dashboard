@@ -162,7 +162,7 @@ export function BuyerTypeAnalysisChart() {
     );
 
     if (fomDataset) {
-      return fomDataset.color || ColorManager.getDatasetColor(fomDataset.name);
+      return '#ba0f0f'; // Use dark red for FOM dataset
     }
 
     // Fall back to first active dataset color
