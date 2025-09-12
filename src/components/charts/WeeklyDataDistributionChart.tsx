@@ -146,7 +146,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
         rotate: isHorizontal ? 0 : -45
       },
       title: {
-        text: isHorizontal ? 'Quantity (mt)' : 'Week (Month)',
+        text: isHorizontal ? 'Quantity (MT)' : 'Week (Month)',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
@@ -159,7 +159,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
         style: { colors: isDarkMode ? '#9ca3af' : '#6b7280' }
       },
       title: {
-        text: isHorizontal ? 'Week (Month)' : 'Quantity (mt)',
+        text: isHorizontal ? 'Week (Month)' : 'Quantity (MT)',
         style: { color: isDarkMode ? '#9ca3af' : '#6b7280' }
       }
     },
@@ -173,7 +173,7 @@ export function WeeklyDataDistributionChart({ className = '' }: WeeklyDataDistri
       theme: isDarkMode ? 'dark' : 'light',
       shared: true,
       intersect: false,
-      y: { formatter: v => `${v.toLocaleString()} mt` }
+      y: { formatter: v => `${v.toLocaleString()} MT` }
     },
     legend: {
       show: true,

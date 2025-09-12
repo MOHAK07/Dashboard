@@ -141,13 +141,13 @@ export function MDAClaimKPI({ className = '' }: MDAClaimKPIProps) {
             {mdaKPIs.recoveryPercentage.toFixed(2)}%
           </p>
 
-          <div className={`flex items-center space-x-1.5 mb-3 ${getChangeColor(mdaKPIs.recoveryPercentage)}`}>
+          {/* <div className={`flex items-center space-x-1.5 mb-3 ${getChangeColor(mdaKPIs.recoveryPercentage)}`}>
             {getChangeIcon(mdaKPIs.recoveryPercentage)}
             <span className="text-sm font-medium">
               {mdaKPIs.recoveryPercentage >= 75 ? 'Excellent' :
                mdaKPIs.recoveryPercentage >= 50 ? 'Good' : 'Needs Improvement'}
             </span>
-          </div>
+          </div> */}
 
           <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
             <div className="flex justify-between">
