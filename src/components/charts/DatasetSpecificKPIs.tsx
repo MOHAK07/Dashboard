@@ -109,28 +109,28 @@ export function DatasetSpecificKPIs({
 
   const kpiCards = [
     {
-      title: "FOM Sales April'25",
+      title: "FOM Sales from April'25",
       kpi: fomKpi,
       value: fomKpi?.totalQuantity,
       hasData: fomKpi?.hasQuantityData,
       type: "quantity",
     },
     {
-      title: "LFOM Sales April'25",
+      title: "LFOM Sales from April'25",
       kpi: lfomKpi,
       value: lfomKpi?.totalQuantity,
       hasData: lfomKpi?.hasQuantityData,
       type: "quantity",
     },
     {
-      title: "FOM Revenue April'25",
+      title: "FOM Revenue from April'25",
       kpi: fomKpi,
       value: fomKpi?.totalRevenue,
       hasData: fomKpi?.hasRevenueData,
       type: "revenue",
     },
     {
-      title: "LFOM Revenue April'25",
+      title: "LFOM Revenue from April'25",
       kpi: lfomKpi,
       value: lfomKpi?.totalRevenue,
       hasData: lfomKpi?.hasRevenueData,
@@ -140,7 +140,7 @@ export function DatasetSpecificKPIs({
 
   return (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${className}`}
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}
     >
       {kpiCards.map((card, index) => (
         <div
@@ -156,16 +156,16 @@ export function DatasetSpecificKPIs({
         >
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-2">
-              <div className="flex items-center space-x-2 mb-1">
+              <div className="flex items-center space-x-2 mb-2">
                 {card.kpi && (
                   <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{
                       backgroundColor: card.kpi.color,
                     }}
                   />
                 )}
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p className="text-[0.958rem] font-medium text-gray-600 dark:text-gray-400">
                   {card.title}
                 </p>
               </div>
