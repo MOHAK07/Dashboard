@@ -1,36 +1,36 @@
 // Database types based on existing schema
 export interface FOMRecord {
-  'S.No.': number;
+  "S.No.": number;
   Date?: string;
   Week?: string;
   Month?: string;
   Year?: number;
   Name?: string;
   Adress?: string;
-  'Pin code'?: number;
+  "Pin code"?: number;
   Taluka?: string;
   District?: string;
   State?: string;
   Quantity?: number;
   Price?: number;
-  'Buyer Type'?: string;
+  "Buyer Type"?: string;
 }
 
 export interface LFOMRecord {
-  'S.No.': number;
+  "S.No.": number;
   Date?: string;
   Week?: string;
   Month?: string;
   Year?: number;
   Name?: string;
   Adress?: string;
-  'Pin code'?: number;
+  "Pin code"?: number;
   Taluka?: string;
   District?: string;
   State?: string;
   Quantity?: number;
   Price?: string;
-  'Buyer Type'?: string;
+  "Buyer Type"?: string;
 }
 
 export interface MDAClaimRecord {
@@ -38,14 +38,13 @@ export interface MDAClaimRecord {
   Year?: number;
   Month?: string;
   Week?: number;
-  'Quantity Applied for MDA Claim/Sold'?: string;
-  'Claim Accepted'?: string;
-  'Eligible Amount'?: string;
-  'Amount Received'?: string;
-  'Amount not Received'?: string;
-  'EQ QTY'?: string;
-  'Date of Receipt'?: string;
-  '% Recovery'?: string;
+  "Quantity Applied for MDA Claim/Sold"?: string;
+  "Claim Accepted"?: string;
+  "Eligible Amount"?: string;
+  "Amount Received"?: string;
+  "Amount not Received"?: string;
+  "EQ QTY"?: string;
+  "Date of Receipt"?: string;
 }
 
 export interface POSLFOMRecord {
@@ -80,30 +79,30 @@ export interface POSFOMRecord {
 export interface StockRecord {
   id: number;
   Date?: string;
-  'RCF Production'?: number;
-  'Boomi Samrudhi Production'?: string;
-  'RCF Sales'?: number;
-  'Boomi Samrudhi Sales'?: string;
-  'RCF Stock Left'?: number;
-  'Boomi Samrudhi Stock Left'?: number;
-  'Total Stock Left'?: number;
+  "RCF Production"?: number;
+  "Boomi Samrudhi Production"?: string;
+  "RCF Sales"?: number;
+  "Boomi Samrudhi Sales"?: string;
+  "RCF Stock Left"?: number;
+  "Boomi Samrudhi Stock Left"?: number;
+  "Total Stock Left"?: number;
 }
 
 export interface RevenueRecord {
   id: number;
   Months?: string;
-  'Direct sales FOM'?: string;
-  'Direct Sales LFOM'?: string;
-  'MDA claim received'?: string;
-  'Total Revenue'?: string;
+  "Direct sales FOM"?: string;
+  "Direct Sales LFOM"?: string;
+  "MDA claim received"?: string;
+  "Total Revenue"?: string;
 }
 
-export type DatabaseRecord = 
-  | FOMRecord 
-  | LFOMRecord 
-  | MDAClaimRecord 
-  | POSLFOMRecord 
-  | POSFOMRecord 
+export type DatabaseRecord =
+  | FOMRecord
+  | LFOMRecord
+  | MDAClaimRecord
+  | POSLFOMRecord
+  | POSFOMRecord
   | StockRecord
   | RevenueRecord;
 

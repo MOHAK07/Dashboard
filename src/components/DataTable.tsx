@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { Search, SortAsc, SortDesc, Filter, Edit, Trash2 } from 'lucide-react';
-import { FlexibleDataRow } from '../types';
-import { DataProcessor } from '../utils/dataProcessing';
-import { useApp } from '../contexts/AppContext';
+import React, { useState, useMemo } from "react";
+import { FixedSizeList as List } from "react-window";
+import { Search, SortAsc, SortDesc, Filter, Edit, Trash2 } from "lucide-react";
+import { FlexibleDataRow } from "../types";
+import { DataProcessor } from "../utils/dataProcessing";
+import { useApp } from "../contexts/AppContext";
 
 interface DataTableProps {
   data: FlexibleDataRow[];
@@ -45,26 +45,33 @@ function Row({ index, style, data }: RowProps) {
   const row = data.filteredData[index];
   const recordId = String(row[data.idColumnKey] || index);
   const isSelected = data.selectedRecords?.includes(recordId) || false;
-  
+
   const handleSelectionChange = (checked: boolean) => {
     if (!data.onSelectionChange || !data.selectedRecords) return;
-    
+
     if (checked) {
       data.onSelectionChange([...data.selectedRecords, recordId]);
     } else {
-      data.onSelectionChange(data.selectedRecords.filter(id => id !== recordId));
+      data.onSelectionChange(
+        data.selectedRecords.filter((id) => id !== recordId)
+      );
     }
   };
-  
+
   return (
     <div
       style={style}
       className={`flex border-b border-gray-200 dark:border-gray-700 ${
-        index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
+        index % 2 === 0
+          ? "bg-gray-50 dark:bg-gray-800"
+          : "bg-white dark:bg-gray-900"
       } hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors overflow-hidden`}
     >
       {data.showActions && (
-        <div className="px-4 py-3 flex items-center space-x-2 flex-shrink-0" style={{ width: 120 }}>
+        <div
+          className="px-4 py-3 flex items-center space-x-2 flex-shrink-0"
+          style={{ width: 120 }}
+        >
           <input
             type="checkbox"
             checked={isSelected}
@@ -89,16 +96,19 @@ function Row({ index, style, data }: RowProps) {
       )}
       {data.columns.map((column) => {
         const value = row[column.key];
-        let displayValue = String(value || '');
-        
-        if (column.isNumeric && typeof value === 'number') {
-          if (column.key.toLowerCase().includes('price') || column.key.toLowerCase().includes('revenue')) {
+        let displayValue = String(value || "");
+
+        if (column.isNumeric && typeof value === "number") {
+          if (
+            column.key.toLowerCase().includes("price") ||
+            column.key.toLowerCase().includes("revenue")
+          ) {
             displayValue = DataProcessor.formatCurrency(value, data.currency);
           } else {
             displayValue = DataProcessor.formatNumber(value);
           }
         }
-        
+
         return (
           <div
             key={column.key}
@@ -113,66 +123,91 @@ function Row({ index, style, data }: RowProps) {
   );
 }
 
-export function DataTable({ 
-  data, 
-  className = '', 
-  tableId = 'data-table',
+export function DataTable({
+  data,
+  className = "",
+  tableId = "data-table",
   onEdit,
   onDelete,
   selectedRecords = [],
   onSelectionChange,
-  showActions = false
+  showActions = false,
 }: DataTableProps) {
   const { state } = useApp();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     key: string | null;
-    direction: 'asc' | 'desc';
-  }>({ key: null, direction: 'asc' });
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+    direction: "asc" | "desc";
+  }>({ key: null, direction: "asc" });
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
+    {}
+  );
   const [showFilters, setShowFilters] = useState(false);
 
   const columns: ColumnConfig[] = useMemo(() => {
     if (data.length === 0) return [];
-    
+
     const sampleRow = data[0];
     const numericColumns = DataProcessor.findNumericColumns(data);
-    
-    return Object.keys(sampleRow).map(key => ({
-      key,
-      label: key,
-      width: key.toLowerCase().includes('address') || key.toLowerCase().includes('adress') ? 250 : 
-             key.toLowerCase().includes('name') ? 180 :
-             key.toLowerCase().includes('date') ? 120 : 140,
-      sortable: true,
-      filterable: !key.toLowerCase().includes('address') && !key.toLowerCase().includes('adress'),
-      isNumeric: numericColumns.includes(key),
-    }));
+
+    return Object.keys(sampleRow).map((key) => {
+      const lowerKey = key.toLowerCase();
+      let width = 140; // Default width
+
+      if (lowerKey.includes("address") || lowerKey.includes("adress")) {
+        width = 250;
+      } else if (lowerKey.includes("quantity applied for mda claim")) {
+        width = 250; // Increased width for long MDA header
+      } else if (
+        lowerKey.includes("boomi samrudhi") ||
+        lowerKey.includes("rcf production") ||
+        lowerKey.includes("rcf sales")
+      ) {
+        width = 200; // Increased width for long Stock headers
+      } else if (lowerKey.includes("name")) {
+        width = 180;
+      } else if (lowerKey.includes("date")) {
+        width = 120;
+      }
+
+      return {
+        key,
+        label: key,
+        width, // Use the dynamically calculated width
+        sortable: true,
+        filterable:
+          !lowerKey.includes("address") && !lowerKey.includes("adress"),
+        isNumeric: numericColumns.includes(key),
+      };
+    });
   }, [data]);
 
   const idColumnKey = useMemo(() => {
-    if (data.length > 0 && 'id' in data[0]) {
-      return 'id';
+    if (data.length > 0 && "id" in data[0]) {
+      return "id";
     }
-    return columns.length > 0 ? columns[0].key : '';
+    return columns.length > 0 ? columns[0].key : "";
   }, [data, columns]);
-
 
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
 
     if (searchTerm) {
-      filtered = filtered.filter(row =>
-        Object.values(row).some(value =>
-          String(value || '').toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((value) =>
+          String(value || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
         )
       );
     }
 
     Object.entries(columnFilters).forEach(([key, value]) => {
       if (value) {
-        filtered = filtered.filter(row =>
-          String(row[key] || '').toLowerCase().includes(value.toLowerCase())
+        filtered = filtered.filter((row) =>
+          String(row[key] || "")
+            .toLowerCase()
+            .includes(value.toLowerCase())
         );
       }
     });
@@ -181,15 +216,17 @@ export function DataTable({
       filtered.sort((a, b) => {
         const aValue = a[sortConfig.key!];
         const bValue = b[sortConfig.key!];
-        
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "asc"
+            ? aValue - bValue
+            : bValue - aValue;
         }
-        
-        const aString = String(aValue || '').toLowerCase();
-        const bString = String(bValue || '').toLowerCase();
-        
-        if (sortConfig.direction === 'asc') {
+
+        const aString = String(aValue || "").toLowerCase();
+        const bString = String(bValue || "").toLowerCase();
+
+        if (sortConfig.direction === "asc") {
           return aString.localeCompare(bString);
         } else {
           return bString.localeCompare(aString);
@@ -201,24 +238,26 @@ export function DataTable({
   }, [data, searchTerm, sortConfig, columnFilters]);
 
   const handleSort = (key: string) => {
-    setSortConfig(prev => ({
+    setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   };
 
   const handleColumnFilter = (key: string, value: string) => {
-    setColumnFilters(prev => ({
+    setColumnFilters((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
   const getSortIcon = (key: string) => {
     if (sortConfig.key !== key) return null;
-    return sortConfig.direction === 'asc' ? 
-      <SortAsc className="h-4 w-4" /> : 
-      <SortDesc className="h-4 w-4" />;
+    return sortConfig.direction === "asc" ? (
+      <SortAsc className="h-4 w-4" />
+    ) : (
+      <SortDesc className="h-4 w-4" />
+    );
   };
 
   if (data.length === 0) {
@@ -238,9 +277,9 @@ export function DataTable({
     <div className={`${className}`}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {tableId === 'data-table' ? 'Data Explorer' : 'Dataset Table'}
+          {tableId === "data-table" ? "Data Explorer" : "Dataset Table"}
         </h3>
-        
+
         <div className="flex items-center space-x-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -252,11 +291,13 @@ export function DataTable({
               className="input-field pl-10 w-64"
             />
           </div>
-          
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              showFilters ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              showFilters
+                ? "bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400"
+                : "hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
             aria-label="Toggle column filters"
           >
@@ -268,20 +309,24 @@ export function DataTable({
       {showFilters && (
         <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg overflow-x-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {columns.filter(col => col.filterable).map(column => (
-              <div key={column.key}>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {column.label}
-                </label>
-                <input
-                  type="text"
-                  placeholder={`Filter ${column.label.toLowerCase()}...`}
-                  value={columnFilters[column.key] || ''}
-                  onChange={(e) => handleColumnFilter(column.key, e.target.value)}
-                  className="input-field text-sm"
-                />
-              </div>
-            ))}
+            {columns
+              .filter((col) => col.filterable)
+              .map((column) => (
+                <div key={column.key}>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {column.label}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={`Filter ${column.label.toLowerCase()}...`}
+                    value={columnFilters[column.key] || ""}
+                    onChange={(e) =>
+                      handleColumnFilter(column.key, e.target.value)
+                    }
+                    className="input-field text-sm"
+                  />
+                </div>
+              ))}
           </div>
         </div>
       )}
@@ -296,11 +341,16 @@ export function DataTable({
               >
                 <input
                   type="checkbox"
-                  checked={selectedRecords.length === filteredAndSortedData.length && filteredAndSortedData.length > 0}
+                  checked={
+                    selectedRecords.length === filteredAndSortedData.length &&
+                    filteredAndSortedData.length > 0
+                  }
                   onChange={(e) => {
                     if (!onSelectionChange) return;
                     if (e.target.checked) {
-                      const allIds = filteredAndSortedData.map((row, idx) => String(row[idColumnKey] || idx));
+                      const allIds = filteredAndSortedData.map((row, idx) =>
+                        String(row[idColumnKey] || idx)
+                      );
                       onSelectionChange(allIds);
                     } else {
                       onSelectionChange([]);
@@ -352,10 +402,14 @@ export function DataTable({
                 onDelete,
                 selectedRecords,
                 onSelectionChange,
-                showActions
+                showActions,
               }}
               width="100%"
-              style={{ minWidth: columns.reduce((sum, col) => sum + col.width, 0) + (showActions ? 120 : 0) }}
+              style={{
+                minWidth:
+                  columns.reduce((sum, col) => sum + col.width, 0) +
+                  (showActions ? 120 : 0),
+              }}
             >
               {Row}
             </List>
@@ -372,11 +426,11 @@ export function DataTable({
             </span>
           )}
         </div>
-        
+
         {searchTerm || Object.values(columnFilters).some(Boolean) ? (
           <button
             onClick={() => {
-              setSearchTerm('');
+              setSearchTerm("");
               setColumnFilters({});
             }}
             className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"

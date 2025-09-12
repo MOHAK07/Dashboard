@@ -77,7 +77,7 @@ export class DatabaseService {
       const { data, error, count } = await supabase
         .from(tableName)
         .select('*', { count: 'exact' })
-        .order('id', { ascending: false }); // Show newest first
+        .order('id', { ascending: true });
 
       if (error) {
         console.error(`Error fetching ${tableName}:`, error);

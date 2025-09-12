@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { Save, X, Plus, AlertCircle, CheckCircle } from 'lucide-react';
-import { FlexibleDataRow } from '../../types';
-import { TABLES, TableName } from '../../lib/supabase';
-import { DatabaseService } from '../../services/databaseService';
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { Save, X, Plus, AlertCircle, CheckCircle } from "lucide-react";
+import { FlexibleDataRow } from "../../types";
+import { TABLES, TableName } from "../../lib/supabase";
+import { DatabaseService } from "../../services/databaseService";
 
 interface DataEntryFormProps {
   tableName: TableName;
@@ -22,45 +22,60 @@ const createValidationSchema = (tableName: TableName) => {
   switch (tableName) {
     case TABLES.FOM:
     case TABLES.LFOM:
-      baseSchema.Date = yup.string().required('Date is required');
-      baseSchema.Name = yup.string().required('Name is required');
-      baseSchema.Quantity = yup.number().positive('Quantity must be positive').required('Quantity is required');
-      baseSchema.Price = yup.number().positive('Price must be positive').required('Price is required');
+      baseSchema.Date = yup.string().required("Date is required");
+      baseSchema.Name = yup.string().required("Name is required");
+      baseSchema.Quantity = yup
+        .number()
+        .positive("Quantity must be positive")
+        .required("Quantity is required");
+      baseSchema.Price = yup
+        .number()
+        .positive("Price must be positive")
+        .required("Price is required");
       break;
     case TABLES.POS_FOM:
     case TABLES.POS_LFOM:
-      baseSchema.Date = yup.string().required('Date is required');
-      baseSchema.Name = yup.string().required('Name is required');
-      baseSchema.Quantity = yup.number().positive('Quantity must be positive').required('Quantity is required');
-      baseSchema.Price = yup.number().positive('Price must be positive').required('Price is required');
+      baseSchema.Date = yup.string().required("Date is required");
+      baseSchema.Name = yup.string().required("Name is required");
+      baseSchema.Quantity = yup
+        .number()
+        .positive("Quantity must be positive")
+        .required("Quantity is required");
+      baseSchema.Price = yup
+        .number()
+        .positive("Price must be positive")
+        .required("Price is required");
       break;
     case TABLES.STOCK:
-      baseSchema.Date = yup.string().required('Date is required');
+      baseSchema.Date = yup.string().required("Date is required");
       break;
     case TABLES.MDA_CLAIM:
-      baseSchema.Year = yup.number().required('Year is required');
-      baseSchema.Month = yup.string().required('Month is required');
+      baseSchema.Year = yup.number().required("Year is required");
+      baseSchema.Month = yup.string().required("Month is required");
       break;
     case TABLES.REVENUE:
-      baseSchema.Months = yup.string().required('Month is required');
+      baseSchema.Months = yup.string().required("Month is required");
       break;
   }
 
   return yup.object(baseSchema);
 };
 
-export function DataEntryForm({ 
-  tableName, 
-  initialData, 
-  onSave, 
-  onCancel, 
-  isEdit = false 
+export function DataEntryForm({
+  tableName,
+  initialData,
+  onSave,
+  onCancel,
+  isEdit = false,
 }: DataEntryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [submitResult, setSubmitResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const schema = createValidationSchema(tableName);
-  
+
   const {
     register,
     handleSubmit,
@@ -86,7 +101,7 @@ export function DataEntryForm({
 
     try {
       let result;
-      
+
       if (isEdit && initialData) {
         const idColumn = "id";
         const recordId = initialData[idColumn];
@@ -115,16 +130,18 @@ export function DataEntryForm({
       if (result.error) {
         setSubmitResult({
           success: false,
-          message: result.error.message
+          message: result.error.message,
         });
       } else {
         setSubmitResult({
           success: true,
-          message: isEdit ? 'Record updated successfully' : 'Record created successfully'
+          message: isEdit
+            ? "Record updated successfully"
+            : "Record created successfully",
         });
-        
+
         onSave(data);
-        
+
         // Auto-close after success
         setTimeout(() => {
           onCancel();
@@ -133,7 +150,7 @@ export function DataEntryForm({
     } catch (error) {
       setSubmitResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Operation failed'
+        message: error instanceof Error ? error.message : "Operation failed",
       });
     } finally {
       setIsSubmitting(false);
@@ -145,72 +162,185 @@ export function DataEntryForm({
       case TABLES.FOM:
       case TABLES.LFOM:
         return [
-          { name: 'Date', type: 'date', label: 'Date', required: true },
-          { name: 'Week', type: 'text', label: 'Week' },
-          { name: 'Month', type: 'text', label: 'Month' },
-          { name: 'Year', type: 'number', label: 'Year' },
-          { name: 'Name', type: 'text', label: 'Customer Name', required: true },
-          { name: 'Adress', type: 'text', label: 'Address' },
-          { name: 'Pin code', type: 'number', label: 'Pin Code' },
-          { name: 'Taluka', type: 'text', label: 'Taluka' },
-          { name: 'District', type: 'text', label: 'District' },
-          { name: 'State', type: 'text', label: 'State' },
-          { name: 'Quantity', type: 'number', label: 'Quantity (mt)', required: true },
-          { name: 'Price', type: 'number', label: 'Price (₹)', required: true },
-          { name: 'Buyer Type', type: 'select', label: 'Buyer Type', options: ['B2B', 'B2C'] },
+          { name: "Date", type: "date", label: "Date", required: true },
+          { name: "Week", type: "text", label: "Week" },
+          { name: "Month", type: "text", label: "Month" },
+          { name: "Year", type: "number", label: "Year" },
+          {
+            name: "Name",
+            type: "text",
+            label: "Customer Name",
+            required: true,
+          },
+          { name: "Adress", type: "text", label: "Address" },
+          { name: "Pin code", type: "number", label: "Pin Code" },
+          { name: "Taluka", type: "text", label: "Taluka" },
+          { name: "District", type: "text", label: "District" },
+          { name: "State", type: "text", label: "State" },
+          {
+            name: "Quantity",
+            type: "number",
+            label: "Quantity (MT)",
+            required: true,
+          },
+          { name: "Price", type: "number", label: "Price (₹)", required: true },
+          {
+            name: "Buyer Type",
+            type: "select",
+            label: "Buyer Type",
+            options: ["B2B", "B2C"],
+          },
         ];
       case TABLES.POS_FOM:
       case TABLES.POS_LFOM:
         return [
-          { name: 'Date', type: 'date', label: 'Date', required: true },
-          { name: 'Week', type: 'text', label: 'Week' },
-          { name: 'Month', type: 'text', label: 'Month' },
-          { name: 'Year', type: 'number', label: 'Year' },
-          { name: 'Name', type: 'text', label: 'Customer Name', required: true },
-          { name: 'Adress', type: 'text', label: 'Address' },
-          { name: 'State', type: 'text', label: 'State' },
-          { name: 'Quantity', type: 'number', label: 'Quantity (mt)', required: true },
-          { name: 'Price', type: 'number', label: 'Price (₹)', required: true },
-          { name: 'Revenue', type: 'number', label: 'Revenue (₹)' },
-          { name: 'Type', type: 'select', label: 'Type', options: ['B2B', 'B2C'] },
+          { name: "Date", type: "date", label: "Date", required: true },
+          { name: "Week", type: "text", label: "Week" },
+          { name: "Month", type: "text", label: "Month" },
+          { name: "Year", type: "number", label: "Year" },
+          {
+            name: "Name",
+            type: "text",
+            label: "Customer Name",
+            required: true,
+          },
+          { name: "Adress", type: "text", label: "Address" },
+          { name: "State", type: "text", label: "State" },
+          {
+            name: "Quantity",
+            type: "number",
+            label: "Quantity (MT)",
+            required: true,
+          },
+          { name: "Price", type: "number", label: "Price (₹)", required: true },
+          { name: "Revenue", type: "number", label: "Revenue (₹)" },
+          {
+            name: "Type",
+            type: "select",
+            label: "Type",
+            options: ["B2B", "B2C"],
+          },
         ];
       case TABLES.STOCK:
         return [
-          { name: 'Date', type: 'date', label: 'Date', required: true },
-          { name: 'RCF Production', type: 'number', label: 'RCF Production (mt)' },
-          { name: 'Boomi Samrudhi Production', type: 'text', label: 'Boomi Samrudhi Production' },
-          { name: 'RCF Sales', type: 'number', label: 'RCF Sales (mt)' },
-          { name: 'Boomi Samrudhi Sales', type: 'text', label: 'Boomi Samrudhi Sales' },
-          { name: 'RCF Stock Left', type: 'number', label: 'RCF Stock Left (mt)' },
-          { name: 'Boomi Samrudhi Stock Left', type: 'number', label: 'Boomi Samrudhi Stock Left (mt)' },
-          { name: 'Total Stock Left', type: 'number', label: 'Total Stock Left (mt)' },
+          { name: "Date", type: "date", label: "Date", required: true },
+          {
+            name: "RCF Production",
+            type: "number",
+            label: "RCF Production (MT)",
+          },
+          {
+            name: "Boomi Samrudhi Production",
+            type: "text",
+            label: "Boomi Samrudhi Production",
+          },
+          { name: "RCF Sales", type: "number", label: "RCF Sales (MT)" },
+          {
+            name: "Boomi Samrudhi Sales",
+            type: "text",
+            label: "Boomi Samrudhi Sales",
+          },
+          {
+            name: "RCF Stock Left",
+            type: "number",
+            label: "RCF Stock Left (MT)",
+          },
+          {
+            name: "Boomi Samrudhi Stock Left",
+            type: "number",
+            label: "Boomi Samrudhi Stock Left (MT)",
+          },
+          {
+            name: "Total Stock Left",
+            type: "number",
+            label: "Total Stock Left (MT)",
+          },
         ];
       case TABLES.MDA_CLAIM:
         return [
-          { name: 'Year', type: 'number', label: 'Year', required: true },
-          { name: 'Month', type: 'select', label: 'Month', required: true, options: [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ]},
-          { name: 'Week', type: 'number', label: 'Week' },
-          { name: 'Quantity Applied for MDA Claim/Sold', type: 'text', label: 'Quantity Applied' },
-          { name: 'Claim Accepted', type: 'text', label: 'Claim Accepted' },
-          { name: 'Eligible Amount', type: 'text', label: 'Eligible Amount (₹)' },
-          { name: 'Amount Received', type: 'text', label: 'Amount Received (₹)' },
-          { name: 'Amount not Received', type: 'text', label: 'Amount not Received (₹)' },
-          { name: 'Date of Receipt', type: 'text', label: 'Date of Receipt' },
-          { name: '% Recovery', type: 'text', label: '% Recovery' },
+          { name: "Year", type: "number", label: "Year", required: true },
+          {
+            name: "Month",
+            type: "select",
+            label: "Month",
+            required: true,
+            options: [
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
+            ],
+          },
+          { name: "Week", type: "number", label: "Week" },
+          {
+            name: "Quantity Applied for MDA Claim/Sold",
+            type: "text",
+            label: "Quantity Applied",
+          },
+          { name: "Claim Accepted", type: "text", label: "Claim Accepted" },
+          {
+            name: "Eligible Amount",
+            type: "text",
+            label: "Eligible Amount (₹)",
+          },
+          {
+            name: "Amount Received",
+            type: "text",
+            label: "Amount Received (₹)",
+          },
+          {
+            name: "Amount not Received",
+            type: "text",
+            label: "Amount not Received (₹)",
+          },
+          { name: "Date of Receipt", type: "text", label: "Date of Receipt" },
         ];
       case TABLES.REVENUE:
         return [
-          { name: 'Months', type: 'select', label: 'Month', required: true, options: [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ]},
-          { name: 'Direct sales FOM', type: 'text', label: 'Direct Sales FOM (₹)' },
-          { name: 'Direct Sales LFOM', type: 'text', label: 'Direct Sales LFOM (₹)' },
-          { name: 'MDA claim received', type: 'text', label: 'MDA Claim Received (₹)' },
-          { name: 'Total Revenue', type: 'text', label: 'Total Revenue (₹)' },
+          {
+            name: "Months",
+            type: "select",
+            label: "Month",
+            required: true,
+            options: [
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
+            ],
+          },
+          {
+            name: "Direct sales FOM",
+            type: "text",
+            label: "Direct Sales FOM (₹)",
+          },
+          {
+            name: "Direct Sales LFOM",
+            type: "text",
+            label: "Direct Sales LFOM (₹)",
+          },
+          {
+            name: "MDA claim received",
+            type: "text",
+            label: "MDA Claim Received (₹)",
+          },
+          { name: "Total Revenue", type: "text", label: "Total Revenue (₹)" },
         ];
       default:
         return [];
@@ -220,11 +350,12 @@ export function DataEntryForm({
   const fields = getFieldsForTable(tableName);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 !m-0">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Fixed Header */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {isEdit ? 'Edit' : 'Add New'} {tableName} Record
+            {isEdit ? "Edit" : "Add New"} {tableName} Record
           </h2>
           <button
             onClick={onCancel}
@@ -235,71 +366,85 @@ export function DataEntryForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {fields.map((field) => (
-              <div key={field.name} className={field.name === 'Adress' ? 'md:col-span-2' : ''}>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {field.label}
-                  {field.required && <span className="text-error-500 ml-1">*</span>}
-                </label>
-                
-                {field.type === 'select' ? (
-                  <select
-                    {...register(field.name)}
-                    className="input-field w-full"
-                    disabled={isSubmitting}
-                  >
-                    <option value="">Select {field.label}</option>
-                    {field.options?.map(option => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    {...register(field.name)}
-                    type={field.type}
-                    className="input-field w-full"
-                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                    disabled={isSubmitting}
-                  />
-                )}
-                
-                {errors[field.name] && (
-                  <p className="mt-1 text-sm text-error-600 dark:text-error-400">
-                    {errors[field.name]?.message}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
+        {/* Scrollable Form Content */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {fields.map((field) => (
+                <div
+                  key={field.name}
+                  className={field.name === "Adress" ? "md:col-span-2" : ""}
+                >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {field.label}
+                    {field.required && (
+                      <span className="text-error-500 ml-1">*</span>
+                    )}
+                  </label>
 
-          {/* Submit Result */}
-          {submitResult && (
-            <div className={`p-4 rounded-lg flex items-center space-x-3 ${
-              submitResult.success 
-                ? 'bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-700' 
-                : 'bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-700'
-            }`}>
-              {submitResult.success ? (
-                <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-error-600 dark:text-error-400" />
-              )}
-              <p className={`text-sm font-medium ${
-                submitResult.success 
-                  ? 'text-success-700 dark:text-success-300' 
-                  : 'text-error-700 dark:text-error-300'
-              }`}>
-                {submitResult.message}
-              </p>
+                  {field.type === "select" ? (
+                    <select
+                      {...register(field.name)}
+                      className="input-field w-full"
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Select {field.label}</option>
+                      {field.options?.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      {...register(field.name)}
+                      type={field.type}
+                      className="input-field w-full"
+                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      disabled={isSubmitting}
+                    />
+                  )}
+
+                  {errors[field.name] && (
+                    <p className="mt-1 text-sm text-error-600 dark:text-error-400">
+                      {errors[field.name]?.message}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
 
-          {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {/* Submit Result */}
+            {submitResult && (
+              <div
+                className={`p-4 rounded-lg flex items-center space-x-3 ${
+                  submitResult.success
+                    ? "bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-700"
+                    : "bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-700"
+                }`}
+              >
+                {submitResult.success ? (
+                  <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-error-600 dark:text-error-400" />
+                )}
+                <p
+                  className={`text-sm font-medium ${
+                    submitResult.success
+                      ? "text-success-700 dark:text-success-300"
+                      : "text-error-700 dark:text-error-300"
+                  }`}
+                >
+                  {submitResult.message}
+                </p>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={onCancel}
@@ -310,6 +455,7 @@ export function DataEntryForm({
             </button>
             <button
               type="submit"
+              onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
@@ -318,10 +464,10 @@ export function DataEntryForm({
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              <span>{isEdit ? 'Update' : 'Save'} Record</span>
+              <span>{isEdit ? "Update" : "Save"} Record</span>
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

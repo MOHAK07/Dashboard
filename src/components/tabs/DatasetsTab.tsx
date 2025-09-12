@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Database, 
-  Eye, 
-  Trash2, 
-  Download, 
-  Merge, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Database,
+  Eye,
+  Trash2,
+  Download,
+  Merge,
   Calendar,
   FileText,
   CheckCircle,
@@ -18,24 +18,33 @@ import {
   Search,
   Grid,
   List,
-  ChevronDown
-} from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { Dataset } from '../../types';
-import { DataProcessor } from '../../utils/dataProcessing';
-import { DatabaseStatus } from '../DatabaseStatus';
-
+  ChevronDown,
+} from "lucide-react";
+import { useApp } from "../../contexts/AppContext";
+import { Dataset } from "../../types";
+import { DataProcessor } from "../../utils/dataProcessing";
+import { DatabaseStatus } from "../DatabaseStatus";
 
 export function DatasetsTab() {
-  const { state, setActiveDatasets, toggleDatasetActive, removeDataset, mergeDatasets } = useApp();
+  const {
+    state,
+    setActiveDatasets,
+    toggleDatasetActive,
+    removeDataset,
+    mergeDatasets,
+  } = useApp();
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
-  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'rows'>('date');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'valid' | 'warning' | 'error'>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
+  const [sortBy, setSortBy] = useState<"name" | "date" | "size" | "rows">(
+    "date"
+  );
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "valid" | "warning" | "error"
+  >("all");
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -44,68 +53,71 @@ export function DatasetsTab() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (statusRef.current && !statusRef.current.contains(event.target as Node)) {
+      if (
+        statusRef.current &&
+        !statusRef.current.contains(event.target as Node)
+      ) {
         setIsStatusOpen(false);
       }
       if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
         setIsSortOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'valid', label: 'Valid' },
-    { value: 'warning', label: 'Warning' },
-    { value: 'error', label: 'Error' },
+    { value: "all", label: "All Status" },
+    { value: "valid", label: "Valid" },
+    { value: "warning", label: "Warning" },
+    { value: "error", label: "Error" },
   ];
 
   const sortOptions = [
-    { value: 'date', label: 'Sort by Date' },
-    { value: 'name', label: 'Sort by Name' },
-    { value: 'size', label: 'Sort by Size' },
-    { value: 'rows', label: 'Sort by Rows' },
+    { value: "date", label: "Sort by Date" },
+    { value: "name", label: "Sort by Name" },
+    { value: "size", label: "Sort by Size" },
+    { value: "rows", label: "Sort by Rows" },
   ];
 
-  const getStatusIcon = (status: Dataset['status']) => {
+  const getStatusIcon = (status: Dataset["status"]) => {
     switch (status) {
-      case 'valid':
+      case "valid":
         return <CheckCircle className="h-4 w-4 text-success-500" />;
-      case 'warning':
+      case "warning":
         return <AlertTriangle className="h-4 w-4 text-warning-500" />;
-      case 'error':
+      case "error":
         return <AlertCircle className="h-4 w-4 text-error-500" />;
     }
   };
 
-  const getStatusColor = (status: Dataset['status']) => {
+  const getStatusColor = (status: Dataset["status"]) => {
     switch (status) {
-      case 'valid':
-        return 'bg-success-100 dark:bg-success-900/20 text-success-700 dark:text-success-300';
-      case 'warning':
-        return 'bg-warning-100 dark:bg-warning-900/20 text-warning-700 dark:text-warning-300';
-      case 'error':
-        return 'bg-error-100 dark:bg-error-900/20 text-error-700 dark:text-error-300';
+      case "valid":
+        return "bg-success-100 dark:bg-success-900/20 text-success-700 dark:text-success-300";
+      case "warning":
+        return "bg-warning-100 dark:bg-warning-900/20 text-warning-700 dark:text-warning-300";
+      case "error":
+        return "bg-error-100 dark:bg-error-900/20 text-error-700 dark:text-error-300";
     }
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const handleDatasetSelect = (datasetId: string) => {
     if (selectedDatasets.includes(datasetId)) {
-      setSelectedDatasets(prev => prev.filter(id => id !== datasetId));
+      setSelectedDatasets((prev) => prev.filter((id) => id !== datasetId));
     } else {
-      setSelectedDatasets(prev => [...prev, datasetId]);
+      setSelectedDatasets((prev) => [...prev, datasetId]);
     }
   };
 
@@ -117,7 +129,7 @@ export function DatasetsTab() {
 
   const handleConfirmMerge = () => {
     if (selectedDatasets.length >= 2) {
-      mergeDatasets(selectedDatasets[0], selectedDatasets[1], 'Date');
+      mergeDatasets(selectedDatasets[0], selectedDatasets[1], "Date");
       setShowMergeDialog(false);
       setSelectedDatasets([]);
     }
@@ -128,28 +140,34 @@ export function DatasetsTab() {
   };
 
   const filteredDatasets = state.datasets
-    .filter(dataset => {
-      const matchesSearch = dataset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           dataset.fileName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || dataset.status === filterStatus;
+    .filter((dataset) => {
+      const matchesSearch =
+        dataset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dataset.fileName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        filterStatus === "all" || dataset.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'name':
+        case "name":
           return a.name.localeCompare(b.name);
-        case 'date':
-          return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
-        case 'size':
+        case "date":
+          return (
+            new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+          );
+        case "size":
           return b.fileSize - a.fileSize;
-        case 'rows':
+        case "rows":
           return b.rowCount - a.rowCount;
         default:
           return 0;
       }
     });
-    
-  const activeDatasets = state.datasets.filter(d => state.activeDatasetIds.includes(d.id));
+
+  const activeDatasets = state.datasets.filter((d) =>
+    state.activeDatasetIds.includes(d.id)
+  );
 
   return (
     <>
@@ -164,10 +182,12 @@ export function DatasetsTab() {
               Manage and organize your data sources
             </p>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('openFileUpload'))}
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("openFileUpload"))
+              }
               className="btn-primary flex items-center space-x-2"
             >
               <Upload className="h-4 w-4" />
@@ -187,7 +207,9 @@ export function DatasetsTab() {
                 <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Datasets</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Total Datasets
+                </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {state.datasets.length}
                 </p>
@@ -201,9 +223,11 @@ export function DatasetsTab() {
                 <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Valid Datasets</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Valid Datasets
+                </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {state.datasets.filter(d => d.status === 'valid').length}
+                  {state.datasets.filter((d) => d.status === "valid").length}
                 </p>
               </div>
             </div>
@@ -215,9 +239,13 @@ export function DatasetsTab() {
                 <FileText className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Dataset Rows</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Active Dataset Rows
+                </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {activeDatasets.reduce((total, dataset) => total + dataset.rowCount, 0).toLocaleString()}
+                  {activeDatasets
+                    .reduce((total, dataset) => total + dataset.rowCount, 0)
+                    .toLocaleString()}
                 </p>
               </div>
             </div>
@@ -230,19 +258,20 @@ export function DatasetsTab() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Active Dataset{activeDatasets.length > 1 ? 's' : ''}
+                  Active Dataset{activeDatasets.length > 1 ? "s" : ""}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
-                  {activeDatasets.length > 0 
-                    ? `${activeDatasets.length} dataset${activeDatasets.length > 1 ? 's' : ''}`
-                    : 'None'
-                  }
+                  {activeDatasets.length > 0
+                    ? `${activeDatasets.length} dataset${
+                        activeDatasets.length > 1 ? "s" : ""
+                      }`
+                    : "None"}
                 </p>
               </div>
             </div>
             {activeDatasets.length > 0 && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs p-2 text-sm text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                {activeDatasets.map(d => d.name).join(', ')}
+                {activeDatasets.map((d) => d.name).join(", ")}
               </div>
             )}
           </div>
@@ -270,12 +299,18 @@ export function DatasetsTab() {
                   onClick={() => setIsStatusOpen(!isStatusOpen)}
                   className="input-field flex items-center justify-between text-left w-full sm:w-40"
                 >
-                  <span>{statusOptions.find(o => o.value === filterStatus)?.label}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
+                  <span>
+                    {statusOptions.find((o) => o.value === filterStatus)?.label}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      isStatusOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
                 {isStatusOpen && (
-                  <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
-                    {statusOptions.map(option => (
+                  <div className="absolute top-full mt-1 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
+                    {statusOptions.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => {
@@ -297,12 +332,18 @@ export function DatasetsTab() {
                   onClick={() => setIsSortOpen(!isSortOpen)}
                   className="input-field flex items-center justify-between text-left w-full sm:w-48"
                 >
-                  <span>{sortOptions.find(o => o.value === sortBy)?.label}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
+                  <span>
+                    {sortOptions.find((o) => o.value === sortBy)?.label}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      isSortOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
                 {isSortOpen && (
-                  <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
-                    {sortOptions.map(option => (
+                  <div className="absolute top-full mt-1 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
+                    {sortOptions.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => {
@@ -322,24 +363,24 @@ export function DatasetsTab() {
             <div className="flex items-center space-x-2">
               <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => setViewMode("list")}
                   className={`p-2 rounded transition-colors ${
-                    viewMode === 'grid' 
-                      ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                      : 'hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <Grid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'list' 
-                      ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                      : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                    viewMode === "list"
+                      ? "bg-white dark:bg-gray-600 shadow-sm"
+                      : "hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-white dark:bg-gray-600 shadow-sm"
+                      : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  <Grid className="h-4 w-4" />
                 </button>
               </div>
               {selectedDatasets.length > 0 && (
@@ -369,13 +410,14 @@ export function DatasetsTab() {
               No datasets found
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {searchTerm || filterStatus !== 'all' 
-                ? 'Try adjusting your search or filter criteria'
-                : 'Upload your first dataset to get started'
-              }
+              {searchTerm || filterStatus !== "all"
+                ? "Try adjusting your search or filter criteria"
+                : "Upload your first dataset to get started"}
             </p>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('openFileUpload'))}
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("openFileUpload"))
+              }
               className="btn-primary flex items-center space-x-2 mx-auto"
             >
               <Plus className="h-4 w-4" />
@@ -383,24 +425,38 @@ export function DatasetsTab() {
             </button>
           </div>
         ) : (
-          <div className={viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
-            : 'space-y-4'
-          }>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+          >
             {filteredDatasets.map((dataset) => (
               <div
                 key={dataset.id}
                 className={`
                   card cursor-pointer transition-all duration-200
-                  ${state.activeDatasetIds.includes(dataset.id)
-                    ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20' 
-                    : 'hover:shadow-md'
+                  ${
+                    state.activeDatasetIds.includes(dataset.id)
+                      ? "ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                      : "hover:shadow-md"
                   }
-                  ${selectedDatasets.includes(dataset.id) ? 'ring-2 ring-secondary-500' : ''}
-                  ${viewMode === 'list' ? 'flex items-center space-x-4' : ''}
+                  ${
+                    selectedDatasets.includes(dataset.id)
+                      ? "ring-2 ring-secondary-500"
+                      : ""
+                  }
+                  ${viewMode === "list" ? "flex items-center space-x-4" : ""}
                 `}
               >
-                <div className={viewMode === 'list' ? 'flex items-center space-x-3 flex-shrink-0' : 'mb-4'}>
+                <div
+                  className={
+                    viewMode === "list"
+                      ? "flex items-center space-x-3 flex-shrink-0"
+                      : "mb-4"
+                  }
+                >
                   <input
                     type="checkbox"
                     checked={selectedDatasets.includes(dataset.id)}
@@ -408,16 +464,20 @@ export function DatasetsTab() {
                     className="rounded border-gray-300 text-secondary-600 focus:ring-secondary-500"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <div 
+                  <div
                     className="w-4 h-4 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: DataProcessor.getDatasetColorByName(dataset.name) }}
+                    style={{
+                      backgroundColor: DataProcessor.getDatasetColorByName(
+                        dataset.name
+                      ),
+                    }}
                   />
-                  <div className={viewMode === 'list' ? 'w-48' : ''}>
+                  <div className={viewMode === "list" ? "w-48" : ""}>
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
                         {dataset.name}
                       </h3>
-                      {viewMode === 'grid' && getStatusIcon(dataset.status)}
+                      {viewMode === "grid" && getStatusIcon(dataset.status)}
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                       {dataset.fileName}
@@ -425,17 +485,21 @@ export function DatasetsTab() {
                   </div>
                 </div>
 
-                {viewMode === 'grid' ? (
+                {viewMode === "grid" ? (
                   <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Rows</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Rows
+                        </p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">
                           {dataset.rowCount.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Size</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Size
+                        </p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">
                           {formatFileSize(dataset.fileSize)}
                         </p>
@@ -443,9 +507,15 @@ export function DatasetsTab() {
                     </div>
 
                     <div className="mb-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dataset.status)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          dataset.status
+                        )}`}
+                      >
                         {getStatusIcon(dataset.status)}
-                        <span className="ml-1 capitalize">{dataset.status}</span>
+                        <span className="ml-1 capitalize">
+                          {dataset.status}
+                        </span>
                       </span>
                     </div>
 
@@ -461,11 +531,13 @@ export function DatasetsTab() {
                         }}
                         className={`text-xs px-3 py-1 rounded-full transition-colors ${
                           state.activeDatasetIds.includes(dataset.id)
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            ? "bg-primary-600 text-white"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                         }`}
                       >
-                        {state.activeDatasetIds.includes(dataset.id) ? 'Active' : 'Activate'}
+                        {state.activeDatasetIds.includes(dataset.id)
+                          ? "Active"
+                          : "Activate"}
                       </button>
 
                       <div className="flex items-center space-x-1">
@@ -499,16 +571,24 @@ export function DatasetsTab() {
                         <span className="font-medium text-gray-900 dark:text-gray-100">
                           {dataset.rowCount.toLocaleString()}
                         </span>
-                        <span className="text-gray-500 dark:text-gray-400 ml-1">rows</span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-1">
+                          rows
+                        </span>
                       </div>
                       <div>
                         <span className="font-medium text-gray-900 dark:text-gray-100">
                           {formatFileSize(dataset.fileSize)}
                         </span>
                       </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dataset.status)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          dataset.status
+                        )}`}
+                      >
                         {getStatusIcon(dataset.status)}
-                        <span className="ml-1 capitalize">{dataset.status}</span>
+                        <span className="ml-1 capitalize">
+                          {dataset.status}
+                        </span>
                       </span>
                     </div>
 
@@ -520,11 +600,13 @@ export function DatasetsTab() {
                         }}
                         className={`text-xs px-3 py-1 rounded-full transition-colors ${
                           state.activeDatasetIds.includes(dataset.id)
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            ? "bg-primary-600 text-white"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                         }`}
                       >
-                        {state.activeDatasetIds.includes(dataset.id) ? 'Active' : 'Activate'}
+                        {state.activeDatasetIds.includes(dataset.id)
+                          ? "Active"
+                          : "Activate"}
                       </button>
 
                       <button
@@ -562,7 +644,8 @@ export function DatasetsTab() {
                 Merge Datasets
               </h3>
               <p className="mb-6 text-gray-700 dark:text-gray-300">
-                Are you sure you want to merge the selected datasets? This will create a new merged dataset.
+                Are you sure you want to merge the selected datasets? This will
+                create a new merged dataset.
               </p>
               <div className="flex justify-end space-x-3">
                 <button onClick={handleCancelMerge} className="btn-secondary">
@@ -586,7 +669,8 @@ export function DatasetsTab() {
                   {previewDataset.name}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {previewDataset.rowCount.toLocaleString()} rows • {formatFileSize(previewDataset.fileSize)}
+                  {previewDataset.rowCount.toLocaleString()} rows •{" "}
+                  {formatFileSize(previewDataset.fileSize)}
                 </p>
               </div>
               <button
@@ -598,37 +682,52 @@ export function DatasetsTab() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              {Array.isArray(previewDataset.data) && previewDataset.data.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        {Object.keys(previewDataset.data[0]).map(col => (
-                          <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {previewDataset.data.slice(0, 50).map((row, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700' : ''}>
-                          {Object.keys(previewDataset.data[0]).map(col => (
-                            <td key={col} className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                              {String(row[col as keyof typeof row])}
-                            </td>
+              {Array.isArray(previewDataset.data) &&
+                previewDataset.data.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          {Object.keys(previewDataset.data[0]).map((col) => (
+                            <th
+                              key={col}
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                            >
+                              {col}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {previewDataset.data.slice(0, 50).map((row, idx) => (
+                          <tr
+                            key={idx}
+                            className={
+                              idx % 2 === 0 ? "bg-gray-50 dark:bg-gray-700" : ""
+                            }
+                          >
+                            {Object.keys(previewDataset.data[0]).map((col) => (
+                              <td
+                                key={col}
+                                className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap"
+                              >
+                                {String(row[col as keyof typeof row])}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
             </div>
 
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:justify-between gap-4 bg-white dark:bg-gray-800">
               <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                <span>Showing first 50 rows of {previewDataset.rowCount.toLocaleString()}</span>
+                <span>
+                  Showing first 50 rows of{" "}
+                  {previewDataset.rowCount.toLocaleString()}
+                </span>
                 {getStatusIcon(previewDataset.status)}
                 <span>{previewDataset.validationSummary}</span>
               </div>
@@ -639,7 +738,9 @@ export function DatasetsTab() {
                 }}
                 className="btn-primary w-full md:w-auto"
               >
-                {state.activeDatasetIds.includes(previewDataset.id) ? 'Remove from Active' : 'Add to Active'}
+                {state.activeDatasetIds.includes(previewDataset.id)
+                  ? "Remove from Active"
+                  : "Add to Active"}
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Edit,
@@ -10,6 +10,8 @@ import {
   FileText,
   AlertCircle,
   CheckCircle,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { TABLES, TableName } from "../../lib/supabase";
 import { FlexibleDataRow } from "../../types";
@@ -31,6 +33,8 @@ export function DataManagementTab() {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for the new dropdown
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // All tables now use 'id' as the primary key
   const idColumn = "id";
@@ -92,6 +96,21 @@ export function DataManagementTab() {
       subscription.unsubscribe();
     };
   }, [selectedTable]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
 
   const handleTableChange = (tableName: TableName) => {
     setSelectedTable(tableName);
@@ -197,21 +216,45 @@ export function DataManagementTab() {
       {/* Table Selection & Search */}
       <div className="card">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <div className="relative w-full lg:w-64" ref={dropdownRef}>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Select Table
             </label>
-            <select
-              value={selectedTable}
-              onChange={(e) => handleTableChange(e.target.value as TableName)}
-              className="input-field w-full lg:w-64"
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="input-field w-full flex items-center justify-between text-left"
             >
-              {Object.values(TABLES).map((tableName) => (
-                <option key={tableName} value={tableName}>
-                  {tableName}
-                </option>
-              ))}
-            </select>
+              <span>{selectedTable}</span>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {isDropdownOpen && (
+              <div className="absolute top-full mt-1 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
+                {Object.values(TABLES).map((tableName, index) => (
+                  <React.Fragment key={tableName}>
+                    <button
+                      onClick={() => {
+                        handleTableChange(tableName);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                    >
+                      <span>{tableName}</span>
+                      {selectedTable === tableName && (
+                        <Check className="h-4 w-4 text-primary-500" />
+                      )}
+                    </button>
+                    {/* Add divider line between options (except after the last one) */}
+                    {index < Object.values(TABLES).length - 1 && (
+                      <div className="border-t border-gray-100 dark:border-gray-700 mx-2" />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
