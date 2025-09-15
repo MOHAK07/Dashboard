@@ -80,9 +80,9 @@ export interface StockRecord {
   id: number;
   Date?: string;
   "RCF Production"?: number;
-  "Boomi Samrudhi Production"?: string;
+  "Boomi Samrudhi Production"?: number;
   "RCF Sales"?: number;
-  "Boomi Samrudhi Sales"?: string;
+  "Boomi Samrudhi Sales"?: number;
   "RCF Stock Left"?: number;
   "Boomi Samrudhi Stock Left"?: number;
   "Total Stock Left"?: number;
