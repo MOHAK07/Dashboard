@@ -86,6 +86,10 @@ export interface StockRecord {
   "RCF Stock Left"?: number;
   "Boomi Samrudhi Stock Left"?: number;
   "Total Stock Left"?: number;
+  "RCF Price"?: number; 
+  "RCF Revenue"?: number; 
+  "Boomi Samrudhi Price"?: number; 
+  "Boomi Samrudhi Revenue"?: number;
 }
 
 export interface RevenueRecord {

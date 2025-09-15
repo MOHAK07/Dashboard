@@ -49,7 +49,90 @@ export function DatasetSpecificKPIs({
   className = "",
 }: DatasetSpecificKPIsProps) {
   const { state } = useApp();
-  const { getFilteredData } = useGlobalFilterContext();
+  const { getFilteredData, filterState } = useGlobalFilterContext();
+
+  const monthDisplayText = useMemo(() => {
+    const { selectedMonths } = filterState.filters.months;
+    const { startDate } = filterState.filters.dateRange;
+    const monthOrder = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    if (selectedMonths.length > 0) {
+      const sortedMonths = [...selectedMonths].sort(
+        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+      );
+      return `for ${sortedMonths[0]}'25`;
+    }
+
+    if (startDate) {
+      const date = new Date(startDate);
+      const monthName = monthOrder[date.getUTCMonth()];
+      return `from ${monthName}'25`;
+    }
+
+    const activeData = state.datasets
+      .filter((d) => state.activeDatasetIds.includes(d.id))
+      .flatMap((d) => d.data); // Use unfiltered data for default month
+
+    if (activeData.length > 0) {
+      const yearColumn = Object.keys(activeData[0]).find(
+        (c) => c.toLowerCase() === "year"
+      );
+      const dateColumn = Object.keys(activeData[0]).find(
+        (c) => c.toLowerCase() === "date"
+      );
+      const monthColumn = Object.keys(activeData[0]).find(
+        (c) => c.toLowerCase() === "month"
+      );
+
+      if (monthColumn && (yearColumn || dateColumn)) {
+        const monthsIn2025 = activeData
+          .filter((row) => {
+            if (yearColumn) {
+              return String(row[yearColumn]) === "2025";
+            }
+            if (dateColumn) {
+              try {
+                const date = new Date(row[dateColumn] as string);
+                return date.getFullYear() === 2025;
+              } catch (e) {
+                return false;
+              }
+            }
+            return false;
+          })
+          .map((row) => row[monthColumn])
+          .filter(Boolean) as string[];
+
+        if (monthsIn2025.length > 0) {
+          const uniqueMonths = [...new Set(monthsIn2025)];
+          uniqueMonths.sort(
+            (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+          );
+          return `from ${uniqueMonths[0]}'25`;
+        }
+      }
+    }
+
+    return "from April'25";
+  }, [
+    filterState.filters.months,
+    filterState.filters.dateRange,
+    state.datasets,
+    state.activeDatasetIds,
+  ]);
 
   const { fomKpi, lfomKpi } = useMemo(() => {
     const fomDataset = state.datasets.find(
@@ -109,28 +192,28 @@ export function DatasetSpecificKPIs({
 
   const kpiCards = [
     {
-      title: "FOM Sales from April'25",
+      title: `FOM Sales ${monthDisplayText}`,
       kpi: fomKpi,
       value: fomKpi?.totalQuantity,
       hasData: fomKpi?.hasQuantityData,
       type: "quantity",
     },
     {
-      title: "LFOM Sales from April'25",
+      title: `LFOM Sales ${monthDisplayText}`,
       kpi: lfomKpi,
       value: lfomKpi?.totalQuantity,
       hasData: lfomKpi?.hasQuantityData,
       type: "quantity",
     },
     {
-      title: "FOM Revenue from April'25",
+      title: `FOM Revenue ${monthDisplayText}`,
       kpi: fomKpi,
       value: fomKpi?.totalRevenue,
       hasData: fomKpi?.hasRevenueData,
       type: "revenue",
     },
     {
-      title: "LFOM Revenue from April'25",
+      title: `LFOM Revenue ${monthDisplayText}`,
       kpi: lfomKpi,
       value: lfomKpi?.totalRevenue,
       hasData: lfomKpi?.hasRevenueData,
