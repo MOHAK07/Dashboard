@@ -10,6 +10,7 @@ import { StockAnalysisChart } from "../charts/StockAnalysisChart";
 import { BuyerTypeAnalysisChart } from "../charts/BuyerTypeAnalysisChart";
 import { StockKPICards } from "../charts/StockKPICards";
 import { RevenueKPICards } from "../charts/RevenueKPICards";
+import { B2BBuyerKPIs } from "../charts/B2BbuyerKPI";
 import { useApp } from "../../contexts/AppContext";
 import { DrillDownBreadcrumb } from "../DrillDownBreadcrumb";
 import { ColorManager } from "../../utils/colorManager";
@@ -72,17 +73,20 @@ export function OverviewTab({ data }: OverviewTabProps) {
       <DrillDownBreadcrumb />
 
       {/* Pass the filtered 'data' prop to all child components */}
-      <div id="kpi-cards-container" className=" gap-4 grid grid-cols-1">
+      <div id="kpi-cards-container" className=" gap-3 grid grid-cols-1">
         <DatasetSpecificKPIs />
         {hasRevenueData && <RevenueKPICards />}
+
         {hasStockData && <StockKPICards />}
 
         {hasMDAClaimData && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <MDAClaimKPI />
           </div>
         )}
       </div>
+
+      <B2BBuyerKPIs />
 
       <div className="printable-chart-container grid grid-cols-1">
         <WeeklyDataDistributionChart />

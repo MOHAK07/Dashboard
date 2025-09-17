@@ -69,64 +69,78 @@ export function DatasetSpecificKPIs({
       "December",
     ];
 
+    // Priority 1: Use selected months from global filter
     if (selectedMonths.length > 0) {
       const sortedMonths = [...selectedMonths].sort(
         (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
       );
-      return `for ${sortedMonths[0]}'25`;
+      // Assuming the year is relevant to the selection context, might need a dynamic year here
+      return `for ${sortedMonths[0]}`;
     }
 
+    // Priority 2: Use start date from global date range filter
     if (startDate) {
-      const date = new Date(startDate);
-      const monthName = monthOrder[date.getUTCMonth()];
-      return `from ${monthName}'25`;
+      try {
+        const date = new Date(startDate + "T00:00:00"); // Ensure correct parsing
+        const monthName = monthOrder[date.getUTCMonth()];
+        const year = date.getFullYear().toString().slice(-2);
+        return `from ${monthName}'${year}`;
+      } catch (e) {
+        // Fallback if date is invalid
+      }
     }
 
-    const activeData = state.datasets
-      .filter((d) => state.activeDatasetIds.includes(d.id))
-      .flatMap((d) => d.data); // Use unfiltered data for default month
+    // Priority 3: Derive from FOM/LFOM data
+    const fomLfomData = state.datasets
+      .filter(
+        (d) =>
+          state.activeDatasetIds.includes(d.id) &&
+          (d.name.toLowerCase().includes("fom") ||
+            d.name.toLowerCase().includes("lfom")) &&
+          !d.name.toLowerCase().includes("pos")
+      )
+      .flatMap((d) => d.data);
 
-    if (activeData.length > 0) {
-      const yearColumn = Object.keys(activeData[0]).find(
+    if (fomLfomData.length > 0) {
+      const firstRow = fomLfomData[0];
+      const yearColumn = Object.keys(firstRow).find(
         (c) => c.toLowerCase() === "year"
       );
-      const dateColumn = Object.keys(activeData[0]).find(
-        (c) => c.toLowerCase() === "date"
-      );
-      const monthColumn = Object.keys(activeData[0]).find(
+      const monthColumn = Object.keys(firstRow).find(
         (c) => c.toLowerCase() === "month"
       );
 
-      if (monthColumn && (yearColumn || dateColumn)) {
-        const monthsIn2025 = activeData
-          .filter((row) => {
-            if (yearColumn) {
-              return String(row[yearColumn]) === "2025";
-            }
-            if (dateColumn) {
-              try {
-                const date = new Date(row[dateColumn] as string);
-                return date.getFullYear() === 2025;
-              } catch (e) {
-                return false;
-              }
-            }
-            return false;
-          })
-          .map((row) => row[monthColumn])
-          .filter(Boolean) as string[];
+      if (monthColumn && yearColumn) {
+        // Find the latest year in the dataset
+        let latestYear = 0;
+        for (const row of fomLfomData) {
+          const year = parseInt(String(row[yearColumn]), 10);
+          if (!isNaN(year) && year > latestYear) {
+            latestYear = year;
+          }
+        }
 
-        if (monthsIn2025.length > 0) {
-          const uniqueMonths = [...new Set(monthsIn2025)];
-          uniqueMonths.sort(
-            (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
-          );
-          return `from ${uniqueMonths[0]}'25`;
+        if (latestYear > 0) {
+          // Filter for data only from that latest year and get the months
+          const monthsInLatestYear = fomLfomData
+            .filter((row) => String(row[yearColumn]) === String(latestYear))
+            .map((row) => String(row[monthColumn]))
+            .filter(Boolean);
+
+          if (monthsInLatestYear.length > 0) {
+            // Find the earliest month within that year
+            const uniqueMonths = [...new Set(monthsInLatestYear)];
+            uniqueMonths.sort(
+              (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+            );
+            return `from ${uniqueMonths[0]}'${String(latestYear).slice(-2)}`;
+          }
         }
       }
     }
 
-    return "from April'25";
+    // Final fallback
+    return "for selected period";
   }, [
     filterState.filters.months,
     filterState.filters.dateRange,
@@ -223,7 +237,7 @@ export function DatasetSpecificKPIs({
 
   return (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${className}`}
     >
       {kpiCards.map((card, index) => (
         <div
@@ -256,12 +270,12 @@ export function DatasetSpecificKPIs({
               <p className="text-[1.2rem] font-bold text-gray-900 dark:text-gray-100 mb-1">
                 {card.kpi && card.hasData
                   ? card.type === "quantity"
-                    ? `${card.value.toLocaleString("en-US", {
+                    ? `${(card.value ?? 0).toLocaleString("en-US", {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 2,
                       })} MT`
                     : DataProcessor.formatCurrency(
-                        card.value,
+                        card.value ?? 0,
                         state.settings.currency
                       )
                   : "No Data"}
