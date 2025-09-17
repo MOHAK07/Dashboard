@@ -6,12 +6,14 @@ import { ColorManager } from "../utils/colorManager";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 // Helper to detect data type
-const detectDataType = (tableName: string): 'sales' | 'production' | 'stock' | 'unknown' => {
+const detectDataType = (
+  tableName: string
+): "sales" | "production" | "stock" | "unknown" => {
   const lowerName = tableName.toLowerCase();
-  if (lowerName.includes('stock')) return 'stock';
-  if (lowerName.includes('production')) return 'production';
-  if (lowerName.includes('fom') || lowerName.includes('lfom')) return 'sales';
-  return 'unknown';
+  if (lowerName.includes("stock")) return "stock";
+  if (lowerName.includes("production")) return "production";
+  if (lowerName.includes("fom") || lowerName.includes("lfom")) return "sales";
+  return "unknown";
 };
 
 // Helper to convert DB records to a Dataset
@@ -19,7 +21,7 @@ const convertDatabaseRecordsToDataset = (
   tableName: TableName,
   records: any[]
 ): Dataset => {
-  const data: FlexibleDataRow[] = records.map(record => {
+  const data: FlexibleDataRow[] = records.map((record) => {
     const converted: FlexibleDataRow = {};
     Object.entries(record).forEach(([key, value]: [string, any]) => {
       converted[key] = value;
@@ -28,13 +30,13 @@ const convertDatabaseRecordsToDataset = (
   });
 
   return {
-    id: `supabase-${tableName.toLowerCase().replace(/\s+/g, '-')}`,
+    id: `supabase-${tableName.toLowerCase().replace(/\s+/g, "-")}`,
     name: tableName,
     data,
     fileName: `${tableName}.csv`,
     fileSize: JSON.stringify(records).length,
     uploadDate: new Date().toISOString(),
-    status: 'valid',
+    status: "valid",
     rowCount: records.length,
     validationSummary: `${records.length} records loaded from database`,
     color: ColorManager.getDatasetColor(tableName),
@@ -44,9 +46,9 @@ const convertDatabaseRecordsToDataset = (
   };
 };
 
-export function useSupabaseData() {
+export function useSupabaseData(enabled: boolean = true) {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAllData = useCallback(async () => {
@@ -55,22 +57,44 @@ export function useSupabaseData() {
     try {
       const result = await DatabaseService.fetchAllData();
       if (result.errors && result.errors.length > 0) {
-        setError(`Some data could not be loaded: ${result.errors.join(', ')}`);
+        setError(`Some data could not be loaded: ${result.errors.join(", ")}`);
       }
 
       const newDatasets: Dataset[] = [];
-      if (result.fom && result.fom.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.FOM, result.fom));
-      if (result.lfom && result.lfom.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.LFOM, result.lfom));
-      if (result.mdaClaim && result.mdaClaim.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.MDA_CLAIM, result.mdaClaim));
-      if (result.posLfom && result.posLfom.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.POS_LFOM, result.posLfom));
-      if (result.posFom && result.posFom.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.POS_FOM, result.posFom));
-      if (result.stock && result.stock.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.STOCK, result.stock));
-      if (result.revenue && result.revenue.length > 0) newDatasets.push(convertDatabaseRecordsToDataset(TABLES.REVENUE, result.revenue));
-      
-      setDatasets(newDatasets);
+      if (result.fom && result.fom.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.FOM, result.fom)
+        );
+      if (result.lfom && result.lfom.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.LFOM, result.lfom)
+        );
+      if (result.mdaClaim && result.mdaClaim.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.MDA_CLAIM, result.mdaClaim)
+        );
+      if (result.posLfom && result.posLfom.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.POS_LFOM, result.posLfom)
+        );
+      if (result.posFom && result.posFom.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.POS_FOM, result.posFom)
+        );
+      if (result.stock && result.stock.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.STOCK, result.stock)
+        );
+      if (result.revenue && result.revenue.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.REVENUE, result.revenue)
+        );
 
+      setDatasets(newDatasets);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch initial data');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch initial data"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -78,67 +102,78 @@ export function useSupabaseData() {
 
   // Effect for initial fetch and real-time subscriptions
   useEffect(() => {
+    if (!enabled) {
+      setIsLoading(false);
+      setDatasets([]);
+      return;
+    }
+
     fetchAllData();
 
-    const handleRealtimeUpdate = (tableName: TableName) => (
-      payload: RealtimePostgresChangesPayload<FlexibleDataRow>
-    ) => {
-      console.log(`Real-time change in ${tableName}:`, payload);
-      setDatasets(currentDatasets => {
-        const datasetIndex = currentDatasets.findIndex(ds => ds.name === tableName);
-        
-        if (datasetIndex === -1 && payload.eventType === 'INSERT') {
+    const handleRealtimeUpdate =
+      (tableName: TableName) =>
+      (payload: RealtimePostgresChangesPayload<FlexibleDataRow>) => {
+        console.log(`Real-time change in ${tableName}:`, payload);
+        setDatasets((currentDatasets) => {
+          const datasetIndex = currentDatasets.findIndex(
+            (ds) => ds.name === tableName
+          );
+
+          if (datasetIndex === -1 && payload.eventType === "INSERT") {
             fetchAllData();
             return currentDatasets;
-        }
-        
-        if(datasetIndex === -1) return currentDatasets;
+          }
 
-        const updatedDataset = { ...currentDatasets[datasetIndex] };
-        // All tables now use 'id' as the primary key
-        const idColumn = "id";
+          if (datasetIndex === -1) return currentDatasets;
 
-        switch (payload.eventType) {
-          case 'INSERT':
-            updatedDataset.data = [payload.new, ...updatedDataset.data];
-            break;
-          case 'UPDATE':
-            updatedDataset.data = updatedDataset.data.map(row =>
-              row[idColumn] === payload.new[idColumn] ? payload.new : row
-            );
-            break;
-          case 'DELETE':
-            const recordId = (payload.old as FlexibleDataRow)[idColumn];
-            updatedDataset.data = updatedDataset.data.filter(
-              row => row[idColumn] !== recordId
-            );
-            break;
-          default:
-            break;
-        }
+          const updatedDataset = { ...currentDatasets[datasetIndex] };
+          // All tables now use 'id' as the primary key
+          const idColumn = "id";
 
-        updatedDataset.rowCount = updatedDataset.data.length;
-        updatedDataset.preview = updatedDataset.data.slice(0, 5);
+          switch (payload.eventType) {
+            case "INSERT":
+              updatedDataset.data = [payload.new, ...updatedDataset.data];
+              break;
+            case "UPDATE":
+              updatedDataset.data = updatedDataset.data.map((row) =>
+                row[idColumn] === payload.new[idColumn] ? payload.new : row
+              );
+              break;
+            case "DELETE":
+              const recordId = (payload.old as FlexibleDataRow)[idColumn];
+              updatedDataset.data = updatedDataset.data.filter(
+                (row) => row[idColumn] !== recordId
+              );
+              break;
+            default:
+              break;
+          }
 
-        const newDatasets = [...currentDatasets];
-        newDatasets[datasetIndex] = updatedDataset;
-        
-        if (updatedDataset.rowCount === 0) {
-            return newDatasets.filter(ds => ds.name !== tableName);
-        }
+          updatedDataset.rowCount = updatedDataset.data.length;
+          updatedDataset.preview = updatedDataset.data.slice(0, 5);
 
-        return newDatasets;
-      });
-    };
+          const newDatasets = [...currentDatasets];
+          newDatasets[datasetIndex] = updatedDataset;
 
-    const subscriptions = Object.values(TABLES).map(tableName => {
-      return DatabaseService.subscribeToTable(tableName, handleRealtimeUpdate(tableName));
+          if (updatedDataset.rowCount === 0) {
+            return newDatasets.filter((ds) => ds.name !== tableName);
+          }
+
+          return newDatasets;
+        });
+      };
+
+    const subscriptions = Object.values(TABLES).map((tableName) => {
+      return DatabaseService.subscribeToTable(
+        tableName,
+        handleRealtimeUpdate(tableName)
+      );
     });
 
     return () => {
-      subscriptions.forEach(sub => sub.unsubscribe());
+      subscriptions.forEach((sub) => sub.unsubscribe());
     };
-  }, [fetchAllData]);
+  }, [enabled, fetchAllData]);
 
   return {
     datasets,

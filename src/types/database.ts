@@ -96,7 +96,10 @@ export interface RevenueRecord {
   id: number;
   Months?: string;
   "Direct sales FOM"?: string;
+  "FOM B2B"?: string;
+  "FOM B2C"?: string;
   "Direct Sales LFOM"?: string;
+  "LFOM B2C"?: string;
   "MDA claim received"?: string;
   "Total Revenue"?: string;
 }

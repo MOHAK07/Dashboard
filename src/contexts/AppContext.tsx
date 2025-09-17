@@ -110,13 +110,13 @@ function combineActiveDatasets(
   const activeDatasets = datasets.filter((d) =>
     activeDatasetIds.includes(d.id)
   );
-  
-  return activeDatasets.flatMap((dataset) => 
-    dataset.data.map(row => ({
-      ...row, 
+
+  return activeDatasets.flatMap((dataset) =>
+    dataset.data.map((row) => ({
+      ...row,
       __datasetId: dataset.id,
-      __datasetName: dataset.name, 
-      __datasetColor: dataset.color 
+      __datasetName: dataset.name,
+      __datasetColor: dataset.color,
     }))
   );
 }
@@ -322,7 +322,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     error: supabaseError,
     refetch: refetchSupabaseData,
     uploadData,
-  } = useSupabaseData();
+  } = useSupabaseData(!!user);
 
   const [state, dispatch] = useReducer(appReducer, initialState);
 
@@ -339,13 +339,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Listen for global filter events
     const handleGlobalFiltersApplied = (event: CustomEvent) => {
-      dispatch({ type: "SET_FILTERED_DATA", payload: event.detail.filteredData });
+      dispatch({
+        type: "SET_FILTERED_DATA",
+        payload: event.detail.filteredData,
+      });
     };
 
-    window.addEventListener('global-filters-applied', handleGlobalFiltersApplied as EventListener);
-    
+    window.addEventListener(
+      "global-filters-applied",
+      handleGlobalFiltersApplied as EventListener
+    );
+
     return () => {
-      window.removeEventListener('global-filters-applied', handleGlobalFiltersApplied as EventListener);
+      window.removeEventListener(
+        "global-filters-applied",
+        handleGlobalFiltersApplied as EventListener
+      );
     };
   }, []);
 
@@ -358,7 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user) {
       dispatch({ type: "RESET_STATE" });
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Sync Supabase data with local state
   useEffect(() => {
@@ -376,7 +385,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Only apply drill-down filters here (global filters are handled by GlobalFilterContext)
     let currentFilteredData = state.filteredData; // Use already filtered data from global filters
-    
+
     const drillDownFilters = state.filters.drillDownFilters;
     if (Object.keys(drillDownFilters).length > 0) {
       currentFilteredData = currentFilteredData.filter((row) => {
@@ -385,9 +394,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
       });
     }
-    
+
     // Update filtered data only if drill-down filters changed the data
-    if (JSON.stringify(currentFilteredData) !== JSON.stringify(state.filteredData)) {
+    if (
+      JSON.stringify(currentFilteredData) !== JSON.stringify(state.filteredData)
+    ) {
       dispatch({ type: "SET_FILTERED_DATA", payload: currentFilteredData });
     }
   }, [state.filteredData, state.filters.drillDownFilters, dispatch]);
@@ -470,7 +481,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const clearGlobalFilters = () => {
     // This function is now handled by the GlobalFilterContext
     // Keep for backward compatibility but delegate to new system
-    console.warn('clearGlobalFilters is deprecated. Use GlobalFilterContext instead.');
+    console.warn(
+      "clearGlobalFilters is deprecated. Use GlobalFilterContext instead."
+    );
   };
   const getMultiDatasetData = () => {
     return state.datasets
