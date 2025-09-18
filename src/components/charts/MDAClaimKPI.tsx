@@ -461,16 +461,16 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         {/* Left Section: Recovery Rate */}
         <div className="flex items-center justify-between w-full md:w-auto md:justify-start space-x-4">
+          <div className={`p-3 rounded-lg ${statusStyle.bgColor}`}>
+            <Percent className={`h-6 w-6 ${statusStyle.iconColor}`} />
+          </div>
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
               MDA Claim Recovery Rate
             </p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {mdaKPIs.recoveryPercentage.toFixed(2)}%
             </p>
-          </div>
-          <div className={`p-3 rounded-lg ${statusStyle.bgColor}`}>
-            <Percent className={`h-6 w-6 ${statusStyle.iconColor}`} />
           </div>
         </div>
 
@@ -478,7 +478,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
         <div className="w-full md:w-auto flex flex-1 flex-col sm:flex-row sm:items-center justify-start sm:justify-end gap-6 sm:gap-8">
           {/* Metric Item */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
               <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
@@ -493,7 +493,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
 
           {/* Metric Item */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+            <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
@@ -508,7 +508,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
 
           {/* Metric Item */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg">
+            <div className="p-3 bg-red-100 dark:bg-red-900/50 rounded-lg">
               <Wallet className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
             <div>

@@ -1,6 +1,6 @@
 // Database types based on existing schema
 export interface FOMRecord {
-  "S.No.": number;
+  "id": number;
   Date?: string;
   Week?: string;
   Month?: string;
@@ -17,7 +17,7 @@ export interface FOMRecord {
 }
 
 export interface LFOMRecord {
-  "S.No.": number;
+  "id": number;
   Date?: string;
   Week?: string;
   Month?: string;
