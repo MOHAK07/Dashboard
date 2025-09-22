@@ -14,6 +14,91 @@ import { DataManagementTab } from "./components/data/DataManagementTab";
 import { ExplorerTab } from "./components/tabs/ExplorerTab";
 import { DatasetsTab } from "./components/tabs/DatasetsTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
+
+function ExportStatusIndicator() {
+  const { state, dispatch } = useApp();
+  const { isExporting, exportSuccessMessage } = state;
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Effect to manage the visibility and auto-hide of the success/error message
+  useEffect(() => {
+    if (exportSuccessMessage) {
+      setShowSuccess(true);
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+        // Allow time for fade-out animation before clearing the message from state
+        setTimeout(() => {
+          dispatch({ type: "SET_EXPORT_SUCCESS", payload: null });
+        }, 400); // This should match the transition duration
+      }, 3000); // Message visible for 3 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [exportSuccessMessage, dispatch]);
+
+  // Render nothing if there is no activity
+  if (!isExporting && !showSuccess) {
+    return null;
+  }
+
+  // Loading Indicator
+  if (isExporting) {
+    return (
+      <div className="fixed top-20 right-5 z-[100] w-full max-w-sm p-4 rounded-lg shadow-2xl border-l-4 bg-blue-100 border-blue-500 text-blue-800 dark:bg-blue-900/50 dark:border-blue-500 dark:text-blue-200 transition-all duration-300 ease-in-out transform opacity-100 translate-x-0">
+        <div className="flex items-center space-x-4">
+          <div className="animate-spin h-6 w-6 border-2 border-current border-t-transparent rounded-full" />
+          <div>
+            <p className="font-bold">Exporting...</p>
+            <p className="text-sm">Your file is being generated.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success or Error Pop-up
+  if (showSuccess && exportSuccessMessage) {
+    const isSuccess = exportSuccessMessage.toLowerCase().includes("success");
+    const successClasses =
+      "bg-green-100 border-green-500 text-green-800 dark:bg-green-900/50 dark:border-green-500 dark:text-green-200";
+    const errorClasses =
+      "bg-red-100 border-red-500 text-red-800 dark:bg-red-900/50 dark:border-red-500 dark:text-red-200";
+    const visibilityClasses = showSuccess
+      ? "opacity-100 translate-x-0"
+      : "opacity-0 translate-x-10";
+
+    return (
+      <div
+        className={`fixed top-20 right-5 z-[100] w-full max-w-sm p-4 rounded-lg shadow-2xl border-l-4 transition-all duration-300 ease-in-out transform ${visibilityClasses} ${
+          isSuccess ? successClasses : errorClasses
+        }`}
+      >
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            {isSuccess ? (
+              <CheckCircle className="h-6 w-6 text-green-500" />
+            ) : (
+              <AlertCircle className="h-6 w-6 text-red-500" />
+            )}
+          </div>
+          <div className="ml-3 flex-1">
+            <p className="font-bold">{isSuccess ? "Success" : "Error"}</p>
+            <p className="text-sm">{exportSuccessMessage}</p>
+          </div>
+          <button
+            onClick={() => setShowSuccess(false)}
+            className="ml-4 p-1 rounded-full hover:bg-black/10"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 function DashboardContent() {
   const { state, setActiveTab } = useApp();
@@ -137,6 +222,7 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <ExportStatusIndicator />
       <Sidebar
         isCollapsed={sidebarCollapsed}
         onToggle={handleSidebarToggle}

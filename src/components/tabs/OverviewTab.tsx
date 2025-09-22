@@ -84,9 +84,9 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <MDAClaimKPI />
           </div>
         )}
-      </div>
 
-      <B2BBuyerKPIs />
+        <B2BBuyerKPIs />
+      </div>
 
       <div className="printable-chart-container grid grid-cols-1">
         <WeeklyDataDistributionChart />

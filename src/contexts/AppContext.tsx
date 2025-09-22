@@ -33,6 +33,8 @@ interface AppState {
   databaseError: string | null;
   user: any;
   isAuthenticated: boolean;
+  isExporting: boolean;
+  exportSuccessMessage: string | null;
 }
 
 // Define action types
@@ -54,7 +56,10 @@ type AppAction =
   | { type: "SYNC_FROM_DATABASE"; payload: Dataset[] }
   | { type: "SET_USER"; payload: any }
   | { type: "SET_AUTHENTICATED"; payload: boolean }
-  | { type: "RESET_STATE" }; // New action to reset the state
+  | { type: "RESET_STATE" } // New action to reset the state
+  | { type: "SET_ACTIVE_ALL"; payload: boolean }
+  | { type: "SET_EXPORTING"; payload: boolean }
+  | { type: "SET_EXPORT_SUCCESS"; payload: string | null };
 
 // Initial state
 const initialState: AppState = {
@@ -86,20 +91,11 @@ const initialState: AppState = {
   databaseError: null,
   user: null,
   isAuthenticated: false,
+  isExporting: false,
+  exportSuccessMessage: null,
 };
 
 // Helper function to combine data from active datasets
-// function combineActiveDatasets(
-//   datasets: Dataset[],
-//   activeDatasetIds: string[]
-// ): FlexibleDataRow[] {
-//   if (activeDatasetIds.length === 0) return [];
-
-//   const activeDatasets = datasets.filter((d) =>
-//     activeDatasetIds.includes(d.id)
-//   );
-//   return activeDatasets.flatMap((dataset) => dataset.data);
-// }
 
 function combineActiveDatasets(
   datasets: Dataset[],
@@ -167,6 +163,22 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ? state.activeDatasetIds.filter((id) => id !== datasetId)
         : [...state.activeDatasetIds, datasetId];
 
+      const newCombinedData = combineActiveDatasets(
+        state.datasets,
+        newActiveIds
+      );
+      return {
+        ...state,
+        activeDatasetIds: newActiveIds,
+        data: newCombinedData,
+        filteredData: newCombinedData,
+      };
+    }
+
+    case "SET_ACTIVE_ALL": {
+      const newActiveIds = action.payload
+        ? state.datasets.map((d) => d.id)
+        : [];
       const newCombinedData = combineActiveDatasets(
         state.datasets,
         newActiveIds
@@ -265,6 +277,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       sessionStorage.removeItem("dashboard-active-ids");
       return initialState;
 
+    case "SET_EXPORTING":
+      return { ...state, isExporting: action.payload };
+
+    case "SET_EXPORT_SUCCESS":
+      return { ...state, exportSuccessMessage: action.payload };
+
     default:
       return state;
   }
@@ -280,6 +298,7 @@ const AppContext = createContext<
       setFilters: (filters: FilterState) => void;
       setSettings: (settings: UserSettings) => void;
       toggleDatasetActive: (id: string) => void;
+      toggleAllDatasetsActive: (activate: boolean) => void;
       removeDataset: (id: string) => void;
       addDrillDownFilter: (key: string, value: any) => void;
       clearDrillDownFilters: () => void;
@@ -460,6 +479,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleDatasetActive = (id: string) => {
     dispatch({ type: "TOGGLE_DATASET_ACTIVE", payload: id });
   };
+
+  const toggleAllDatasetsActive = (activate: boolean) => {
+    dispatch({ type: "SET_ACTIVE_ALL", payload: activate });
+  };
+
   const removeDataset = (id: string) => {
     dispatch({ type: "DELETE_DATASET", payload: id });
   };
@@ -566,6 +590,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setFilters,
         setSettings,
         toggleDatasetActive,
+        toggleAllDatasetsActive,
         removeDataset,
         addDrillDownFilter,
         clearDrillDownFilters,

@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Menu,
-  Sun,
-  Moon,
-  Download,
-  Filter,
-  User,
-} from "lucide-react";
+import { Menu, Sun, Moon, Download, Filter, User } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { ExportUtils } from "../utils/exportUtils";
 import { DatabaseSyncIndicator } from "./DatabaseSyncIndicator";
@@ -29,13 +22,13 @@ export function Header({
   onMobileMenuToggle,
   onUploadNewDataset,
 }: HeaderProps) {
-  const { state, setSettings } = useApp();
+  const { state, dispatch, setSettings } = useApp();
   const {
     filterState,
     updateFilters,
     clearFilters,
     resetFilter,
-    hasActiveFilters
+    hasActiveFilters,
   } = useGlobalFilterContext();
   const { user, signOut } = useAuth();
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -76,6 +69,8 @@ export function Header({
   };
 
   const handleExport = async (format: "pdf" | "png" | "csv" | "json") => {
+    setShowExportMenu(false);
+    dispatch({ type: "SET_EXPORTING", payload: true });
     try {
       await ExportUtils.exportDashboard(
         {
@@ -86,16 +81,33 @@ export function Header({
         state.filteredData,
         state.settings.currency
       );
-      setShowExportMenu(false);
+      dispatch({
+        type: "SET_EXPORT_SUCCESS",
+        payload: `Export to ${format.toUpperCase()} successful!`,
+      });
     } catch (error) {
       console.error("Export failed:", error);
+      dispatch({
+        type: "SET_EXPORT_SUCCESS",
+        payload: `Export to ${format.toUpperCase()} failed.`,
+      });
+    } finally {
+      dispatch({ type: "SET_EXPORTING", payload: false });
+      setTimeout(
+        () => dispatch({ type: "SET_EXPORT_SUCCESS", payload: null }),
+        3000
+      );
     }
   };
 
   // Calculate active filter count for display
   const getActiveFilterCount = () => {
     let count = 0;
-    if (filterState.filters.dateRange.startDate || filterState.filters.dateRange.endDate) count++;
+    if (
+      filterState.filters.dateRange.startDate ||
+      filterState.filters.dateRange.endDate
+    )
+      count++;
     if (filterState.filters.months.selectedMonths.length > 0) count++;
     if (filterState.filters.buyerTypes.selectedTypes.length > 0) count++;
     return count;
@@ -141,9 +153,10 @@ export function Header({
               onClick={() => setShowGlobalFilters(true)}
               className={`
                 relative p-2 rounded-lg transition-all duration-200 focus:outline-none
-                ${hasActiveFilters 
-                  ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                ${
+                  hasActiveFilters
+                    ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
                 }
               `}
               title="Global Filters"

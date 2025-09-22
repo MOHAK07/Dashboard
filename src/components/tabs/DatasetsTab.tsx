@@ -28,7 +28,7 @@ import { DatabaseStatus } from "../DatabaseStatus";
 export function DatasetsTab() {
   const {
     state,
-    setActiveDatasets,
+    toggleAllDatasetsActive,
     toggleDatasetActive,
     removeDataset,
     mergeDatasets,
@@ -51,6 +51,13 @@ export function DatasetsTab() {
   const statusRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
 
+  const allDatasetsActive =
+    state.datasets.length > 0 &&
+    state.activeDatasetIds.length === state.datasets.length;
+
+  const handleToggleAll = () => {
+    toggleAllDatasetsActive(!allDatasetsActive);
+  };
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -171,7 +178,7 @@ export function DatasetsTab() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-6 overflow-x-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -200,7 +207,7 @@ export function DatasetsTab() {
         <DatabaseStatus />
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
           <div className="card">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
@@ -239,7 +246,7 @@ export function DatasetsTab() {
                 <FileText className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p className="text-[0.87rem] font-medium text-gray-600 dark:text-gray-400">
                   Active Dataset Rows
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -279,17 +286,17 @@ export function DatasetsTab() {
 
         {/* Controls */}
         <div className="card">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-4">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               {/* Search */}
-              <div className="relative w-full sm:w-auto sm:flex-1 md:flex-none md:w-64">
+              <div className="relative flex-grow lg:flex-grow-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search datasets..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field pl-10 w-full"
+                  className="input-field pl-10 w-full sm:w-64"
                 />
               </div>
 
@@ -360,29 +367,93 @@ export function DatasetsTab() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === "list"
-                      ? "bg-white dark:bg-gray-600 shadow-sm"
-                      : "hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
+            <div className="flex items-center justify-start xl:justify-end flex-wrap gap-4">
+              <button
+                onClick={handleToggleAll}
+                className={`
+    glass-button relative text-xs px-4 py-2 rounded-full transition-all duration-300 ease-in-out
+    border
+    ${
+      allDatasetsActive
+        ? "bg-primary-500/20 border-primary-400/30 text-primary-700 dark:text-primary-300 shadow-primary-500/20"
+        : "bg-white/20 dark:bg-gray-800/20 border-gray/20 dark:border-gray-400/30 text-gray-700 dark:text-gray-300"
+    }
+    hover:shadow-lg
+    ${
+      allDatasetsActive
+        ? "hover:bg-primary-500/30 hover:border-primary-400/50"
+        : "hover:bg-white/30 dark:hover:bg-gray-800/30 hover:border-gray/20 dark:hover:border-gray-400/50"
+    }
+    before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-r 
+    ${
+      allDatasetsActive
+        ? "before:from-primary-400/10 before:to-primary-600/10"
+        : "before:from-white/5 before:to-gray-400/5"
+    }
+    before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300
+    transform hover:scale-105 active:scale-95
+  `}
+              >
+                <span className="relative z-10 font-medium">
+                  {allDatasetsActive ? "Deactivate All" : "Activate All"}
+                </span>
+              </button>
+
+              {/* Clean Minimalistic Glass Toggle */}
+              <div className="relative">
+                <div
+                  className="flex items-center backdrop-blur-md bg-gray-300/20 dark:bg-gray-900/40 rounded-full p-1 border border-white/20 dark:border-gray-700/20"
+                  style={{
+                    backdropFilter: "blur(12px) saturate(120%)",
+                    WebkitBackdropFilter: "blur(12px) saturate(120%)",
+                  }}
                 >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === "grid"
-                      ? "bg-white dark:bg-gray-600 shadow-sm"
-                      : "hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  <Grid className="h-4 w-4" />
-                </button>
+                  {/* Simple sliding indicator */}
+                  <div
+                    className={`
+        absolute w-8 h-8 rounded-full transition-all duration-300 ease-out
+        bg-white/80 dark:bg-gray-100/90 backdrop-blur-sm
+        shadow-lg border border-white/30 dark:border-gray-200/30
+        ${viewMode === "list" ? "left-1" : "left-9"}
+      `}
+                    style={{
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)",
+                    }}
+                  />
+
+                  {/* List Button */}
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`
+        relative z-10 p-2 rounded-full transition-colors duration-300
+        ${
+          viewMode === "list"
+            ? "text-gray-700 dark:text-gray-800"
+            : "text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        }
+      `}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+
+                  {/* Grid Button */}
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`
+        relative z-10 p-2 rounded-full transition-colors duration-300
+        ${
+          viewMode === "grid"
+            ? "text-gray-700 dark:text-gray-800"
+            : "text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        }
+      `}
+                  >
+                    <Grid className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
               {selectedDatasets.length > 0 && (
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -402,7 +473,7 @@ export function DatasetsTab() {
           </div>
         </div>
 
-        {/* Dataset Grid/List */}
+        {/* Dataset Grid/List - Added padding to container to account for ring overflow */}
         {filteredDatasets.length === 0 ? (
           <div className="card text-center py-12">
             <Database className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -426,25 +497,33 @@ export function DatasetsTab() {
           </div>
         ) : (
           <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "space-y-4"
-            }
+            className={`
+              ${
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "space-y-4"
+              }
+              px-1
+            `}
+            style={{
+              marginLeft: "-0.25rem",
+              marginRight: "-0.25rem",
+              padding: "0.25rem",
+            }}
           >
             {filteredDatasets.map((dataset) => (
               <div
                 key={dataset.id}
                 className={`
-                  card cursor-pointer transition-all duration-200
+                  card cursor-pointer transition-all duration-200 relative
                   ${
                     state.activeDatasetIds.includes(dataset.id)
-                      ? "ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                      : "hover:shadow-md"
+                      ? "border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                      : "hover:shadow-md border-2 border-transparent"
                   }
                   ${
                     selectedDatasets.includes(dataset.id)
-                      ? "ring-2 ring-secondary-500"
+                      ? "outline outline-2 outline-offset-2 outline-secondary-500"
                       : ""
                   }
                   ${viewMode === "list" ? "flex items-center space-x-4" : ""}
