@@ -15,6 +15,7 @@ import { ExplorerTab } from "./components/tabs/ExplorerTab";
 import { DatasetsTab } from "./components/tabs/DatasetsTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AlertCircle, CheckCircle, X } from "lucide-react";
+import { useRealtimeSubscriptions } from "./hooks/useRealtimeSubscriptions";
 
 function ExportStatusIndicator() {
   const { state, dispatch } = useApp();
@@ -103,11 +104,18 @@ function ExportStatusIndicator() {
 function DashboardContent() {
   const { state, setActiveTab } = useApp();
   const { user, isLoading: authLoading, role } = useAuth();
+  const realtimeStatus = useRealtimeSubscriptions();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (user && realtimeStatus?.isSubscribed) {
+      console.log("Real-time subscriptions are active for user:", user.email);
+    }
+  }, [user, realtimeStatus]);
 
   // This effect sets the default tab based on the user's role after login.
   useEffect(() => {

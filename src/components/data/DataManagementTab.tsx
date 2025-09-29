@@ -20,8 +20,10 @@ import { DataEntryForm } from "./DataEntryForm";
 import { BulkUploadModal } from "./BulkUploadModal";
 import { DataTable } from "../DataTable";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { useApp } from "../../contexts/AppContext";
 
 export function DataManagementTab() {
+  const { dispatch } = useApp();
   const [selectedTable, setSelectedTable] = useState<TableName>(TABLES.FOM);
   const [tableData, setTableData] = useState<FlexibleDataRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,6 +72,39 @@ export function DataManagementTab() {
       console.log("Real-time change received:", payload);
       const { eventType, new: newRecord, old: oldRecord } = payload;
 
+      if (payload.commit_timestamp) {
+        const updateTime = new Date(payload.commit_timestamp);
+        console.log(
+          "DATA_TAB: Updating global state with timestamp:",
+          updateTime
+        );
+        // Update global app state
+        dispatch({
+          type: "SET_LAST_DB_UPDATE_TIME",
+          payload: updateTime,
+        });
+
+        // Store in localStorage for persistence
+        localStorage.setItem(
+          "lastDatabaseUpdateTime",
+          updateTime.toISOString()
+        );
+
+        // Dispatch event for UpdateStatus component
+        window.dispatchEvent(
+          new CustomEvent("supabase-data-changed", {
+            detail: {
+              table: payload.table,
+              eventType: payload.eventType,
+              timestamp: payload.commit_timestamp,
+              formattedTime: updateTime.toISOString(),
+            },
+          })
+        );
+
+        console.log("DATA_TAB: Global state updated successfully");
+      }
+
       setTableData((currentData) => {
         if (eventType === "INSERT") {
           return [newRecord, ...currentData];
@@ -95,7 +130,22 @@ export function DataManagementTab() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [selectedTable]);
+  }, [selectedTable, dispatch]);
+
+  // Load saved timestamp when component mounts or user changes
+  useEffect(() => {
+    const savedTimestamp = localStorage.getItem("lastDatabaseUpdateTime");
+    if (savedTimestamp) {
+      const savedDate = new Date(savedTimestamp);
+      if (!isNaN(savedDate.getTime())) {
+        console.log("DATA_TAB: Loading saved timestamp:", savedDate);
+        dispatch({
+          type: "SET_LAST_DB_UPDATE_TIME",
+          payload: savedDate,
+        });
+      }
+    }
+  }, [dispatch]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

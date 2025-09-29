@@ -35,6 +35,7 @@ interface AppState {
   isAuthenticated: boolean;
   isExporting: boolean;
   exportSuccessMessage: string | null;
+  lastDatabaseUpdateTime: Date | null;
 }
 
 // Define action types
@@ -59,7 +60,8 @@ type AppAction =
   | { type: "RESET_STATE" } // New action to reset the state
   | { type: "SET_ACTIVE_ALL"; payload: boolean }
   | { type: "SET_EXPORTING"; payload: boolean }
-  | { type: "SET_EXPORT_SUCCESS"; payload: string | null };
+  | { type: "SET_EXPORT_SUCCESS"; payload: string | null }
+  | { type: "SET_LAST_DB_UPDATE_TIME"; payload: Date };
 
 // Initial state
 const initialState: AppState = {
@@ -93,6 +95,7 @@ const initialState: AppState = {
   isAuthenticated: false,
   isExporting: false,
   exportSuccessMessage: null,
+  lastDatabaseUpdateTime: null,
 };
 
 // Helper function to combine data from active datasets
@@ -272,16 +275,41 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, isAuthenticated: action.payload };
 
     case "RESET_STATE":
+      const currentTimestamp = state.lastDatabaseUpdateTime;
       sessionStorage.removeItem("dashboard-datasets");
       sessionStorage.removeItem("dashboard-data");
       sessionStorage.removeItem("dashboard-active-ids");
-      return initialState;
+      return {
+        ...initialState,
+        lastDatabaseUpdateTime: currentTimestamp, // Preserve the timestamp
+      };
 
     case "SET_EXPORTING":
       return { ...state, isExporting: action.payload };
 
     case "SET_EXPORT_SUCCESS":
       return { ...state, exportSuccessMessage: action.payload };
+
+    case "SET_LAST_DB_UPDATE_TIME":
+      console.log("🔴 REDUCER: Payload type:", typeof action.payload);
+      console.log("🔴 REDUCER: Is Date?", action.payload instanceof Date);
+      console.log(
+        "🔴 REDUCER: Current timestamp in state:",
+        state.lastDatabaseUpdateTime
+      );
+
+      const newState = {
+        ...state,
+        lastDatabaseUpdateTime: action.payload,
+      };
+
+      console.log(
+        "🔴 REDUCER: New state timestamp:",
+        newState.lastDatabaseUpdateTime
+      );
+      console.log("🔴 REDUCER: State updated successfully");
+
+      return newState;
 
     default:
       return state;
@@ -327,10 +355,10 @@ const AppContext = createContext<
 >(undefined);
 
 // Component that handles realtime subscriptions safely
-function RealtimeSubscriptionHandler({ children }: { children: ReactNode }) {
-  useRealtimeSubscriptions();
-  return <>{children}</>;
-}
+// function RealtimeSubscriptionHandler({ children }: { children: ReactNode }) {
+//   useRealtimeSubscriptions();
+//   return <>{children}</>;
+// }
 
 // Provider component
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -385,6 +413,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // If the user is logged out, reset the entire state
     if (!user) {
       dispatch({ type: "RESET_STATE" });
+      // But immediately reload the saved timestamp even after reset
+      const savedTimestamp = localStorage.getItem("lastDatabaseUpdateTime");
+      if (savedTimestamp) {
+        const savedDate = new Date(savedTimestamp);
+        if (!isNaN(savedDate.getTime())) {
+          console.log(
+            "🔴 APP_CONTEXT: Restoring timestamp after logout:",
+            savedDate
+          );
+          dispatch({
+            type: "SET_LAST_DB_UPDATE_TIME",
+            payload: savedDate,
+          });
+        }
+      }
     }
   }, [user?.id]);
 
@@ -422,25 +465,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.filteredData, state.filters.drillDownFilters, dispatch]);
 
-  // Save state to sessionStorage whenever it changes
-  // useEffect(() => {
-  //   if (state.datasets.length > 0) {
-  //     try {
-  //       sessionStorage.setItem(
-  //         "dashboard-datasets",
-  //         JSON.stringify(state.datasets)
-  //       );
-  //       sessionStorage.setItem("dashboard-data", JSON.stringify(state.data));
-  //       sessionStorage.setItem(
-  //         "dashboard-active-ids",
-  //         JSON.stringify(state.activeDatasetIds)
-  //       );
-  //     } catch (error) {
-  //       console.error("Error saving state to sessionStorage:", error);
-  //     }
-  //   }
-  // }, [state.datasets, state.data, state.activeDatasetIds]);
-
   // Save settings to localStorage whenever they change
   useEffect(() => {
     try {
@@ -452,6 +476,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error("Error saving settings to localStorage:", error);
     }
   }, [state.settings]);
+
+  useEffect(() => {
+    // Load saved timestamp when the app initializes (even before user login)
+    const savedTimestamp = localStorage.getItem("lastDatabaseUpdateTime");
+    if (savedTimestamp) {
+      const savedDate = new Date(savedTimestamp);
+      if (!isNaN(savedDate.getTime())) {
+        console.log(
+          "🔴 APP_CONTEXT: Loading saved timestamp on app init:",
+          savedDate
+        );
+        dispatch({
+          type: "SET_LAST_DB_UPDATE_TIME",
+          payload: savedDate,
+        });
+      }
+    }
+  }, []);
 
   const setActiveTab = (tab: TabType) => {
     dispatch({ type: "SET_ACTIVE_TAB", payload: tab });
@@ -604,7 +646,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         syncFromDatabase: refetchSupabaseData,
       }}
     >
-      <RealtimeSubscriptionHandler>{children}</RealtimeSubscriptionHandler>
+      {children}
     </AppContext.Provider>
   );
 }

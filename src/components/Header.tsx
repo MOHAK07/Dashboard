@@ -8,6 +8,7 @@ import { ActiveFiltersDisplay } from "./filters/ActiveFiltersDisplay";
 import { SavedFilters } from "./SavedFilters";
 import { useGlobalFilterContext } from "../contexts/GlobalFilterContext";
 import { useAuth } from "../hooks/useAuth";
+import { UpdateStatus } from "./UpdateStatus";
 // @ts-ignore
 import logoDark from "../assets/TrualtLogo2.png";
 // @ts-ignore
@@ -117,7 +118,7 @@ export function Header({
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 lg:px-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         {/* Left side */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <button
             onClick={onMobileMenuToggle}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors lg:hidden focus:outline-none"
@@ -140,7 +141,8 @@ export function Header({
         </div>
 
         {/* Right side */}
-        <div className="flex items-center space-x-2 lg:space-x-2">
+        <div className="flex items-center space-x-2 lg:space-x-3">
+          <UpdateStatus />
           {/* Database Sync Indicator */}
           <DatabaseSyncIndicator />
 
