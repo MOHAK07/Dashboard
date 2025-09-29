@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { FlexibleDataRow } from "../../types";
 import { DatasetSpecificKPIs } from "../charts/DatasetSpecificKPIs";
 import { DatasetTimeSeriesChart } from "../charts/DatasetTimeSeriesChart";
@@ -22,6 +23,7 @@ interface OverviewTabProps {
 export function OverviewTab({ data }: OverviewTabProps) {
   const { state } = useApp();
   const isDarkMode = state.settings.theme === "dark";
+  const [chartsVisible, setChartsVisible] = useState(true);
 
   // Check if MDA claim data is available
   const hasMDAClaimData = state.datasets.some(
@@ -88,34 +90,52 @@ export function OverviewTab({ data }: OverviewTabProps) {
         <B2BBuyerKPIs />
       </div>
 
-      <div className="printable-chart-container grid grid-cols-1">
-        <WeeklyDataDistributionChart />
+      <div className="flex justify-end">
+        <button
+          onClick={() => setChartsVisible(!chartsVisible)}
+          className="glass-button flex items-center space-x-3 px-5 py-2"
+        >
+          {chartsVisible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+          <span>{chartsVisible ? "Hide Charts" : "Show Charts"}</span>
+        </button>
       </div>
 
-      {hasFOMData && (
-        <div className="printable-chart-container">
-          <BuyerTypeAnalysisChart />
-        </div>
-      )}
+      {chartsVisible && (
+        <>
+          <div className="printable-chart-container grid grid-cols-1">
+            <WeeklyDataDistributionChart />
+          </div>
 
-      <div className="printable-chart-container">
-        <DatasetTimeSeriesChart />
-      </div>
+          {hasFOMData && (
+            <div className="printable-chart-container">
+              <BuyerTypeAnalysisChart />
+            </div>
+          )}
 
-      <div className="printable-chart-container">
-        <DynamicRevenueBreakdownChart />
-      </div>
+          <div className="printable-chart-container">
+            <DatasetTimeSeriesChart />
+          </div>
 
-      {hasStockData && (
-        <div className="printable-chart-container">
-          <StockAnalysisChart />
-        </div>
-      )}
+          <div className="printable-chart-container">
+            <DynamicRevenueBreakdownChart />
+          </div>
 
-      {hasMDAClaimData && (
-        <div className="printable-chart-container">
-          <MDAClaimChart />
-        </div>
+          {hasStockData && (
+            <div className="printable-chart-container">
+              <StockAnalysisChart />
+            </div>
+          )}
+
+          {hasMDAClaimData && (
+            <div className="printable-chart-container">
+              <MDAClaimChart />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
