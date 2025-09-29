@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react';
-import Chart from 'react-apexcharts';
-import { ApexOptions } from 'apexcharts';
-import { useApp } from '../../contexts/AppContext';
-import { useGlobalFilterContext } from '../../contexts/GlobalFilterContext';
-import { ChartContainer } from './ChartContainer';
-import { DataProcessor } from '../../utils/dataProcessing';
-import { ColorManager } from '../../utils/colorManager';
-import { FlexibleDataRow } from '../../types';
+import React, { useMemo } from "react";
+import Chart from "react-apexcharts";
+import { ApexOptions } from "apexcharts";
+import { useApp } from "../../contexts/AppContext";
+import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
+import { ChartContainer } from "./ChartContainer";
+import { DataProcessor } from "../../utils/dataProcessing";
+import { ColorManager } from "../../utils/colorManager";
+import { FlexibleDataRow } from "../../types";
 
 interface BuyerTypeData {
   buyerType: string;
@@ -22,35 +22,53 @@ export function BuyerTypeAnalysisChart() {
 
   // Get all active datasets and process buyer type data from each
   const buyerTypeAnalysis = useMemo((): BuyerTypeData[] => {
-    const activeDatasets = state.datasets.filter(d => state.activeDatasetIds.includes(d.id));
+    const activeDatasets = state.datasets.filter((d) =>
+      state.activeDatasetIds.includes(d.id)
+    );
 
     if (activeDatasets.length === 0) return [];
 
     // Initialize buyer type aggregation
-    const buyerTypeMap = new Map<string, { total: number; totalQuantity: number; count: number; prices: number[] }>();
+    const buyerTypeMap = new Map<
+      string,
+      { total: number; totalQuantity: number; count: number; prices: number[] }
+    >();
 
     // Initialize both buyer types to ensure they always appear
-    buyerTypeMap.set('B2B', { total: 0, totalQuantity: 0, count: 0, prices: [] });
-    buyerTypeMap.set('B2C', { total: 0, totalQuantity: 0, count: 0, prices: [] });
+    buyerTypeMap.set("B2B", {
+      total: 0,
+      totalQuantity: 0,
+      count: 0,
+      prices: [],
+    });
+    buyerTypeMap.set("B2C", {
+      total: 0,
+      totalQuantity: 0,
+      count: 0,
+      prices: [],
+    });
 
-    activeDatasets.forEach(dataset => {
+    activeDatasets.forEach((dataset) => {
       const data = getFilteredData(dataset.data);
       if (!data || data.length === 0) return;
 
       // Find the buyer type column (case insensitive and flexible matching)
-      const buyerTypeColumn = Object.keys(data[0] || {}).find(col => {
-        const lowerCol = col.toLowerCase().replace(/\s+/g, '');
-        return lowerCol.includes('buyer') && lowerCol.includes('type');
+      const buyerTypeColumn = Object.keys(data[0] || {}).find((col) => {
+        const lowerCol = col.toLowerCase().replace(/\s+/g, "");
+        return lowerCol.includes("buyer") && lowerCol.includes("type");
       });
 
       // Find the price column (case insensitive)
-      const priceColumn = Object.keys(data[0] || {}).find(col =>
-        col.toLowerCase() === 'price' || col.toLowerCase().includes('price')
+      const priceColumn = Object.keys(data[0] || {}).find(
+        (col) =>
+          col.toLowerCase() === "price" || col.toLowerCase().includes("price")
       );
 
       // Find the quantity column (case insensitive)
-      const quantityColumn = Object.keys(data[0] || {}).find(col =>
-        col.toLowerCase() === 'quantity' || col.toLowerCase().includes('quantity')
+      const quantityColumn = Object.keys(data[0] || {}).find(
+        (col) =>
+          col.toLowerCase() === "quantity" ||
+          col.toLowerCase().includes("quantity")
       );
 
       // If dataset doesn't have buyer type column, check if it's a known B2C dataset
@@ -63,24 +81,24 @@ export function BuyerTypeAnalysisChart() {
 
             // Parse price
             let price = 0;
-            if (typeof priceRaw === 'number') {
+            if (typeof priceRaw === "number") {
               price = priceRaw;
-            } else if (typeof priceRaw === 'string') {
-              const cleanPrice = priceRaw.replace(/[₹,$\s]/g, '');
+            } else if (typeof priceRaw === "string") {
+              const cleanPrice = priceRaw.replace(/[₹,$\s]/g, "");
               price = parseFloat(cleanPrice) || 0;
             }
 
             // Parse quantity
             let quantity = 0;
-            if (typeof quantityRaw === 'number') {
+            if (typeof quantityRaw === "number") {
               quantity = quantityRaw;
-            } else if (typeof quantityRaw === 'string') {
+            } else if (typeof quantityRaw === "string") {
               quantity = parseFloat(quantityRaw) || 0;
             }
 
             // Add to B2C if valid
             if (price > 0 && quantity > 0) {
-              const b2cData = buyerTypeMap.get('B2C')!;
+              const b2cData = buyerTypeMap.get("B2C")!;
               b2cData.total += price;
               b2cData.totalQuantity += quantity;
               b2cData.count += 1;
@@ -93,7 +111,11 @@ export function BuyerTypeAnalysisChart() {
 
       // Process datasets with buyer type column
       if (!priceColumn || !quantityColumn) {
-        console.log(`Dataset ${dataset.name} missing required columns:`, { buyerTypeColumn, priceColumn, quantityColumn });
+        console.log(`Dataset ${dataset.name} missing required columns:`, {
+          buyerTypeColumn,
+          priceColumn,
+          quantityColumn,
+        });
         return;
       }
 
@@ -103,35 +125,50 @@ export function BuyerTypeAnalysisChart() {
         const quantityRaw = row[quantityColumn];
 
         // More robust buyer type parsing
-        let buyerType = String(buyerTypeRaw || '').toUpperCase().trim();
+        let buyerType = String(buyerTypeRaw || "")
+          .toUpperCase()
+          .trim();
 
         // Handle common variations
-        if (buyerType === 'B2B' || buyerType === 'B-2-B' || buyerType === 'B 2 B') {
-          buyerType = 'B2B';
-        } else if (buyerType === 'B2C' || buyerType === 'B-2-C' || buyerType === 'B 2 C') {
-          buyerType = 'B2C';
+        if (
+          buyerType === "B2B" ||
+          buyerType === "B-2-B" ||
+          buyerType === "B 2 B"
+        ) {
+          buyerType = "B2B";
+        } else if (
+          buyerType === "B2C" ||
+          buyerType === "B-2-C" ||
+          buyerType === "B 2 C"
+        ) {
+          buyerType = "B2C";
         }
 
         // More robust price parsing
         let price = 0;
-        if (typeof priceRaw === 'number') {
+        if (typeof priceRaw === "number") {
           price = priceRaw;
-        } else if (typeof priceRaw === 'string') {
+        } else if (typeof priceRaw === "string") {
           // Remove currency symbols and commas, then parse
-          const cleanPrice = priceRaw.replace(/[₹,$\s]/g, '');
+          const cleanPrice = priceRaw.replace(/[₹,$\s]/g, "");
           price = parseFloat(cleanPrice) || 0;
         }
 
         // More robust quantity parsing
         let quantity = 0;
-        if (typeof quantityRaw === 'number') {
+        if (typeof quantityRaw === "number") {
           quantity = quantityRaw;
-        } else if (typeof quantityRaw === 'string') {
+        } else if (typeof quantityRaw === "string") {
           quantity = parseFloat(quantityRaw) || 0;
         }
 
         // Only include valid entries
-        if (buyerType && (buyerType === 'B2B' || buyerType === 'B2C') && price > 0 && quantity > 0) {
+        if (
+          buyerType &&
+          (buyerType === "B2B" || buyerType === "B2C") &&
+          price > 0 &&
+          quantity > 0
+        ) {
           const data = buyerTypeMap.get(buyerType)!;
           data.total += price;
           data.totalQuantity += quantity;
@@ -141,85 +178,94 @@ export function BuyerTypeAnalysisChart() {
       });
     });
 
-    console.log('Parsed buyer type data:', Array.from(buyerTypeMap.entries()));
+    console.log("Parsed buyer type data:", Array.from(buyerTypeMap.entries()));
 
     // Convert to array format for chart, always include both types even if one has 0 values
-    return Array.from(buyerTypeMap.entries()).map(([buyerType, data]) => ({
-      buyerType,
-      totalSales: data.total,
-      totalQuantity: data.totalQuantity,
-      count: data.count,
-      averagePrice: data.count > 0 ? data.total / data.count : 0,
-    })).sort((a, b) => b.totalSales - a.totalSales);
+    return Array.from(buyerTypeMap.entries())
+      .map(([buyerType, data]) => ({
+        buyerType,
+        totalSales: data.total,
+        totalQuantity: data.totalQuantity,
+        count: data.count,
+        averagePrice: data.count > 0 ? data.total / data.count : 0,
+      }))
+      .sort((a, b) => b.totalSales - a.totalSales);
   }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
   // Get primary dataset color (preferably FOM if available)
   const primaryColor = useMemo(() => {
-    const activeDatasets = state.datasets.filter(d => state.activeDatasetIds.includes(d.id));
-    const fomDataset = activeDatasets.find(dataset =>
-      dataset.name.toLowerCase().includes('fom') ||
-      dataset.fileName.toLowerCase().includes('fom')
+    const activeDatasets = state.datasets.filter((d) =>
+      state.activeDatasetIds.includes(d.id)
+    );
+    const fomDataset = activeDatasets.find(
+      (dataset) =>
+        dataset.name.toLowerCase().includes("fom") ||
+        dataset.fileName.toLowerCase().includes("fom")
     );
 
     if (fomDataset) {
-      return '#ba0f0f'; // Use dark red for FOM dataset
+      return "#ba0f0f"; // Use dark red for FOM dataset
     }
 
     // Fall back to first active dataset color
     return activeDatasets.length > 0
-      ? (activeDatasets[0].color || ColorManager.getDatasetColor(activeDatasets[0].name))
-      : '#3B82F6';
+      ? activeDatasets[0].color ||
+          ColorManager.getDatasetColor(activeDatasets[0].name)
+      : "#3B82F6";
   }, [state.datasets, state.activeDatasetIds]);
 
   // Don't render if no data at all
-  if (buyerTypeAnalysis.length === 0 || buyerTypeAnalysis.every(item => item.totalSales === 0)) {
+  if (
+    buyerTypeAnalysis.length === 0 ||
+    buyerTypeAnalysis.every((item) => item.totalSales === 0)
+  ) {
     return null;
   }
 
   // ApexCharts configuration
   const chartOptions: ApexOptions = {
     chart: {
-      type: 'bar',
+      type: "bar",
       height: 350,
-      background: 'transparent',
+      background: "transparent",
       toolbar: {
         show: false,
       },
     },
     theme: {
-      mode: state.settings.theme === 'dark' ? 'dark' : 'light',
+      mode: state.settings.theme === "dark" ? "dark" : "light",
     },
     colors: [primaryColor],
     plotOptions: {
       bar: {
         borderRadius: 4,
         horizontal: false,
-        columnWidth: '30%',
+        columnWidth: "30%",
       },
     },
     dataLabels: {
       enabled: false,
     },
     xaxis: {
-      categories: buyerTypeAnalysis.map(item => item.buyerType),
+      categories: buyerTypeAnalysis.map((item) => item.buyerType),
       labels: {
         style: {
-          colors: state.settings.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-          fontSize: '12px',
+          colors: state.settings.theme === "dark" ? "#9CA3AF" : "#6B7280",
+          fontSize: "12px",
         },
       },
       axisBorder: {
-        color: state.settings.theme === 'dark' ? '#4B5563' : '#9CA3AF',
+        color: state.settings.theme === "dark" ? "#4B5563" : "#9CA3AF",
       },
       axisTicks: {
-        color: state.settings.theme === 'dark' ? '#4B5563' : '#9CA3AF',
+        color: state.settings.theme === "dark" ? "#4B5563" : "#9CA3AF",
       },
     },
     yaxis: {
       labels: {
         style: {
-          colors: state.settings.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-          fontSize: '11px',
+          colors: state.settings.theme === "dark" ? "#9CA3AF" : "#6B7280",
+          fontSize: "11px",
         },
         formatter: function (value) {
           if (value >= 10000000) {
@@ -235,12 +281,12 @@ export function BuyerTypeAnalysisChart() {
       },
     },
     grid: {
-      borderColor: state.settings.theme === 'dark' ? '#374151' : '#E5E7EB',
+      borderColor: state.settings.theme === "dark" ? "#374151" : "#E5E7EB",
       strokeDashArray: 3,
     },
     tooltip: {
-      theme: state.settings.theme === 'dark' ? 'dark' : 'light',
-      custom: function({ series, seriesIndex, dataPointIndex, w }) {
+      theme: state.settings.theme === "dark" ? "dark" : "light",
+      custom: function ({ series, seriesIndex, dataPointIndex, w }) {
         const data = buyerTypeAnalysis[dataPointIndex];
         return `
           <div class="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -249,10 +295,15 @@ export function BuyerTypeAnalysisChart() {
             </p>
             <div class="space-y-1 text-sm">
               <p class="text-blue-600 dark:text-blue-400">
-                <span class="font-medium">Total Sales:</span> ${DataProcessor.formatCurrency(data.totalSales, state.settings.currency)}
+                <span class="font-medium">Total Sales:</span> ${DataProcessor.formatCurrency(
+                  data.totalSales,
+                  state.settings.currency
+                )}
               </p>
               <p class="text-gray-600 dark:text-gray-400">
-                <span class="font-medium">Total Quantity:</span> ${DataProcessor.formatNumber(data.totalQuantity)} metric ton
+                <span class="font-medium">Total Quantity:</span> ${DataProcessor.formatNumber(
+                  data.totalQuantity
+                )} metric ton
               </p>
             </div>
           </div>
@@ -268,7 +319,7 @@ export function BuyerTypeAnalysisChart() {
           },
           plotOptions: {
             bar: {
-              columnWidth: '70%',
+              columnWidth: "70%",
             },
           },
         },
@@ -278,16 +329,22 @@ export function BuyerTypeAnalysisChart() {
 
   const chartSeries = [
     {
-      name: 'Total Sales',
-      data: buyerTypeAnalysis.map(item => item.totalSales),
+      name: "Total Sales",
+      data: buyerTypeAnalysis.map((item) => item.totalSales),
     },
   ];
 
   // Get dataset names for title
   const activeDatasetNames = state.datasets
-    .filter(d => state.activeDatasetIds.includes(d.id))
-    .map(d => d.name)
-    .join(', ');
+    .filter(
+      (d) =>
+        state.activeDatasetIds.includes(d.id) &&
+        !d.name.toLowerCase().includes("stock") &&
+        !d.name.toLowerCase().includes("revenue") &&
+        !d.name.toLowerCase().includes("mda claim")
+    )
+    .map((d) => d.name)
+    .join(", ");
 
   return (
     <ChartContainer
@@ -306,7 +363,10 @@ export function BuyerTypeAnalysisChart() {
       {/* Summary Statistics */}
       <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {buyerTypeAnalysis.map((data, index) => (
-          <div key={data.buyerType} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <div
+            key={data.buyerType}
+            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4"
+          >
             <div className="text-center">
               <div
                 className="w-4 h-4 rounded-full mx-auto mb-2"
@@ -316,7 +376,10 @@ export function BuyerTypeAnalysisChart() {
                 {data.buyerType}
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
-                {DataProcessor.formatCurrency(data.totalSales, state.settings.currency)}
+                {DataProcessor.formatCurrency(
+                  data.totalSales,
+                  state.settings.currency
+                )}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500">
                 {DataProcessor.formatNumber(data.totalQuantity)} metric ton
@@ -337,15 +400,26 @@ export function BuyerTypeAnalysisChart() {
             </p>
             <p className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-1">
               {DataProcessor.formatCurrency(
-                buyerTypeAnalysis.reduce((sum, data) => sum + data.totalSales, 0),
+                buyerTypeAnalysis.reduce(
+                  (sum, data) => sum + data.totalSales,
+                  0
+                ),
                 state.settings.currency
               )}
             </p>
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              {buyerTypeAnalysis.reduce((sum, data) => sum + data.totalQuantity, 0)} metric ton
+              {buyerTypeAnalysis.reduce(
+                (sum, data) => sum + data.totalQuantity,
+                0
+              ).toFixed(2)}{" "}
+              metric ton
             </p>
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              From {state.datasets.filter(d => state.activeDatasetIds.includes(d.id)).reduce((sum, dataset) => sum + dataset.data.length, 0)} total records
+              From{" "}
+              {state.datasets
+                .filter((d) => state.activeDatasetIds.includes(d.id))
+                .reduce((sum, dataset) => sum + dataset.data.length, 0)}{" "}
+              total records
             </p>
           </div>
         </div>

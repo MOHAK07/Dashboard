@@ -180,7 +180,6 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
       background: 'transparent',
       animations: {
         enabled: true,
-        easing: 'easeinout',
         speed: 800
       }
     },
@@ -314,7 +313,7 @@ export function DynamicRevenueBreakdownChart({ className = '' }: DynamicRevenueB
       </div>
 
       {/* Revenue Summary */}
-      <div className="mt-4 text-center">
+      <div className="mt-2 text-center">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Total Revenue: ₹{processRevenueData.totalRevenue.toLocaleString('en-IN', {
             minimumFractionDigits: 0,

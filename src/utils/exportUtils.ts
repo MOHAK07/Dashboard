@@ -21,7 +21,6 @@ export class ExportUtils {
         pdfInstance: jsPDF
       ) => {
         const canvas = await html2canvas(element, {
-          // --- QUALITY IMPROVEMENT ---
           // Render at 3x the normal resolution for a sharper image.
           // This is the most important setting for PDF quality.
           scale: 3,

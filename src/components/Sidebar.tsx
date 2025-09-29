@@ -135,7 +135,7 @@ export function Sidebar({
                       onClick={() => handleTabClick(item.id)}
                       onKeyDown={(e) => handleKeyDown(e, item.id)}
                       className={`
-                        w-full flex items-center px-3 py-2.5 rounded-lg text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-primary-500 relative
+                        w-full flex items-center px-3 py-2.5 rounded-lg text-left transition-all duration-200 group focus:outline-none relative
                         ${
                           isActive
                             ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"

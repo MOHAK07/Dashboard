@@ -89,7 +89,7 @@ export function ChartContainer({
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowOptions(!showOptions)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none"
               aria-label="Chart options"
             >
               <MoreHorizontal className="h-4 w-4" />
