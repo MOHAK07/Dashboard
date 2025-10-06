@@ -2,31 +2,27 @@ import { useEffect, useCallback } from "react";
 import { DatabaseService } from "../services/databaseService";
 import { TABLES } from "../lib/supabase";
 import { useApp } from "../contexts/AppContext";
+import { TimestampService } from "../services/timestampService";
 
 export function useRealtimeSubscriptions() {
   const { dispatch } = useApp();
 
   const handleRealtimeUpdate = useCallback(
     (payload: any) => {
-      // Extract the timestamp from the payload
       const timestamp = payload.commit_timestamp;
 
       if (timestamp) {
         const updateTime = new Date(timestamp);
 
         if (!isNaN(updateTime.getTime())) {
+          // Use enhanced timestamp service
+          TimestampService.saveTimestamp(updateTime);
 
           // Update the app state
           dispatch({
             type: "SET_LAST_DB_UPDATE_TIME",
             payload: updateTime,
           });
-
-          // Store in localStorage for persistence
-          localStorage.setItem(
-            "lastDatabaseUpdateTime",
-            updateTime.toISOString()
-          );
 
           // Dispatch custom event for UpdateStatus component
           window.dispatchEvent(
@@ -52,15 +48,12 @@ export function useRealtimeSubscriptions() {
     }
 
     // Load last update time from localStorage on mount
-    const savedTimestamp = localStorage.getItem("lastDatabaseUpdateTime");
+    const savedTimestamp = TimestampService.loadTimestamp();
     if (savedTimestamp) {
-      const savedDate = new Date(savedTimestamp);
-      if (!isNaN(savedDate.getTime())) {
-        dispatch({
-          type: "SET_LAST_DB_UPDATE_TIME",
-          payload: savedDate,
-        });
-      }
+      dispatch({
+        type: "SET_LAST_DB_UPDATE_TIME",
+        payload: savedTimestamp,
+      });
     }
 
     console.log("🟢 REALTIME: Setting up subscriptions...");

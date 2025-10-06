@@ -1,5 +1,7 @@
+// src/hooks/useAuth.ts (corrected version)
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { TimestampService } from "../services/timestampService";
 import {
   User,
   AuthState,
@@ -16,7 +18,10 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    const fetchUserProfile = async (user: User) => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const fetchUserProfile = async (user: User): Promise<string> => {
       try {
         const { data: profile, error } = await supabase
           .from("Profiles")
@@ -25,93 +30,252 @@ export function useAuth() {
           .single();
 
         if (error) {
-          console.error("Error fetching user profile:", error);
+          console.warn("Error fetching user profile:", error.message);
           return "operator";
         }
         return profile?.role || "operator";
       } catch (err) {
-        console.error("Unexpected error fetching profile:", err);
+        console.warn("Unexpected error fetching profile:", err);
         return "operator";
       }
     };
 
     const handleSession = async (session: any) => {
-      if (session?.user) {
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email || "",
-          created_at: session.user.created_at,
-          last_sign_in_at: session.user.last_sign_in_at,
-        };
-        const role = await fetchUserProfile(user);
-        setAuthState({ user, role, isLoading: false, error: null });
-      } else {
-        setAuthState({
-          user: null,
-          role: undefined,
-          isLoading: false,
-          error: null,
-        });
+      if (!isMounted) return;
+
+      try {
+        if (session?.user) {
+          console.log("🟢 AUTH: Processing user session");
+
+          const user: User = {
+            id: session.user.id,
+            email: session.user.email || "",
+            created_at: session.user.created_at,
+            last_sign_in_at: session.user.last_sign_in_at,
+          };
+
+          // Fetch role with timeout
+          const rolePromise = fetchUserProfile(user);
+          const timeoutPromise = new Promise<string>((_, reject) => {
+            timeoutId = setTimeout(
+              () => reject(new Error("Profile fetch timeout")),
+              5000
+            );
+          });
+
+          let role: string;
+          try {
+            role = await Promise.race([rolePromise, timeoutPromise]);
+            clearTimeout(timeoutId);
+          } catch (error) {
+            console.warn("Profile fetch failed, using default role:", error);
+            role = "operator";
+          }
+
+          if (isMounted) {
+            setAuthState({
+              user,
+              role,
+              isLoading: false,
+              error: null,
+            });
+          }
+        } else {
+          console.log("🟡 AUTH: No user session");
+          if (isMounted) {
+            setAuthState({
+              user: null,
+              role: undefined,
+              isLoading: false,
+              error: null,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("🔴 AUTH: Error handling session:", error);
+        if (isMounted) {
+          setAuthState({
+            user: null,
+            role: undefined,
+            isLoading: false,
+            error: null, // Don't show error to user, just log it
+          });
+        }
       }
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session);
-    });
+    const initAuth = async () => {
+      try {
+        console.log("🟦 AUTH: Initializing authentication");
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event);
-      handleSession(session);
-    });
+        // Get initial session with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<any>((_, reject) => {
+          setTimeout(() => reject(new Error("Session timeout")), 10000);
+        });
 
+        let sessionResult;
+        try {
+          sessionResult = await Promise.race([sessionPromise, timeoutPromise]);
+        } catch (error) {
+          console.error("🔴 AUTH: Session initialization failed:", error);
+          if (isMounted) {
+            setAuthState({
+              user: null,
+              role: undefined,
+              isLoading: false,
+              error: null,
+            });
+          }
+          return;
+        }
+
+        await handleSession(sessionResult.data.session);
+
+        // Set up auth state listener
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (!isMounted) return;
+
+          console.log("🟦 AUTH: Auth state changed:", event);
+
+          if (event === "SIGNED_OUT") {
+            TimestampService.clearAllTimestamps();
+            window.dispatchEvent(new CustomEvent("user-signed-out"));
+          }
+
+          await handleSession(session);
+        });
+
+        // Cleanup function
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("🔴 AUTH: Initialization error:", error);
+        if (isMounted) {
+          setAuthState({
+            user: null,
+            role: undefined,
+            isLoading: false,
+            error: null,
+          });
+        }
+      }
+    };
+
+    // Start initialization
+    const cleanup = initAuth();
+
+    // Cleanup on unmount
     return () => {
-      subscription.unsubscribe();
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      cleanup
+        .then((cleanupFn) => {
+          if (cleanupFn) {
+            cleanupFn();
+          }
+        })
+        .catch(console.error);
     };
   }, []);
 
   const signIn = async (credentials: LoginCredentials) => {
     setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
-    const { error } = await supabase.auth.signInWithPassword(credentials);
-    if (error) {
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword(credentials);
+
+      if (error) {
+        setAuthState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error.message,
+        }));
+        return { error };
+      }
+
+      // Don't set loading to false here - let the auth state change handler do it
+      return { error: null };
+    } catch (err) {
+      console.error("Sign in error:", err);
+      const errorMessage = "An unexpected error occurred";
       setAuthState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        error: errorMessage,
       }));
+      return { error: { message: errorMessage } };
     }
-    return { error };
   };
 
   const signUp = async (credentials: SignUpCredentials) => {
     setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
+
     if (credentials.password !== credentials.confirmPassword) {
-      const error = { message: "Passwords do not match" };
+      const errorMessage = "Passwords do not match";
       setAuthState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        error: errorMessage,
       }));
-      return { error };
+      return { error: { message: errorMessage } };
     }
-    const { error } = await supabase.auth.signUp({
-      email: credentials.email,
-      password: credentials.password,
-    });
-    if (error) {
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        setAuthState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error.message,
+        }));
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error("Sign up error:", err);
+      const errorMessage = "An unexpected error occurred";
       setAuthState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        error: errorMessage,
       }));
+      return { error: { message: errorMessage } };
     }
-    return { error }; // Return error to the component
   };
 
-  // This function is now simplified. It only handles the Supabase sign-out.
   const signOut = async () => {
-    return supabase.auth.signOut();
+    try {
+      console.log("🔴 AUTH: Starting sign-out process");
+
+      // Don't set loading state during sign-out to prevent UI issues
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("🔴 AUTH: Sign-out error:", error);
+        return { error };
+      }
+
+      // Clear session data
+      TimestampService.clearAllTimestamps();
+      sessionStorage.clear();
+
+      console.log("🟢 AUTH: Sign-out successful");
+      return { error: null };
+    } catch (err) {
+      console.error("🔴 AUTH: Unexpected sign-out error:", err);
+      return { error: { message: "Sign-out failed" } };
+    }
   };
 
   return {

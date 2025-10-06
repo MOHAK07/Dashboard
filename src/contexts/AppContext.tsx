@@ -17,6 +17,7 @@ import { useSupabaseData } from "../hooks/useSupabaseData";
 import { useRealtimeSubscriptions } from "../hooks/useRealtimeSubscriptions";
 import { useAuth } from "../hooks/useAuth";
 import { TableName } from "../lib/supabase";
+import { TimestampService } from "../services/timestampService";
 
 // Define the state interface
 interface AppState {
@@ -274,16 +275,36 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_AUTHENTICATED":
       return { ...state, isAuthenticated: action.payload };
 
-    case "RESET_STATE":
-      const currentTimestamp = state.lastDatabaseUpdateTime;
+    case "RESET_STATE": {
+      const currentTimestamp =
+        state.lastDatabaseUpdateTime || TimestampService.loadTimestamp();
       sessionStorage.removeItem("dashboard-datasets");
       sessionStorage.removeItem("dashboard-data");
       sessionStorage.removeItem("dashboard-active-ids");
-      return {
+
+      try {
+        sessionStorage.clear();
+      } catch (error) {
+        console.warn("Could not clear session storage:", error);
+      }
+
+      if (currentTimestamp) {
+        TimestampService.saveTimestamp(currentTimestamp);
+      }
+
+      const newState: AppState = {
         ...initialState,
         lastDatabaseUpdateTime: currentTimestamp, // Preserve the timestamp
+        settings: {
+          ...initialState.settings,
+          // Preserve theme preference
+          theme: state.settings.theme,
+        },
       };
 
+      console.log("🟢 APP_CONTEXT: State reset completed");
+      return newState;
+    }
     case "SET_EXPORTING":
       return { ...state, isExporting: action.payload };
 

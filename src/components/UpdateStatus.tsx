@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, Plus, Edit, Trash2 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { TimestampService } from "../services/timestampService";
 
 interface DatabaseEvent {
   table?: string;
@@ -9,7 +10,7 @@ interface DatabaseEvent {
 }
 
 export function UpdateStatus() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [updateStatus, setUpdateStatus] = useState(
     "Awaiting database activity..."
   );
@@ -30,7 +31,6 @@ export function UpdateStatus() {
         return "Awaiting database activity...";
       }
 
-      // Format date as dd-mm-yy
       const formatDate = (date: Date): string => {
         const day = String(date.getDate()).padStart(2, "0");
         const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -47,8 +47,10 @@ export function UpdateStatus() {
     []
   );
 
-  // Initialize status on component mount
+  // Initialize status on component mount with enhanced persistence
   useEffect(() => {
+    console.log("🟦 UPDATE_STATUS: Initializing with enhanced persistence");
+
     // First check global state
     if (state.lastDatabaseUpdateTime) {
       console.log(
@@ -62,33 +64,53 @@ export function UpdateStatus() {
       return;
     }
 
-    // Fallback to localStorage if global state is empty
-    const savedTimestamp = localStorage.getItem("lastDatabaseUpdateTime");
+    // Use TimestampService for persistent loading
+    const savedTimestamp = TimestampService.loadTimestamp();
     if (savedTimestamp) {
       console.log(
-        "🟦 UPDATE_STATUS: Found timestamp in localStorage:",
+        "🟦 UPDATE_STATUS: Found persistent timestamp:",
         savedTimestamp
       );
       const statusMessage = formatStatusFromTimestamp(savedTimestamp);
       setUpdateStatus(statusMessage);
+
+      // Update global state with loaded timestamp
+      dispatch({
+        type: "SET_LAST_DB_UPDATE_TIME",
+        payload: savedTimestamp,
+      });
     } else {
-      console.log("🟦 UPDATE_STATUS: No saved timestamp found");
+      console.log("🟦 UPDATE_STATUS: No persistent timestamp found");
       setUpdateStatus("Awaiting database activity...");
     }
-  }, []); // Run only once on mount
+  }, [formatStatusFromTimestamp, dispatch]);
 
-  // Memoize the database change handler
-  const handleDatabaseChange = useCallback((event: CustomEvent) => {
-    setLastEvent(event.detail);
+  // Handle database changes with enhanced persistence
+  const handleDatabaseChange = useCallback(
+    (event: CustomEvent) => {
+      console.log("🟦 UPDATE_STATUS: Database change detected:", event.detail);
 
-    // Trigger animation
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 500);
-  }, []);
+      setLastEvent(event.detail);
+
+      // Update timestamp with enhanced persistence
+      const newTimestamp = TimestampService.updateTimestamp();
+
+      // Update global state
+      dispatch({
+        type: "SET_LAST_DB_UPDATE_TIME",
+        payload: newTimestamp,
+      });
+
+      // Trigger animation
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 500);
+    },
+    [dispatch]
+  );
 
   // Set up event listener
   useEffect(() => {
-    console.log("🟦 UPDATE_STATUS: Setting up event listener");
+    console.log("🟦 UPDATE_STATUS: Setting up enhanced event listener");
 
     window.addEventListener(
       "supabase-data-changed",
@@ -106,18 +128,38 @@ export function UpdateStatus() {
 
   // Update status when global state changes
   useEffect(() => {
-    console.log(
-      "🟦 UPDATE_STATUS: Global state timestamp changed:",
-      state.lastDatabaseUpdateTime
-    );
+    if (state.lastDatabaseUpdateTime) {
+      console.log(
+        "🟦 UPDATE_STATUS: Global state timestamp changed:",
+        state.lastDatabaseUpdateTime
+      );
+      const statusMessage = formatStatusFromTimestamp(
+        state.lastDatabaseUpdateTime
+      );
+      setUpdateStatus(statusMessage);
 
-    const statusMessage = formatStatusFromTimestamp(
-      state.lastDatabaseUpdateTime
-    );
-    setUpdateStatus(statusMessage);
+      // Ensure persistence even when state changes
+      TimestampService.saveTimestamp(state.lastDatabaseUpdateTime);
+    }
   }, [state.lastDatabaseUpdateTime, formatStatusFromTimestamp]);
 
-  // Get icon based on event type
+  // In src/components/UpdateStatus.tsx - Add sign-out event handler
+  useEffect(() => {
+    // Handle user sign-out event
+    const handleUserSignOut = () => {
+      console.log("🟦 UPDATE_STATUS: User signed out, resetting status");
+      setUpdateStatus("Awaiting database activity...");
+      setLastEvent(null);
+    };
+
+    window.addEventListener("user-signed-out", handleUserSignOut);
+
+    return () => {
+      window.removeEventListener("user-signed-out", handleUserSignOut);
+    };
+  }, []);
+
+  // Rest of your component remains the same...
   const getEventIcon = () => {
     if (!lastEvent?.eventType) {
       return <Calendar className="h-4 w-4" />;
@@ -135,11 +177,9 @@ export function UpdateStatus() {
     }
   };
 
-  // Determine status color based on recency
   const getStatusColor = () => {
     const timestamp =
-      state.lastDatabaseUpdateTime ||
-      localStorage.getItem("lastDatabaseUpdateTime");
+      state.lastDatabaseUpdateTime || TimestampService.loadTimestamp();
 
     if (!timestamp) {
       return "text-gray-500 dark:text-gray-400";
@@ -178,8 +218,7 @@ export function UpdateStatus() {
         {getEventIcon()}
       </div>
       <span className="truncate max-w-xs">{updateStatus}</span>
-      {(state.lastDatabaseUpdateTime ||
-        localStorage.getItem("lastDatabaseUpdateTime")) && (
+      {(state.lastDatabaseUpdateTime || TimestampService.loadTimestamp()) && (
         <div className="relative">
           <div
             className={`

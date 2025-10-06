@@ -243,7 +243,6 @@ export function Header({
               >
                 <User className="h-5 w-5" />
               </button>
-
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -256,13 +255,21 @@ export function Header({
                   </div>
                   <div className="py-2">
                     <button
-                      onClick={() => {
-                        signOut();
+                      onClick={async () => {
+                        console.log("🔴 HEADER: Sign-out button clicked");
                         setShowUserMenu(false);
+
+                        try {
+                          await signOut();
+                          console.log("🟢 HEADER: Sign-out completed");
+                        } catch (error) {
+                          console.error("🔴 HEADER: Sign-out error:", error);
+                        }
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors"
+                      disabled={state.isLoading}
                     >
-                      Sign Out
+                      {state.isLoading ? "Signing out..." : "Sign Out"}
                     </button>
                   </div>
                 </div>
