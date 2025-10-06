@@ -460,7 +460,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
     <div className={`card lg:col-span-3 ${className}`}>
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         {/* Left Section: Recovery Rate */}
-        <div className="flex items-center justify-between w-full md:w-auto md:justify-start space-x-4">
+        <div className="flex items-center w-full md:w-auto md:justify-start space-x-4">
           <div className={`p-3 rounded-lg ${statusStyle.bgColor}`}>
             <Percent className={`h-6 w-6 ${statusStyle.iconColor}`} />
           </div>
