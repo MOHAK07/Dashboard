@@ -13,6 +13,7 @@ import { OverviewTab } from "./components/tabs/OverviewTab";
 import { DataManagementTab } from "./components/data/DataManagementTab";
 import { ExplorerTab } from "./components/tabs/ExplorerTab";
 import { DatasetsTab } from "./components/tabs/DatasetsTab";
+import { CBGTab } from "./components/tabs/CBGTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AlertCircle, CheckCircle, X } from "lucide-react";
 import { useRealtimeSubscriptions } from "./hooks/useRealtimeSubscriptions";
@@ -208,6 +209,8 @@ function DashboardContent() {
         return <ExplorerTab data={filteredData} />;
       case "datasets":
         return <DatasetsTab />;
+      case "cbg":
+        return <CBGTab />;
       case "settings":
         return <SettingsTab />;
       default:

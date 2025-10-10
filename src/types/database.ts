@@ -1,6 +1,6 @@
 // Database types based on existing schema
 export interface FOMRecord {
-  "id": number;
+  id: number;
   Date?: string;
   Week?: string;
   Month?: string;
@@ -17,7 +17,7 @@ export interface FOMRecord {
 }
 
 export interface LFOMRecord {
-  "id": number;
+  id: number;
   Date?: string;
   Week?: string;
   Month?: string;
@@ -86,9 +86,9 @@ export interface StockRecord {
   "RCF Stock Left"?: number;
   "Boomi Samrudhi Stock Left"?: number;
   "Total Stock Left"?: number;
-  "RCF Price"?: number; 
-  "RCF Revenue"?: number; 
-  "Boomi Samrudhi Price"?: number; 
+  "RCF Price"?: number;
+  "RCF Revenue"?: number;
+  "Boomi Samrudhi Price"?: number;
   "Boomi Samrudhi Revenue"?: number;
 }
 
@@ -104,6 +104,49 @@ export interface RevenueRecord {
   "Total Revenue"?: string;
 }
 
+export interface CBGRecord {
+  id: number;
+  "Bill.Doc"?: number;
+  "Bill.Doc.Date"?: string;
+  Month?: string;
+  Year?: number;
+  "Bill to party"?: number;
+  "Revenue GL"?: number;
+  "Sales Doc Type"?: string;
+  "Bill to party name"?: string;
+  City?: string;
+  "Ship to party name"?: string;
+  "State Discription"?: string;
+  "Matrl Description"?: string;
+  Unit?: string;
+  Quantity?: string;
+  Rate?: string;
+  "Basic Value"?: string;
+  "CGST Amount"?: string;
+  "SGST Amount"?: string;
+  "IGST Amount"?: string;
+  "Transportation amount"?: string;
+  "Total Invoice value"?: string;
+  Plant?: number;
+  "Material Code"?: string;
+  "Truck Number"?: string;
+  "Transpoter Name"?: string;
+  "R.O Number&Date"?: string;
+  "BPGSTIN Number"?: string;
+  "Sales Order No"?: number;
+  "Sales Order Date"?: string;
+  "Purchase Order"?: string;
+  "Billing Type"?: string;
+  "Permit Number and Date"?: string;
+  "Billing ACCT Doc No.(RV)"?: number;
+  "Excise ACCT Doc No.(SA)"?: number;
+  "OFS Number and Date"?: string;
+  "NOC Number and Date"?: string;
+  "Delivery number"?: number;
+  "HSN/SAC"?: number;
+  "Compression filling Amount"?: string;
+}
+
 export type DatabaseRecord =
   | FOMRecord
   | LFOMRecord
@@ -111,7 +154,8 @@ export type DatabaseRecord =
   | POSLFOMRecord
   | POSFOMRecord
   | StockRecord
-  | RevenueRecord;
+  | RevenueRecord
+  | CBGRecord;
 
 export interface DatabaseError {
   message: string;

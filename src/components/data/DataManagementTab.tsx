@@ -439,7 +439,7 @@ export function DataManagementTab() {
               selectedRecords={selectedRecords}
               onSelectionChange={setSelectedRecords}
               showActions={true}
-              idColumn={idColumn}
+              tableId={idColumn}
             />
           </div>
         )}

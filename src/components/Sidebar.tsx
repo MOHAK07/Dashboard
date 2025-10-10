@@ -8,6 +8,7 @@ import {
   X,
   Library,
   LogOut,
+  LineChartIcon,
 } from "lucide-react";
 import { TabType } from "../types";
 import { useApp } from "../contexts/AppContext";
@@ -26,6 +27,12 @@ const allNavigationItems = [
     label: "Dashboard Overview",
     icon: BarChart3,
     emoji: "📊",
+  },
+  {
+    id: "cbg" as TabType,
+    label: "CBG Analysis",
+    icon: LineChartIcon,
+    emoji: "📈",
   },
   {
     id: "data-management" as TabType,

@@ -341,7 +341,8 @@ export function BuyerTypeAnalysisChart() {
         state.activeDatasetIds.includes(d.id) &&
         !d.name.toLowerCase().includes("stock") &&
         !d.name.toLowerCase().includes("revenue") &&
-        !d.name.toLowerCase().includes("mda claim")
+        !d.name.toLowerCase().includes("mda claim") &&
+        !d.name.toLowerCase().includes("cbg")
     )
     .map((d) => d.name)
     .join(", ");
@@ -408,10 +409,9 @@ export function BuyerTypeAnalysisChart() {
               )}
             </p>
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              {buyerTypeAnalysis.reduce(
-                (sum, data) => sum + data.totalQuantity,
-                0
-              ).toFixed(2)}{" "}
+              {buyerTypeAnalysis
+                .reduce((sum, data) => sum + data.totalQuantity, 0)
+                .toFixed(2)}{" "}
               metric ton
             </p>
             <p className="text-xs text-blue-600 dark:text-blue-400">

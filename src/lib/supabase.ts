@@ -16,6 +16,7 @@ export const TABLES = {
   MDA_CLAIM: 'MDA claim',
   POS_LFOM: 'POS LFOM',
   POS_FOM: 'POS FOM',
+  CBG: 'CBG',
   STOCK: 'Stock',
   REVENUE: 'Revenue'
 } as const;

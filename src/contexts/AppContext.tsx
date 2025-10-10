@@ -23,6 +23,7 @@ import { TimestampService } from "../services/timestampService";
 interface AppState {
   datasets: Dataset[];
   activeDatasetIds: string[];
+  previousActiveDatasetIds: string[]; // Store previous state when switching to CBG tab
   data: FlexibleDataRow[];
   filteredData: FlexibleDataRow[];
   filters: FilterState;
@@ -58,7 +59,7 @@ type AppAction =
   | { type: "SYNC_FROM_DATABASE"; payload: Dataset[] }
   | { type: "SET_USER"; payload: any }
   | { type: "SET_AUTHENTICATED"; payload: boolean }
-  | { type: "RESET_STATE" } // New action to reset the state
+  | { type: "RESET_STATE" }
   | { type: "SET_ACTIVE_ALL"; payload: boolean }
   | { type: "SET_EXPORTING"; payload: boolean }
   | { type: "SET_EXPORT_SUCCESS"; payload: string | null }
@@ -68,6 +69,7 @@ type AppAction =
 const initialState: AppState = {
   datasets: [],
   activeDatasetIds: [],
+  previousActiveDatasetIds: [], // Initialize previous state
   data: [],
   filteredData: [],
   filters: {
@@ -99,8 +101,20 @@ const initialState: AppState = {
   lastDatabaseUpdateTime: null,
 };
 
-// Helper function to combine data from active datasets
+// Helper function to check if a dataset is CBG
+function isCBGDataset(dataset: Dataset): boolean {
+  return dataset.name.toLowerCase() === "cbg";
+}
 
+// Helper function to filter out CBG dataset from IDs
+function filterOutCBG(datasets: Dataset[], datasetIds: string[]): string[] {
+  return datasetIds.filter((id) => {
+    const dataset = datasets.find((d) => d.id === id);
+    return dataset && !isCBGDataset(dataset);
+  });
+}
+
+// Helper function to combine data from active datasets
 function combineActiveDatasets(
   datasets: Dataset[],
   activeDatasetIds: string[]
@@ -124,15 +138,28 @@ function combineActiveDatasets(
 // Reducer function
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case "SET_DATASETS":
-      return { ...state, datasets: action.payload };
+    case "SET_DATASETS": {
+      const combinedData = combineActiveDatasets(
+        action.payload,
+        state.activeDatasetIds
+      );
+      return {
+        ...state,
+        datasets: action.payload,
+        data: combinedData,
+        filteredData: combinedData,
+      };
+    }
 
     case "ADD_DATASET": {
       const newDatasets = [...state.datasets, action.payload];
-      const newActiveDatasetIds =
-        state.datasets.length === 0
-          ? [action.payload.id]
-          : state.activeDatasetIds;
+
+      // Don't auto-activate CBG dataset when adding it
+      let newActiveDatasetIds = state.activeDatasetIds;
+      if (state.datasets.length === 0 && !isCBGDataset(action.payload)) {
+        newActiveDatasetIds = [action.payload.id];
+      }
+
       const combinedData = combineActiveDatasets(
         newDatasets,
         newActiveDatasetIds
@@ -148,13 +175,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case "SET_ACTIVE_DATASETS": {
+      // If not in CBG tab, filter out CBG dataset from the active list
+      let finalActiveIds = action.payload;
+      if (state.activeTab !== "cbg") {
+        finalActiveIds = filterOutCBG(state.datasets, action.payload);
+      }
+
       const combinedData = combineActiveDatasets(
         state.datasets,
-        action.payload
+        finalActiveIds
       );
       return {
         ...state,
-        activeDatasetIds: action.payload,
+        activeDatasetIds: finalActiveIds,
         data: combinedData,
         filteredData: combinedData,
       };
@@ -162,6 +195,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case "TOGGLE_DATASET_ACTIVE": {
       const datasetId = action.payload;
+      const dataset = state.datasets.find((d) => d.id === datasetId);
+
+      // Don't allow toggling CBG dataset outside of CBG tab
+      if (dataset && isCBGDataset(dataset) && state.activeTab !== "cbg") {
+        return state;
+      }
+
+      // Don't allow toggling in CBG tab
+      if (state.activeTab === "cbg") {
+        return state;
+      }
+
       const isActive = state.activeDatasetIds.includes(datasetId);
       const newActiveIds = isActive
         ? state.activeDatasetIds.filter((id) => id !== datasetId)
@@ -171,6 +216,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         state.datasets,
         newActiveIds
       );
+
       return {
         ...state,
         activeDatasetIds: newActiveIds,
@@ -180,13 +226,22 @@ function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case "SET_ACTIVE_ALL": {
+      // When in CBG tab, don't change anything
+      if (state.activeTab === "cbg") {
+        return state;
+      }
+
+      // Exclude CBG dataset when activating/deactivating all
+      const nonCBGDatasets = state.datasets.filter((d) => !isCBGDataset(d));
       const newActiveIds = action.payload
-        ? state.datasets.map((d) => d.id)
+        ? nonCBGDatasets.map((d) => d.id)
         : [];
+
       const newCombinedData = combineActiveDatasets(
         state.datasets,
         newActiveIds
       );
+
       return {
         ...state,
         activeDatasetIds: newActiveIds,
@@ -202,6 +257,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const filteredActiveIds = state.activeDatasetIds.filter(
         (id) => id !== action.payload
       );
+      const filteredPreviousIds = state.previousActiveDatasetIds.filter(
+        (id) => id !== action.payload
+      );
       const newCombinedData = combineActiveDatasets(
         filteredDatasets,
         filteredActiveIds
@@ -211,6 +269,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         datasets: filteredDatasets,
         activeDatasetIds: filteredActiveIds,
+        previousActiveDatasetIds: filteredPreviousIds,
         data: newCombinedData,
         filteredData: newCombinedData,
       };
@@ -228,8 +287,61 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_SETTINGS":
       return { ...state, settings: action.payload };
 
-    case "SET_ACTIVE_TAB":
-      return { ...state, activeTab: action.payload };
+    case "SET_ACTIVE_TAB": {
+      const cbgDataset = state.datasets.find((d) => isCBGDataset(d));
+
+      // Switching to CBG tab
+      if (action.payload === "cbg" && cbgDataset) {
+        // Store current active datasets (excluding CBG) before switching
+        const currentNonCBGActiveIds = filterOutCBG(
+          state.datasets,
+          state.activeDatasetIds
+        );
+        const newActiveIds = [cbgDataset.id];
+        const combinedData = combineActiveDatasets(
+          state.datasets,
+          newActiveIds
+        );
+
+        return {
+          ...state,
+          activeTab: action.payload,
+          previousActiveDatasetIds: currentNonCBGActiveIds, // Save non-CBG active state
+          activeDatasetIds: newActiveIds,
+          data: combinedData,
+          filteredData: combinedData,
+        };
+      }
+
+      // Switching away from CBG tab
+      if (state.activeTab === "cbg" && action.payload !== "cbg") {
+        // Restore previous active datasets (which already excludes CBG)
+        const restoredActiveIds =
+          state.previousActiveDatasetIds.length > 0
+            ? state.previousActiveDatasetIds
+            : filterOutCBG(state.datasets, state.activeDatasetIds);
+
+        const combinedData = combineActiveDatasets(
+          state.datasets,
+          restoredActiveIds
+        );
+
+        return {
+          ...state,
+          activeTab: action.payload,
+          activeDatasetIds: restoredActiveIds,
+          previousActiveDatasetIds: [], // Clear previous state
+          data: combinedData,
+          filteredData: combinedData,
+        };
+      }
+
+      // Normal tab switching (not involving CBG)
+      return {
+        ...state,
+        activeTab: action.payload,
+      };
+    }
 
     case "SET_LOADING":
       return { ...state, isLoading: action.payload };
@@ -245,14 +357,32 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SYNC_FROM_DATABASE": {
       const databaseDatasets = action.payload;
-      const newActiveIds = state.activeDatasetIds.filter((id) =>
+
+      // Filter out CBG from active IDs if not in CBG tab
+      let newActiveIds = state.activeDatasetIds.filter((id) =>
         databaseDatasets.some((d) => d.id === id)
       );
 
-      // If no active datasets remain, default to the first one
-      if (newActiveIds.length === 0 && databaseDatasets.length > 0) {
-        newActiveIds.push(databaseDatasets[0].id);
+      if (state.activeTab !== "cbg") {
+        newActiveIds = filterOutCBG(databaseDatasets, newActiveIds);
       }
+
+      // If no active datasets remain and not in CBG tab, default to the first non-CBG one
+      if (newActiveIds.length === 0 && state.activeTab !== "cbg") {
+        const firstNonCBG = databaseDatasets.find((d) => !isCBGDataset(d));
+        if (firstNonCBG) {
+          newActiveIds.push(firstNonCBG.id);
+        }
+      }
+
+      // If in CBG tab, make sure only CBG is active
+      if (state.activeTab === "cbg") {
+        const cbgDataset = databaseDatasets.find((d) => isCBGDataset(d));
+        if (cbgDataset) {
+          newActiveIds = [cbgDataset.id];
+        }
+      }
+
       const combinedData = combineActiveDatasets(
         databaseDatasets,
         newActiveIds
@@ -294,10 +424,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
       const newState: AppState = {
         ...initialState,
-        lastDatabaseUpdateTime: currentTimestamp, // Preserve the timestamp
+        lastDatabaseUpdateTime: currentTimestamp,
         settings: {
           ...initialState.settings,
-          // Preserve theme preference
           theme: state.settings.theme,
         },
       };
@@ -305,6 +434,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       console.log("🟢 APP_CONTEXT: State reset completed");
       return newState;
     }
+
     case "SET_EXPORTING":
       return { ...state, isExporting: action.payload };
 
@@ -467,7 +597,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Effect to apply filters whenever data or filters change
   useEffect(() => {
     // Only apply drill-down filters here (global filters are handled by GlobalFilterContext)
-    let currentFilteredData = state.filteredData; // Use already filtered data from global filters
+    let currentFilteredData = state.filteredData;
 
     const drillDownFilters = state.filters.drillDownFilters;
     if (Object.keys(drillDownFilters).length > 0) {
@@ -519,9 +649,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setActiveTab = (tab: TabType) => {
     dispatch({ type: "SET_ACTIVE_TAB", payload: tab });
   };
+
   const setFilters = (filters: FilterState) => {
     dispatch({ type: "SET_FILTERS", payload: filters });
   };
+
   const setSettings = (settings: UserSettings) => {
     dispatch({ type: "SET_SETTINGS", payload: settings });
     if (settings.theme === "dark") {
@@ -539,6 +671,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   };
+
   const toggleDatasetActive = (id: string) => {
     dispatch({ type: "TOGGLE_DATASET_ACTIVE", payload: id });
   };
@@ -550,6 +683,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const removeDataset = (id: string) => {
     dispatch({ type: "DELETE_DATASET", payload: id });
   };
+
   const addDrillDownFilter = (key: string, value: any) => {
     dispatch({
       type: "SET_FILTERS",
@@ -559,19 +693,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     });
   };
+
   const clearDrillDownFilters = () => {
     dispatch({
       type: "SET_FILTERS",
       payload: { ...state.filters, drillDownFilters: {} },
     });
   };
+
   const clearGlobalFilters = () => {
     // This function is now handled by the GlobalFilterContext
-    // Keep for backward compatibility but delegate to new system
     console.warn(
       "clearGlobalFilters is deprecated. Use GlobalFilterContext instead."
     );
   };
+
   const getMultiDatasetData = () => {
     return state.datasets
       .filter((d) => state.activeDatasetIds.includes(d.id))
@@ -582,6 +718,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         color: dataset.color,
       }));
   };
+
   const saveFilterSet = (name: string) => {
     const newFilterSet = {
       id: Math.random().toString(36).substr(2, 9),
@@ -595,6 +732,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setSettings(updatedSettings);
   };
+
   const loadFilterSet = (id: string) => {
     const filterSet = state.settings.savedFilterSets.find(
       (set) => set.id === id
@@ -603,6 +741,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setFilters(filterSet.filters);
     }
   };
+
   const deleteFilterSet = (id: string) => {
     const updatedSettings = {
       ...state.settings,
@@ -612,6 +751,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setSettings(updatedSettings);
   };
+
   const mergeDatasets = (
     primaryId: string,
     secondaryId: string,

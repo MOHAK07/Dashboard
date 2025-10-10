@@ -12,7 +12,7 @@ const detectDataType = (
   const lowerName = tableName.toLowerCase();
   if (lowerName.includes("stock")) return "stock";
   if (lowerName.includes("production")) return "production";
-  if (lowerName.includes("fom") || lowerName.includes("lfom")) return "sales";
+  if (lowerName.includes("fom") || lowerName.includes("lfom") || lowerName.includes("cbg")) return "sales";
   return "unknown";
 };
 
@@ -89,7 +89,11 @@ export function useSupabaseData(enabled: boolean = true) {
         newDatasets.push(
           convertDatabaseRecordsToDataset(TABLES.REVENUE, result.revenue)
         );
-
+        if (result.cbg && result.cbg.length > 0)
+        newDatasets.push(
+          convertDatabaseRecordsToDataset(TABLES.CBG, result.cbg)
+        );
+      
       setDatasets(newDatasets);
     } catch (err) {
       setError(

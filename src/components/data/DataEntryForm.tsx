@@ -53,6 +53,16 @@ const createValidationSchema = (tableName: TableName) => {
       baseSchema.Year = yup.number().required("Year is required");
       baseSchema.Month = yup.string().required("Month is required");
       break;
+    case TABLES.CBG:
+      baseSchema["Bill.Doc.Date"] = yup.string().required("Date is required");
+      baseSchema["Ship to party name"] = yup
+        .string()
+        .required("Customer name is required");
+      baseSchema.Quantity = yup.string().required("Quantity is required");
+      baseSchema["Total Invoice value"] = yup
+        .string()
+        .required("Total Invoice value is required");
+      break;
     case TABLES.REVENUE:
       baseSchema.Months = yup.string().required("Month is required");
       break;
@@ -302,6 +312,214 @@ export function DataEntryForm({
             label: "Amount not Received (₹)",
           },
           { name: "Date of Receipt", type: "text", label: "Date of Receipt" },
+        ];
+
+      case TABLES.CBG:
+        return [
+          {
+            name: "Bill.Doc",
+            type: "number",
+            label: "Bill.Doc",
+            required: false,
+          },
+          {
+            name: "Bill.Doc.Date",
+            type: "date",
+            label: "Bill.Doc.Date",
+            required: true,
+          },
+          { name: "Month", type: "text", label: "Month", required: false },
+          { name: "Year", type: "number", label: "Year", required: false },
+          {
+            name: "Bill to party",
+            type: "number",
+            label: "Bill to party",
+            required: false,
+          },
+          {
+            name: "Revenue GL",
+            type: "number",
+            label: "Revenue GL",
+            required: false,
+          },
+          {
+            name: "Sales Doc Type",
+            type: "text",
+            label: "Sales Doc Type",
+            required: false,
+          },
+          {
+            name: "Bill to party name",
+            type: "text",
+            label: "Bill to party name",
+            required: true,
+          },
+          { name: "City", type: "text", label: "City", required: false },
+          {
+            name: "Ship to party name",
+            type: "text",
+            label: "Ship to party name",
+            required: false,
+          },
+          {
+            name: "State Discription",
+            type: "text",
+            label: "State Discription",
+            required: false,
+          },
+          {
+            name: "Matrl Description",
+            type: "text",
+            label: "Matrl Description",
+            required: false,
+          },
+          { name: "Unit", type: "text", label: "Unit", required: false },
+          {
+            name: "Quantity",
+            type: "text",
+            label: "Quantity",
+            required: true,
+          },
+          { name: "Rate", type: "text", label: "Rate", required: false },
+          {
+            name: "Basic Value",
+            type: "text",
+            label: "Basic Value",
+            required: false,
+          },
+          {
+            name: "CGST Amount",
+            type: "text",
+            label: "CGST Amount",
+            required: false,
+          },
+          {
+            name: "SGST Amount",
+            type: "text",
+            label: "SGST Amount",
+            required: false,
+          },
+          {
+            name: "IGST Amount",
+            type: "text",
+            label: "IGST Amount",
+            required: false,
+          },
+          {
+            name: "Transportation amount",
+            type: "text",
+            label: "Transportation amount",
+            required: false,
+          },
+          {
+            name: "Total Invoice value",
+            type: "text",
+            label: "Total Invoice value",
+            required: true,
+          },
+          { name: "Plant", type: "number", label: "Plant", required: false },
+          {
+            name: "Material Code",
+            type: "text",
+            label: "Material Code",
+            required: false,
+          },
+          {
+            name: "Truck Number",
+            type: "text",
+            label: "Truck Number",
+            required: false,
+          },
+          {
+            name: "Transpoter Name",
+            type: "text",
+            label: "Transpoter Name",
+            required: false,
+          },
+          {
+            name: "R.O Number&Date",
+            type: "text",
+            label: "R.O Number&Date",
+            required: false,
+          },
+          {
+            name: "BPGSTIN Number",
+            type: "text",
+            label: "BPGSTIN Number",
+            required: false,
+          },
+          {
+            name: "Sales Order No",
+            type: "number",
+            label: "Sales Order No",
+            required: false,
+          },
+          {
+            name: "Sales Order Date",
+            type: "text",
+            label: "Sales Order Date",
+            required: false,
+          },
+          {
+            name: "Purchase Order",
+            type: "text",
+            label: "Purchase Order",
+            required: false,
+          },
+          {
+            name: "Billing Type",
+            type: "text",
+            label: "Billing Type",
+            required: false,
+          },
+          {
+            name: "Permit Number and Date",
+            type: "text",
+            label: "Permit Number and Date",
+            required: false,
+          },
+          {
+            name: "Billing ACCT Doc No.(RV)",
+            type: "number",
+            label: "Billing ACCT Doc No.(RV)",
+            required: false,
+          },
+          {
+            name: "Excise ACCT Doc No.(SA)",
+            type: "number",
+            label: "Excise ACCT Doc No.(SA)",
+            required: false,
+          },
+          {
+            name: "OFS Number and Date",
+            type: "text",
+            label: "OFS Number and Date",
+            required: false,
+          },
+          {
+            name: "NOC Number and Date",
+            type: "text",
+            label: "NOC Number and Date",
+            required: false,
+          },
+          {
+            name: "Delivery number",
+            type: "number",
+            label: "Delivery number",
+            required: false,
+          },
+          {
+            name: "HSN/SAC",
+            type: "number",
+            label: "HSN/SAC",
+            required: false,
+          },
+          {
+            name: "Compression filling Amount",
+            type: "text",
+            label: "Compression filling Amount",
+            required: false,
+          },
         ];
       case TABLES.REVENUE:
         return [

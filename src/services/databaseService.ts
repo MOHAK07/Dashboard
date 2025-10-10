@@ -9,6 +9,7 @@ import {
   RevenueRecord,
   DatabaseRecord,
   DatabaseResponse,
+  CBGRecord,
 } from "../types/database";
 import { FlexibleDataRow } from "../types";
 
@@ -490,6 +491,10 @@ export class DatabaseService {
     return this.fetchAll<RevenueRecord>(TABLES.REVENUE);
   }
 
+  static async fetchCBGData(): Promise<DatabaseResponse<CBGRecord>> {
+    return this.fetchAll<CBGRecord>(TABLES.CBG);
+  }
+
   // Batch operations for data upload
   static async uploadFOMData(
     records: FlexibleDataRow[]
@@ -573,6 +578,16 @@ export class DatabaseService {
     return this.insertBatch<RevenueRecord>(TABLES.REVENUE, convertedRecords);
   }
 
+  static async uploadCBGData(
+    records: FlexibleDataRow[]
+  ): Promise<DatabaseResponse<CBGRecord>> {
+    const convertedRecords = records.map(
+      (record) =>
+        this.convertToTableRecord(record, TABLES.CBG) as Partial<CBGRecord>
+    );
+    return this.insertBatch<CBGRecord>(TABLES.CBG, convertedRecords);
+  }
+
   // Get all data from all tables
   static async fetchAllData(): Promise<{
     fom: FOMRecord[];
@@ -582,6 +597,7 @@ export class DatabaseService {
     posFom: POSFOMRecord[];
     stock: StockRecord[];
     revenue: RevenueRecord[];
+    cbg: CBGRecord[];
     errors: string[];
   }> {
     const results = await Promise.allSettled([
@@ -592,6 +608,7 @@ export class DatabaseService {
       this.fetchPOSFOMData(),
       this.fetchStockData(),
       this.fetchRevenueData(),
+      this.fetchCBGData(),
     ]);
 
     const errors: string[] = [];
@@ -603,6 +620,7 @@ export class DatabaseService {
       posFom: [] as POSFOMRecord[],
       stock: [] as StockRecord[],
       revenue: [] as RevenueRecord[],
+      cbg: [] as CBGRecord[],
     };
 
     results.forEach((result, index) => {
@@ -628,6 +646,9 @@ export class DatabaseService {
             break;
           case 6:
             data.revenue = result.value.data as RevenueRecord[];
+            break;
+          case 7:
+            data.cbg = result.value.data as CBGRecord[];
             break;
         }
       } else if (result.status === "fulfilled" && result.value.error) {

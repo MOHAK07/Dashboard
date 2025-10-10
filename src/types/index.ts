@@ -115,8 +115,7 @@ export interface ExportOptions {
   quality?: 'low' | 'medium' | 'high';
 }
 
-export type TabType = 'overview' | 'data-management' | 'explorer' | 'datasets' | 'settings';
-
+export type TabType = 'overview' | 'data-management' | 'explorer' | 'datasets' | 'cbg' | 'settings';
 export interface AppState {
   data: FlexibleDataRow[];
   filteredData: FlexibleDataRow[];
