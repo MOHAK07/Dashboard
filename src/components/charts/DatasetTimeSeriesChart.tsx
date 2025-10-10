@@ -104,42 +104,42 @@ export function DatasetTimeSeriesChart({
 
     // Process each active dataset
     multiDatasetData.forEach((dataset, index) => {
-        // Find quantity and month columns
-        const quantityColumn = Object.keys(dataset.data[0] || {}).find(
-          (col) => col.toLowerCase() === "quantity"
-        );
-        const monthColumn = Object.keys(dataset.data[0] || {}).find(
-          (col) => col.toLowerCase() === "month"
-        );
+      // Find quantity and month columns
+      const quantityColumn = Object.keys(dataset.data[0] || {}).find(
+        (col) => col.toLowerCase() === "quantity"
+      );
+      const monthColumn = Object.keys(dataset.data[0] || {}).find(
+        (col) => col.toLowerCase() === "month"
+      );
 
-        if (!quantityColumn || !monthColumn) {
-          return;
-        }
+      if (!quantityColumn || !monthColumn) {
+        return;
+      }
 
-        // Group by month and sum quantities
-        const monthlyData = new Map<string, number>();
+      // Group by month and sum quantities
+      const monthlyData = new Map<string, number>();
 
-        dataset.data.forEach((row) => {
-          const month = String(row[monthColumn] || "").trim();
-          const quantity = parseFloat(String(row[quantityColumn] || "0")) || 0;
+      dataset.data.forEach((row) => {
+        const month = String(row[monthColumn] || "").trim();
+        const quantity = parseFloat(String(row[quantityColumn] || "0")) || 0;
 
-          if (month && quantity > 0) {
-            allMonths.add(month);
-            const currentTotal = monthlyData.get(month) || 0;
-            monthlyData.set(month, currentTotal + quantity);
-          }
-        });
-
-        if (monthlyData.size > 0) {
-            // Determine dataset display name
-            datasetSeries.push({
-              name: DataProcessor.getDatasetDisplayName(dataset.datasetName),
-              data: monthlyData,
-              color: DataProcessor.getDatasetColorByName(dataset.datasetName),
-              datasetId: dataset.datasetId,
-            });
+        if (month && quantity > 0) {
+          allMonths.add(month);
+          const currentTotal = monthlyData.get(month) || 0;
+          monthlyData.set(month, currentTotal + quantity);
         }
       });
+
+      if (monthlyData.size > 0) {
+        // Determine dataset display name
+        datasetSeries.push({
+          name: DataProcessor.getDatasetDisplayName(dataset.datasetName),
+          data: monthlyData,
+          color: DataProcessor.getDatasetColorByName(dataset.datasetName),
+          datasetId: dataset.datasetId,
+        });
+      }
+    });
 
     // Sort months chronologically
     const sortedMonths = Array.from(allMonths).sort((a, b) => {
@@ -165,7 +165,7 @@ export function DatasetTimeSeriesChart({
       name: series.name,
       data: sortedMonths.map((month) => {
         const value = series.data.get(month) || 0;
-        return Math.round(value * 100) / 100; // Round to 2 decimal places
+        return Math.round(value * 100) / 100;
       }),
       color: series.color,
     }));
@@ -173,7 +173,10 @@ export function DatasetTimeSeriesChart({
     return {
       categories: sortedMonths,
       series: finalSeries,
-      hasData: finalSeries.length > 0 && sortedMonths.length > 0 && finalSeries.some(s => s.data.some(d => d > 0)),
+      hasData:
+        finalSeries.length > 0 &&
+        sortedMonths.length > 0 &&
+        finalSeries.some((s) => s.data.some((d) => d > 0)),
     };
   }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
