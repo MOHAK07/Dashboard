@@ -157,55 +157,6 @@ export function SettingsTab() {
       </div>
 
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-          Data Management
-        </h3>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Current Dataset
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {state.data.length} rows loaded
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                sessionStorage.removeItem('dashboard-data');
-                sessionStorage.removeItem('dashboard-datasets');
-                window.location.reload();
-              }}
-              className="btn-secondary text-sm"
-            >
-              Clear Data
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Reset Settings
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Restore all settings to defaults
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem('dashboard-settings');
-                window.location.reload();
-              }}
-              className="btn-secondary text-sm"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           About
         </h3>

@@ -21,7 +21,7 @@ export function useAuth() {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
 
-    const fetchUserProfile = async (user: User): Promise<string> => {
+    const fetchUserProfile = async (user: User): Promise<string | null> => {
       try {
         const { data: profile, error } = await supabase
           .from("Profiles")
@@ -31,12 +31,12 @@ export function useAuth() {
 
         if (error) {
           console.warn("Error fetching user profile:", error.message);
-          return "operator";
+          return null;
         }
-        return profile?.role || "operator";
+        return profile?.role || null;
       } catch (err) {
         console.warn("Unexpected error fetching profile:", err);
-        return "operator";
+        return null;
       }
     };
 
@@ -55,21 +55,29 @@ export function useAuth() {
           };
 
           // Fetch role with timeout
-          const rolePromise = fetchUserProfile(user);
-          const timeoutPromise = new Promise<string>((_, reject) => {
-            timeoutId = setTimeout(
-              () => reject(new Error("Profile fetch timeout")),
-              5000
-            );
-          });
+          const fetchedRole = await fetchUserProfile(user);
+          let role = fetchedRole;
 
-          let role: string;
-          try {
-            role = await Promise.race([rolePromise, timeoutPromise]);
-            clearTimeout(timeoutId);
-          } catch (error) {
-            console.warn("Profile fetch failed, using default role:", error);
-            role = "operator";
+          if (role) {
+            localStorage.setItem("userRole", role);
+          } else {
+            // If fetching fails, try to get it from localStorage as a fallback
+            const storedRole = localStorage.getItem("userRole");
+            if (storedRole) {
+              console.log("AUTH: Using stored role as fallback.");
+              role = storedRole;
+            } else {
+              // If no stored role, default to "operator"
+              console.warn(
+                "AUTH: No stored role found, defaulting to 'operator'."
+              );
+              role = "operator";
+            }
+          }
+
+          // Final check to ensure role is not null
+          if (!role) {
+            role = "operator"; // Should not happen with the logic above, but as a safeguard
           }
 
           if (isMounted) {
@@ -142,6 +150,7 @@ export function useAuth() {
 
           if (event === "SIGNED_OUT") {
             TimestampService.clearAllTimestamps();
+            localStorage.removeItem("userRole");
             window.dispatchEvent(new CustomEvent("user-signed-out"));
           }
 
@@ -268,6 +277,7 @@ export function useAuth() {
 
       // Clear session data
       TimestampService.clearAllTimestamps();
+      localStorage.removeItem("userRole");
       sessionStorage.clear();
 
       console.log("🟢 AUTH: Sign-out successful");
