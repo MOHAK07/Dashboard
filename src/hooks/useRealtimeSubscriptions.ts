@@ -2,36 +2,35 @@ import { useEffect, useCallback } from "react";
 import { DatabaseService } from "../services/databaseService";
 import { TABLES } from "../lib/supabase";
 import { useApp } from "../contexts/AppContext";
-import { TimestampService } from "../services/timestampService";
 
 export function useRealtimeSubscriptions() {
   const { dispatch } = useApp();
 
+  // This function will now ONLY update the local UI state.
   const handleRealtimeUpdate = useCallback(
     (payload: any) => {
+      console.log("🟢 REALTIME: Event received:", payload);
       const timestamp = payload.commit_timestamp;
+      const eventType = payload.eventType;
+      const table = payload.table;
 
       if (timestamp) {
         const updateTime = new Date(timestamp);
 
         if (!isNaN(updateTime.getTime())) {
-          // Use enhanced timestamp service
-          TimestampService.saveTimestamp(updateTime);
-
-          // Update the app state
+          // Update the local app state in React
           dispatch({
             type: "SET_LAST_DB_UPDATE_TIME",
             payload: updateTime,
           });
 
-          // Dispatch custom event for UpdateStatus component
+          // Dispatch a custom event for other components like UpdateStatus
           window.dispatchEvent(
             new CustomEvent("supabase-data-changed", {
               detail: {
-                table: payload.table,
-                eventType: payload.eventType,
-                timestamp: timestamp,
-                formattedTime: updateTime.toISOString(),
+                table,
+                eventType,
+                timestamp,
               },
             })
           );
@@ -47,37 +46,29 @@ export function useRealtimeSubscriptions() {
       return;
     }
 
-    // Load last update time from localStorage on mount
-    const savedTimestamp = TimestampService.loadTimestamp();
-    if (savedTimestamp) {
-      dispatch({
-        type: "SET_LAST_DB_UPDATE_TIME",
-        payload: savedTimestamp,
-      });
-    }
-
     console.log("🟢 REALTIME: Setting up subscriptions...");
     const subscriptions: any[] = [];
 
-    // Subscribe to all tables
-    Object.values(TABLES).forEach((tableName) => {
+    // Subscribe to all tables EXCEPT app_status to avoid loops
+    const tablesToSubscribe = Object.values(TABLES).filter(
+      (tableName) => tableName !== "app_status"
+    );
+
+    tablesToSubscribe.forEach((tableName) => {
       try {
         const subscription = DatabaseService.subscribeToTable(
           tableName,
-          handleRealtimeUpdate // This should be called when data changes
+          handleRealtimeUpdate
         );
-        if (subscription) {
-          subscriptions.push(subscription);
-        } else {
-          console.warn(`Failed to subscribe to table: ${tableName}`);
-        }
+        subscriptions.push(subscription);
       } catch (error) {
         console.error(`Error subscribing to table ${tableName}:`, error);
       }
     });
 
-    // Cleanup subscriptions on unmount
+    // Cleanup on unmount
     return () => {
+      console.log("🔴 REALTIME: Unsubscribing...");
       subscriptions.forEach((subscription) => {
         try {
           if (subscription && typeof subscription.unsubscribe === "function") {
@@ -90,7 +81,5 @@ export function useRealtimeSubscriptions() {
     };
   }, [dispatch, handleRealtimeUpdate]);
 
-  return {
-    isSubscribed: true,
-  };
+  return { isSubscribed: true };
 }

@@ -76,6 +76,58 @@ export class DatabaseService {
     }
   }
 
+static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.APP_STATUS)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        return { data: null, error: { message: error.message, details: error.details, hint: error.hint } };
+      }
+      return { data: [data], error: null };
+    } catch (err) {
+      return {
+        data: null,
+        error: {
+          message: `Unexpected error fetching app status`,
+          details: err instanceof Error ? err.message : "Unknown error",
+        },
+      };
+    }
+  }
+
+  static async updateAppStatus(status: string): Promise<DatabaseResponse<FlexibleDataRow>> {
+    try {
+      // CORRECTED: Match the column names to your database schema
+      const { data, error } = await supabase
+        .from(TABLES.APP_STATUS)
+        .insert([{ 
+            status_message: status, 
+            last_update: new Date().toISOString() 
+        }])
+        .select();
+
+      if (error) {
+        console.error("Error updating app status:", error); // Added for debugging
+        return { data: null, error: { message: error.message, details: error.details, hint: error.hint } };
+      }
+      return { data, error: null };
+    } catch (err) {
+        console.error("Catch block error updating app status:", err); // Added for debugging
+        return {
+            data: null,
+            error: {
+            message: `Unexpected error updating app status`,
+            details: err instanceof Error ? err.message : "Unknown error",
+            },
+        };
+    }
+  }
+
   // Check if current user has admin role
   static async isCurrentUserAdmin(): Promise<boolean> {
     const profile = await this.getCurrentUserProfile();

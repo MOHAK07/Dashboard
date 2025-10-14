@@ -18,6 +18,8 @@ import { useRealtimeSubscriptions } from "../hooks/useRealtimeSubscriptions";
 import { useAuth } from "../hooks/useAuth";
 import { TableName } from "../lib/supabase";
 import { TimestampService } from "../services/timestampService";
+import { supabase } from "../lib/supabase";
+import { User } from "@supabase/supabase-js";
 
 // Define the state interface
 interface AppState {
@@ -90,7 +92,7 @@ const initialState: AppState = {
     chartPreferences: {},
   },
   activeTab: "overview",
-  isLoading: false,
+  isLoading: true,
   error: null,
   isConnectedToDatabase: false,
   databaseError: null,
@@ -513,78 +515,45 @@ const AppContext = createContext<
 
 // Provider component
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // The useSupabaseData hook is now called here, dependent on the user in our state.
   const {
     datasets: supabaseDatasets,
     isLoading: supabaseLoading,
     error: supabaseError,
     refetch: refetchSupabaseData,
     uploadData,
-  } = useSupabaseData(!!user);
+  } = useSupabaseData(!!state.user);
 
-  const [state, dispatch] = useReducer(appReducer, initialState);
-
-  // Load state from storage only once on initial mount
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem("dashboard-settings");
-      if (savedSettings) {
-        dispatch({ type: "SET_SETTINGS", payload: JSON.parse(savedSettings) });
+    // 1. Check for an active session when the app loads.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      dispatch({ type: "SET_USER", payload: session?.user ?? null });
+      dispatch({ type: "SET_AUTHENTICATED", payload: !!session?.user });
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      dispatch({ type: "SET_USER", payload: user });
+      dispatch({ type: "SET_AUTHENTICATED", payload: !!user });
+
+      if (!user) {
+        dispatch({ type: "RESET_STATE" });
       }
-    } catch (error) {
-      console.error("Error loading saved state:", error);
-    }
-
-    // Listen for global filter events
-    const handleGlobalFiltersApplied = (event: CustomEvent) => {
-      dispatch({
-        type: "SET_FILTERED_DATA",
-        payload: event.detail.filteredData,
-      });
-    };
-
-    window.addEventListener(
-      "global-filters-applied",
-      handleGlobalFiltersApplied as EventListener
-    );
-
+    });
     return () => {
-      window.removeEventListener(
-        "global-filters-applied",
-        handleGlobalFiltersApplied as EventListener
-      );
+      subscription?.unsubscribe();
     };
   }, []);
 
-  // Update auth state when user changes
+  // --- Data Sync Logic ---
+  // This effect syncs data from Supabase whenever it changes OR when the user logs in.
   useEffect(() => {
-    dispatch({ type: "SET_USER", payload: user });
-    dispatch({ type: "SET_AUTHENTICATED", payload: !!user });
+    if (!state.user) return;
 
-    // If the user is logged out, reset the entire state
-    if (!user) {
-      dispatch({ type: "RESET_STATE" });
-      // But immediately reload the saved timestamp even after reset
-      const savedTimestamp = localStorage.getItem("lastDatabaseUpdateTime");
-      if (savedTimestamp) {
-        const savedDate = new Date(savedTimestamp);
-        if (!isNaN(savedDate.getTime())) {
-          console.log(
-            "🔴 APP_CONTEXT: Restoring timestamp after logout:",
-            savedDate
-          );
-          dispatch({
-            type: "SET_LAST_DB_UPDATE_TIME",
-            payload: savedDate,
-          });
-        }
-      }
-    }
-  }, [user?.id]);
-
-  // Sync Supabase data with local state
-  useEffect(() => {
-    if (!user) return;
     if (supabaseDatasets.length > 0) {
       dispatch({ type: "SYNC_FROM_DATABASE", payload: supabaseDatasets });
     }
@@ -592,9 +561,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "SET_DATABASE_ERROR", payload: supabaseError });
     }
     dispatch({ type: "SET_LOADING", payload: supabaseLoading });
-  }, [supabaseDatasets, supabaseError, supabaseLoading, user]);
-
-  // Effect to apply filters whenever data or filters change
+  }, [supabaseDatasets, supabaseError, supabaseLoading, state.user]);
+  
   useEffect(() => {
     // Only apply drill-down filters here (global filters are handled by GlobalFilterContext)
     let currentFilteredData = state.filteredData;

@@ -38,7 +38,6 @@ export function Header({
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Click-away logic for menus
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -115,24 +114,24 @@ export function Header({
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 lg:px-6 transition-all duration-300">
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-2 sm:py-3 lg:px-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         {/* Left side */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <button
             onClick={onMobileMenuToggle}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors lg:hidden focus:outline-none"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors lg:hidden focus:outline-none"
             aria-label="Open sidebar"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           {/* Logo and Title */}
-          <div className="hidden lg:flex items-center space-x-3">
+          <div className="hidden md:flex lg:flex items-center space-x-3">
             <img
               src={state.settings.theme === "dark" ? logoDark : logoLight}
               alt="Company Logo"
-              className="h-10 w-auto"
+              className="h-8 sm:h-9 md:h-10 w-auto"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
               }}
@@ -141,20 +140,28 @@ export function Header({
         </div>
 
         {/* Right side */}
-        <div className="flex items-center space-x-2 lg:space-x-3">
-          <UpdateStatus />
+        <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
+          {/* UpdateStatus - Show inline on larger screens */}
+          <div className="hidden xl:block">
+            <UpdateStatus />
+          </div>
+
           {/* Database Sync Indicator */}
           <DatabaseSyncIndicator />
 
           {/* Saved Filters */}
-          {state.data.length > 0 && <SavedFilters />}
+          {state.data.length > 0 && (
+            <div className="hidden sm:block">
+              <SavedFilters />
+            </div>
+          )}
 
           {/* Global Filters Button */}
           {state.data.length > 0 && (
             <button
               onClick={() => setShowGlobalFilters(true)}
               className={`
-                relative p-2 rounded-lg transition-all duration-200 focus:outline-none
+                relative p-1.5 sm:p-2 rounded-lg transition-all duration-200 focus:outline-none
                 ${
                   hasActiveFilters
                     ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 shadow-sm"
@@ -163,9 +170,9 @@ export function Header({
               `}
               title="Global Filters"
             >
-              <Filter className="h-5 w-5" />
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
               {hasActiveFilters && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                <div className="absolute -top-0.5 sm:-top-1 -right-0.5 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-primary-500 rounded-full flex items-center justify-center">
                   <span className="text-xs text-white font-bold">
                     {getActiveFilterCount()}
                   </span>
@@ -179,36 +186,36 @@ export function Header({
             <div className="relative" ref={exportMenuRef}>
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
                 aria-label="Export options"
               >
-                <Download className="h-5 w-5" />
+                <Download className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
 
               {showExportMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                <div className="absolute right-0 mt-2 w-44 sm:w-48 md:w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                   <div className="py-2">
                     <button
                       onClick={() => handleExport("pdf")}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       Export as PDF
                     </button>
                     <button
                       onClick={() => handleExport("png")}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       Export as PNG
                     </button>
                     <button
                       onClick={() => handleExport("csv")}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       Export Data (CSV)
                     </button>
                     <button
                       onClick={() => handleExport("json")}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       Export Data (JSON)
                     </button>
@@ -221,15 +228,15 @@ export function Header({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
             aria-label={`Switch to ${
               state.settings.theme === "light" ? "dark" : "light"
             } theme`}
           >
             {state.settings.theme === "light" ? (
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : (
-              <Sun className="h-5 w-5" />
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
           </button>
 
@@ -238,39 +245,20 @@ export function Header({
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none"
                 title="User menu"
               >
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div className="absolute right-0 mt-2 w-56 sm:w-64 md:w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                  <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
                       Signed in as
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-full">
                       {user.email}
                     </p>
-                  </div>
-                  <div className="py-2">
-                    <button
-                      onClick={async () => {
-                        console.log("🔴 HEADER: Sign-out button clicked");
-                        setShowUserMenu(false);
-
-                        try {
-                          await signOut();
-                          console.log("🟢 HEADER: Sign-out completed");
-                        } catch (error) {
-                          console.error("🔴 HEADER: Sign-out error:", error);
-                        }
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors"
-                      disabled={state.isLoading}
-                    >
-                      {state.isLoading ? "Signing out..." : "Sign Out"}
-                    </button>
                   </div>
                 </div>
               )}
@@ -279,36 +267,46 @@ export function Header({
         </div>
       </div>
 
+      {/* UpdateStatus - Show on separate line for smaller screens */}
+      <div className="xl:hidden mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <UpdateStatus />
+      </div>
+
       {/* Active Filters Display */}
       {state.data.length > 0 && hasActiveFilters && (
-        <ActiveFiltersDisplay
-          filters={filterState.filters}
-          onRemoveFilter={resetFilter}
-          onClearAll={clearFilters}
-          className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700"
-        />
+        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
+          <ActiveFiltersDisplay
+            filters={filterState.filters}
+            onRemoveFilter={resetFilter}
+            onClearAll={clearFilters}
+            className=""
+          />
+        </div>
       )}
 
       {/* Active Dataset Indicator */}
       {state.activeDatasetIds.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex-shrink-0">
               Active Dataset{state.activeDatasetIds.length > 1 ? "s" : ""}:
             </span>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {state.datasets
                 .filter((d) => state.activeDatasetIds.includes(d.id))
                 .map((dataset) => (
-                  <div key={dataset.id} className="flex items-center space-x-2">
+                  <div
+                    key={dataset.id}
+                    className="flex items-center space-x-1.5 sm:space-x-2 min-w-0"
+                  >
                     <div
-                      className="w-2 h-2 rounded-full"
+                      className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: dataset.color }}
                     />
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                       {dataset.name}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                       ({dataset.rowCount.toLocaleString()} rows)
                     </span>
                   </div>

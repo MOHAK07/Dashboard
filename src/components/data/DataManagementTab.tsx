@@ -187,6 +187,11 @@ export function DataManagementTab() {
     );
     if (result.error) {
       setError(result.error.message);
+    } else {
+      // SUCCESS: Update the app_status table
+      await DatabaseService.updateAppStatus(
+        `Deleted record from ${selectedTable}`
+      );
     }
   };
 
@@ -199,6 +204,7 @@ export function DataManagementTab() {
     )
       return;
 
+    let success = true;
     for (const recordId of selectedRecords) {
       const result = await DatabaseService.deleteRecord(
         selectedTable,
@@ -209,8 +215,16 @@ export function DataManagementTab() {
         setError(
           `Failed to delete record ${recordId}: ${result.error.message}`
         );
+        success = false;
         break;
       }
+    }
+    if (success) {
+      setSelectedRecords([]);
+      // SUCCESS: Update the app_status table after all deletions
+      await DatabaseService.updateAppStatus(
+        `Bulk deleted ${selectedRecords.length} records from ${selectedTable}`
+      );
     }
     setSelectedRecords([]);
   };
@@ -449,7 +463,13 @@ export function DataManagementTab() {
       {showAddForm && (
         <DataEntryForm
           tableName={selectedTable}
-          onSave={() => setShowAddForm(false)}
+          onSave={async () => {
+            setShowAddForm(false);
+            // SUCCESS: Update the app_status table
+            await DatabaseService.updateAppStatus(
+              `Added record to ${selectedTable}`
+            );
+          }}
           onCancel={() => setShowAddForm(false)}
         />
       )}
@@ -458,7 +478,13 @@ export function DataManagementTab() {
         <DataEntryForm
           tableName={selectedTable}
           initialData={showEditForm}
-          onSave={() => setShowEditForm(null)}
+          onSave={async () => {
+            setShowEditForm(null);
+            // SUCCESS: Update the app_status table
+            await DatabaseService.updateAppStatus(
+              `Updated record in ${selectedTable}`
+            );
+          }}
           onCancel={() => setShowEditForm(null)}
           isEdit={true}
         />
@@ -468,8 +494,12 @@ export function DataManagementTab() {
         <BulkUploadModal
           tableName={selectedTable}
           onClose={() => setShowBulkUpload(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
             setShowBulkUpload(false);
+            // SUCCESS: Update the app_status table
+            await DatabaseService.updateAppStatus(
+              `Bulk uploaded to ${selectedTable}`
+            );
           }}
         />
       )}

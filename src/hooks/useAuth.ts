@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { TimestampService } from "../services/timestampService";
+import { useApp } from "../contexts/AppContext";
 import {
   User,
   AuthState,
@@ -10,6 +11,10 @@ import {
 } from "../types/auth";
 
 export function useAuth() {
+  const {
+    dispatch,
+    state: { user },
+  } = useApp();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     role: undefined,
@@ -264,27 +269,33 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    try {
-      console.log("🔴 AUTH: Starting sign-out process");
+    console.log("🔵 AUTH: Starting sign-out process...");
+    dispatch({ type: "SET_LOADING", payload: true });
 
-      // Don't set loading state during sign-out to prevent UI issues
+    try {
+      // Attempt to sign out from Supabase.
+      // This might fail if the session is already gone, and that's okay.
       const { error } = await supabase.auth.signOut();
 
-      if (error) {
-        console.error("🔴 AUTH: Sign-out error:", error);
-        return { error };
+      // Check for any error that ISN'T an AuthSessionMissingError
+      if (error && error.name !== "AuthSessionMissingError") {
+        // If it's a different, real error (like a network issue), throw it.
+        throw error;
       }
 
-      // Clear session data
-      TimestampService.clearAllTimestamps();
-      localStorage.removeItem("userRole");
-      sessionStorage.clear();
-
-      console.log("🟢 AUTH: Sign-out successful");
-      return { error: null };
-    } catch (err) {
-      console.error("🔴 AUTH: Unexpected sign-out error:", err);
-      return { error: { message: "Sign-out failed" } };
+      // If we reach here, it means either the sign-out was successful,
+      // or the user was already signed out from Supabase's perspective.
+      // In either case, we proceed to clear the local state.
+    } catch (error) {
+      // Log any unexpected errors that occurred during sign-out.
+      console.error("🔴 AUTH: A non-critical sign-out error occurred:", error);
+    } finally {
+      // THIS IS THE CRUCIAL PART:
+      // Always clear the user from the local state and stop loading.
+      // This ensures the UI logs out cleanly every single time.
+      dispatch({ type: "SET_USER", payload: null });
+      dispatch({ type: "SET_LOADING", payload: false });
+      console.log("🟢 AUTH: Local user state cleared. Sign-out complete.");
     }
   };
 

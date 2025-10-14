@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, Plus, Edit, Trash2 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { TimestampService } from "../services/timestampService";
+import { DatabaseService } from "../services/databaseService";
 
 interface DatabaseEvent {
   table?: string;
@@ -17,7 +17,6 @@ export function UpdateStatus() {
   const [lastEvent, setLastEvent] = useState<DatabaseEvent | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Function to format status from timestamp
   const formatStatusFromTimestamp = useCallback(
     (timestamp: Date | string | null) => {
       if (!timestamp) {
@@ -27,7 +26,6 @@ export function UpdateStatus() {
       const lastUpdateDate = new Date(timestamp);
 
       if (isNaN(lastUpdateDate.getTime())) {
-        console.error("🔴 UPDATE_STATUS: Invalid date:", timestamp);
         return "Awaiting database activity...";
       }
 
@@ -47,78 +45,50 @@ export function UpdateStatus() {
     []
   );
 
-  // Initialize status on component mount with enhanced persistence
-  useEffect(() => {
-    console.log("🟦 UPDATE_STATUS: Initializing with enhanced persistence");
-
-    // First check global state
-    if (state.lastDatabaseUpdateTime) {
-      console.log(
-        "🟦 UPDATE_STATUS: Found timestamp in global state:",
-        state.lastDatabaseUpdateTime
-      );
-      const statusMessage = formatStatusFromTimestamp(
-        state.lastDatabaseUpdateTime
-      );
-      setUpdateStatus(statusMessage);
-      return;
-    }
-
-    // Use TimestampService for persistent loading
-    const savedTimestamp = TimestampService.loadTimestamp();
-    if (savedTimestamp) {
-      console.log(
-        "🟦 UPDATE_STATUS: Found persistent timestamp:",
-        savedTimestamp
-      );
-      const statusMessage = formatStatusFromTimestamp(savedTimestamp);
-      setUpdateStatus(statusMessage);
-
-      // Update global state with loaded timestamp
-      dispatch({
-        type: "SET_LAST_DB_UPDATE_TIME",
-        payload: savedTimestamp,
-      });
+  const fetchAndUpdateStatus = useCallback(async () => {
+    const { data, error } = await DatabaseService.getLatestAppStatus();
+    if (data && data.length > 0) {
+      const latestStatus = data[0];
+      // CORRECTED: Use 'last_update' instead of 'timestamp'
+      if (latestStatus.last_update) {
+        setUpdateStatus(formatStatusFromTimestamp(latestStatus.last_update as string));
+        dispatch({
+          type: "SET_LAST_DB_UPDATE_TIME",
+          payload: new Date(latestStatus.last_update as string),
+        });
+      }
     } else {
-      console.log("🟦 UPDATE_STATUS: No persistent timestamp found");
       setUpdateStatus("Awaiting database activity...");
     }
   }, [formatStatusFromTimestamp, dispatch]);
 
-  // Handle database changes with enhanced persistence
+  useEffect(() => {
+    fetchAndUpdateStatus();
+  }, [fetchAndUpdateStatus]);
+
   const handleDatabaseChange = useCallback(
     (event: CustomEvent) => {
-      console.log("🟦 UPDATE_STATUS: Database change detected:", event.detail);
-
       setLastEvent(event.detail);
+      const newTimestamp = new Date(event.detail.timestamp);
 
-      // Update timestamp with enhanced persistence
-      const newTimestamp = TimestampService.updateTimestamp();
-
-      // Update global state
       dispatch({
         type: "SET_LAST_DB_UPDATE_TIME",
         payload: newTimestamp,
       });
 
-      // Trigger animation
       setIsAnimating(true);
       setTimeout(() => setIsAnimating(false), 500);
     },
     [dispatch]
   );
 
-  // Set up event listener
   useEffect(() => {
-    console.log("🟦 UPDATE_STATUS: Setting up enhanced event listener");
-
     window.addEventListener(
       "supabase-data-changed",
       handleDatabaseChange as EventListener
     );
 
     return () => {
-      console.log("🟦 UPDATE_STATUS: Cleaning up event listener");
       window.removeEventListener(
         "supabase-data-changed",
         handleDatabaseChange as EventListener
@@ -126,40 +96,16 @@ export function UpdateStatus() {
     };
   }, [handleDatabaseChange]);
 
-  // Update status when global state changes
   useEffect(() => {
     if (state.lastDatabaseUpdateTime) {
-      console.log(
-        "🟦 UPDATE_STATUS: Global state timestamp changed:",
-        state.lastDatabaseUpdateTime
-      );
       const statusMessage = formatStatusFromTimestamp(
         state.lastDatabaseUpdateTime
       );
       setUpdateStatus(statusMessage);
-
-      // Ensure persistence even when state changes
-      TimestampService.saveTimestamp(state.lastDatabaseUpdateTime);
     }
   }, [state.lastDatabaseUpdateTime, formatStatusFromTimestamp]);
 
-  // In src/components/UpdateStatus.tsx - Add sign-out event handler
-  useEffect(() => {
-    // Handle user sign-out event
-    const handleUserSignOut = () => {
-      console.log("🟦 UPDATE_STATUS: User signed out, resetting status");
-      setUpdateStatus("Awaiting database activity...");
-      setLastEvent(null);
-    };
-
-    window.addEventListener("user-signed-out", handleUserSignOut);
-
-    return () => {
-      window.removeEventListener("user-signed-out", handleUserSignOut);
-    };
-  }, []);
-
-  // Rest of your component remains the same...
+  // ... (the rest of the component remains the same)
   const getEventIcon = () => {
     if (!lastEvent?.eventType) {
       return <Calendar className="h-4 w-4" />;
@@ -178,9 +124,7 @@ export function UpdateStatus() {
   };
 
   const getStatusColor = () => {
-    const timestamp =
-      state.lastDatabaseUpdateTime || TimestampService.loadTimestamp();
-
+    const timestamp = state.lastDatabaseUpdateTime;
     if (!timestamp) {
       return "text-gray-500 dark:text-gray-400";
     }
@@ -218,11 +162,11 @@ export function UpdateStatus() {
         {getEventIcon()}
       </div>
       <span className="truncate max-w-xs">{updateStatus}</span>
-      {(state.lastDatabaseUpdateTime || TimestampService.loadTimestamp()) && (
+      {state.lastDatabaseUpdateTime && (
         <div className="relative">
           <div
             className={`
-            absolute inset-0 rounded-full bg-current opacity-20 
+            absolute inset-0 rounded-full bg-current opacity-20
             ${isAnimating ? "animate-ping" : ""}
           `}
           />

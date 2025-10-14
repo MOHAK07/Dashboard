@@ -1,24 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+  throw new Error(
+    "Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY"
+  );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    storage: window.sessionStorage,
+  },
+});
 
 // Database table names
 export const TABLES = {
-  FOM: 'FOM',
-  LFOM: 'LFOM',
-  MDA_CLAIM: 'MDA claim',
-  POS_LFOM: 'POS LFOM',
-  POS_FOM: 'POS FOM',
-  CBG: 'CBG',
-  STOCK: 'Stock',
-  REVENUE: 'Revenue'
+  FOM: "FOM",
+  LFOM: "LFOM",
+  MDA_CLAIM: "MDA claim",
+  POS_LFOM: "POS LFOM",
+  POS_FOM: "POS FOM",
+  CBG: "CBG",
+  STOCK: "Stock",
+  REVENUE: "Revenue",
+  APP_STATUS: "app_status",
 } as const;
 
-export type TableName = typeof TABLES[keyof typeof TABLES];
+export type TableName = (typeof TABLES)[keyof typeof TABLES];
