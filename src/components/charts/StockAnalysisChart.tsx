@@ -180,9 +180,6 @@ export function StockAnalysisChart({
       }
     });
 
-    console.log(`Processed ${processedRowCount} rows, skipped ${skippedRowCount} rows`);
-    console.log("Monthly data keys:", Object.keys(monthlyData));
-
     const sortedMonths = Object.keys(monthlyData).sort((a, b) => {
       const dateA = new Date(a);
       const dateB = new Date(b);

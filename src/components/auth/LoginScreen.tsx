@@ -212,10 +212,10 @@ export function LoginScreen() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#7AB839] text-white border-[#7AB839] border-[1.5px] text-md font-medium py-2.5 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 hover:bg-white hover:text-[#7AB839] hover:border-[1.5px] hover:border-[#7AB839] group"
+              className="w-full bg-[#7AB839] text-white border-[#7AB839] border-[1.5px] text-md font-medium py-2.5 px-4 rounded-md transition-colors disabled:cursor-not-allowed flex items-center justify-center space-x-2 hover:bg-white hover:text-[#7AB839] hover:border-[1.5px] hover:border-[#7AB839] group min-h-[42px]"
             >
               {isLoading ? (
-                <div className="animate-spin h-4 w-4 border-2 border-[#7AB839] border-t-transparent rounded-full" />
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full group-hover:border-[#7AB839] group-hover:border-t-transparent" />
               ) : (
                 <>
                   {isSignUp ? (

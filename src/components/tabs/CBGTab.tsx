@@ -4,16 +4,11 @@ import {
   Users,
   Package2,
   IndianRupee,
-  Target,
-  ChevronRight,
   Activity,
   BarChart3,
   PieChart as PieChartIcon,
   TrendingUp,
   Wallet,
-  Calendar,
-  CheckCircle,
-  AlertCircle,
   Gauge,
 } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
@@ -322,7 +317,7 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
   return (
     <div className="bg-gradient-to-br from-white via-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
       {/* Premium Blue Gradient Header */}
-      <div className="relative px-6 py-4 bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-gray-800 dark:via-blue-900 dark:to-gray-800">
+      <div className="relative px-6 py-4 bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-slate-900 dark:via-gray-800 dark:to-slate-900">
         <div
           className="absolute inset-0 opacity-20"
           style={{
@@ -383,12 +378,12 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
                     {/* Capacity Metric - Updated with Gauge icon and gradient yellow */}
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-2">
-                        <Gauge className="w-4 h-4 text-yellow-500 mr-2" />
+                        <Gauge className="w-4 h-4 text-orange-500 mr-2" />
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                           Capacity
                         </span>
                       </div>
-                      <div className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+                      <div className="text-xl font-bold text-orange-500 bg-clip-text text-transparent">
                         {formatIndianNumber(month.productionCapacity)}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -477,8 +472,18 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
 
   return (
     <div className="bg-gradient-to-br from-white via-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
+      <style jsx global>{`
+        @media print {
+          .customer-name-for-print {
+            -webkit-line-clamp: unset !important;
+            overflow: visible !important;
+            white-space: normal !important;
+            display: block !important;
+          }
+        }
+      `}</style>
       {/* Premium Header */}
-      <div className="relative px-6 py-4 bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-900 dark:from-gray-800 dark:via-emerald-900 dark:to-gray-800">
+      <div className="relative px-6 py-4 bg-gradient-to-r from-emerald-950 via-teal-900 to-emerald-950 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <div
           className="absolute inset-0 opacity-30"
           style={{
@@ -503,7 +508,7 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
       </div>
 
       <div className="p-6">
-        {/* Enhanced Customer Cards with Emerald/Teal Theme */}
+        {/* Enhanced Customer Cards with Gray Theme */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {data.map((customer, index) => {
             const marketShare = (customer.revenue / totalRevenue) * 100;
@@ -512,22 +517,19 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
             return (
               <div
                 key={index}
-                className="group relative p-6 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800/80 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border-2 border-teal-200 dark:border-teal-800/50 hover:-translate-y-2 backdrop-blur-sm"
+                className="group relative p-6 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800/80 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border-2 border-gray-200 dark:border-gray-600 hover:-translate-y-2 backdrop-blur-sm"
               >
                 {/* Customer Header */}
                 <div className="relative mb-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h4 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors leading-tight mb-3">
+                      <h4 className="customer-name-for-print text-lg font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight mb-3">
                         {customer.name}
                       </h4>
                       <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
                         <TrendingUp className="w-3 h-3 mr-1" />
                         {marketShare.toFixed(1)}% Revenue Share
                       </div>
-                    </div>
-                    <div className="ml-4">
-                      <ChevronRight className="w-5 h-5 text-teal-600 dark:text-teal-500 group-hover:translate-x-1 transition-transform duration-300" />
                     </div>
                   </div>
                 </div>
@@ -582,7 +584,7 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
                     </div>
                   </div>
 
-                  {/* Market Share Display (without progress bar) */}
+                  {/* Market Share Display */}
                   <div className="flex justify-between items-center p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800/50">
                     <div className="flex items-center">
                       <Activity className="w-4 h-4 text-teal-600 dark:text-teal-500 mr-2" />
@@ -987,7 +989,10 @@ export function CBGTab() {
       `}</style>
 
       {/* Executive Summary Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div
+        id="kpi-cards-container"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-5"
+      >
         <ExecutiveSummaryCard
           title="Production Volume"
           value={summaryData.totalSales}
@@ -1020,15 +1025,19 @@ export function CBGTab() {
       </div>
 
       {/* Production Analytics Dashboard */}
-      <ProductionAnalyticsDashboard data={monthlyDistribution} />
+      <div className="printable-chart-container">
+        <ProductionAnalyticsDashboard data={monthlyDistribution} />
+      </div>
 
       {/* Customer Intelligence Hub */}
-      <CustomerIntelligenceHub data={customerComparison} />
+      <div className="printable-chart-container">
+        <CustomerIntelligenceHub data={customerComparison} />
+      </div>
 
       {/* Advanced Analytics Charts - Full Width */}
       <div className="space-y-5">
         {/* Production vs Capacity Chart */}
-        <div className="w-full bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
+        <div className="printable-chart-container w-full bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
           <ChartContainer
             title="Production vs Sales Comparison"
             availableTypes={["bar", "line", "area"]}
@@ -1047,7 +1056,7 @@ export function CBGTab() {
         </div>
 
         {/* Revenue Distribution Chart */}
-        <div className="w-full bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
+        <div className="printable-chart-container w-full bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
           <ChartContainer
             title="Customer Revenue Contribution Analysis"
             availableTypes={["pie", "donut"]}
