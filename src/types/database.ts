@@ -14,6 +14,7 @@ export interface FOMRecord {
   Quantity?: number;
   Price?: number;
   "Buyer Type"?: string;
+  "Unit Price"?: number;
 }
 
 export interface LFOMRecord {
@@ -94,7 +95,7 @@ export interface StockRecord {
 
 export interface RevenueRecord {
   id: number;
-  Months?: string;
+  Month?: string;
   "Direct sales FOM"?: string;
   "FOM B2B"?: string;
   "FOM B2C"?: string;
@@ -145,6 +146,8 @@ export interface CBGRecord {
   "Delivery number"?: number;
   "HSN/SAC"?: number;
   "Compression filling Amount"?: string;
+  "Unit Price"?: number;
+  "Actual Production in MT"?: number;
 }
 
 export type DatabaseRecord =

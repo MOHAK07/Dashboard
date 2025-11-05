@@ -64,7 +64,7 @@ const createValidationSchema = (tableName: TableName) => {
         .required("Total Invoice value is required");
       break;
     case TABLES.REVENUE:
-      baseSchema.Months = yup.string().required("Month is required");
+      baseSchema.Month = yup.string().required("Month is required");
       break;
   }
 
@@ -524,7 +524,7 @@ export function DataEntryForm({
       case TABLES.REVENUE:
         return [
           {
-            name: "Months",
+            name: "Month",
             type: "select",
             label: "Month",
             required: true,
@@ -559,6 +559,21 @@ export function DataEntryForm({
             label: "MDA Claim Received (₹)",
           },
           { name: "Total Revenue", type: "text", label: "Total Revenue (₹)" },
+          {
+            name: "FOM B2B",
+            type: "text",
+            label: "FOM B2B (₹)",
+          },
+          {
+            name: "FOM B2C",
+            type: "text",
+            label: "FOM B2C (₹)",
+          },
+          {
+            name: "LFOM B2C",
+            type: "text",
+            label: "LFOM B2C (₹)",
+          },
         ];
       default:
         return [];
