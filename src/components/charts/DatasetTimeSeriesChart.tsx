@@ -183,7 +183,7 @@ export function DatasetTimeSeriesChart({
   if (!processTimeSeriesData.hasData) {
     return (
       <ChartContainer
-        title="Quantity Trends by Month - All Datasets"
+        title="Sales Trends by Month - All Datasets"
         availableTypes={["line", "area", "bar"]}
         currentType={chartType}
         onChartTypeChange={(type) =>
@@ -344,7 +344,7 @@ export function DatasetTimeSeriesChart({
 
   return (
     <ChartContainer
-      title={`Quantity Trends by Month${
+      title={`Sales Trends by Month${
         isMultiDataset ? " - Dataset Comparison" : ""
       }`}
       availableTypes={["line", "area", "bar"]}

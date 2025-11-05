@@ -187,7 +187,8 @@ export function BuyerTypeAnalysisChart() {
         totalSales: data.total,
         totalQuantity: data.totalQuantity,
         count: data.count,
-        averagePrice: data.count > 0 ? data.total / data.count : 0,
+        averagePrice:
+          data.totalQuantity > 0 ? data.total / data.totalQuantity : 0,
       }))
       .sort((a, b) => b.totalSales - a.totalSales);
   }, [state.datasets, state.activeDatasetIds, getFilteredData]);
@@ -265,7 +266,7 @@ export function BuyerTypeAnalysisChart() {
       labels: {
         style: {
           colors: state.settings.theme === "dark" ? "#9CA3AF" : "#6B7280",
-          fontSize: "11px",
+          fontSize: "12px",
         },
         formatter: function (value) {
           if (value >= 10000000) {
@@ -289,10 +290,7 @@ export function BuyerTypeAnalysisChart() {
       custom: function ({ series, seriesIndex, dataPointIndex, w }) {
         const data = buyerTypeAnalysis[dataPointIndex];
         return `
-          <div class="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-            <p class="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Buyer Type: ${data.buyerType}
-            </p>
+          <div style="min-width: 250px; max-width: 300px;" class="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
             <div class="space-y-1 text-sm">
               <p class="text-blue-600 dark:text-blue-400">
                 <span class="font-medium">Total Sales:</span> ${DataProcessor.formatCurrency(
@@ -304,6 +302,11 @@ export function BuyerTypeAnalysisChart() {
                 <span class="font-medium">Total Quantity:</span> ${DataProcessor.formatNumber(
                   data.totalQuantity
                 )} metric ton
+              </p>
+              <p class="text-blue-600 dark:text-blue-400">
+                <span class="font-medium">Average Price:</span> ₹${data.averagePrice.toFixed(
+                  2
+                )}/kg
               </p>
             </div>
           </div>
@@ -384,6 +387,9 @@ export function BuyerTypeAnalysisChart() {
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500">
                 {DataProcessor.formatNumber(data.totalQuantity)} metric ton
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-semibold">
+                Average: ₹{data.averagePrice.toFixed(2)}/kg
               </p>
             </div>
           </div>

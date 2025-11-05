@@ -12,10 +12,10 @@ interface StockAnalysisChartProps {
 // Enhanced date parsing function to handle multiple formats
 const parseDate = (dateString: string): Date | null => {
   if (!dateString || typeof dateString !== "string") return null;
-  
+
   // Remove any extra whitespace
   const cleanDateString = dateString.trim();
-  
+
   // Try multiple date formats
   const formats = [
     // dd-mm-yyyy or dd/mm/yyyy
@@ -25,12 +25,12 @@ const parseDate = (dateString: string): Date | null => {
     // yyyy-mm-dd
     /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/,
   ];
-  
+
   for (const format of formats) {
     const match = cleanDateString.match(format);
     if (match) {
       let day, month, year;
-      
+
       if (format === formats[2]) {
         // yyyy-mm-dd format
         year = parseInt(match[1], 10);
@@ -41,13 +41,13 @@ const parseDate = (dateString: string): Date | null => {
         day = parseInt(match[1], 10);
         month = parseInt(match[2], 10) - 1;
         year = parseInt(match[3], 10);
-        
+
         // Handle 2-digit years
         if (year < 100) {
           year += year < 50 ? 2000 : 1900;
         }
       }
-      
+
       if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
         const date = new Date(year, month, day);
         if (
@@ -60,7 +60,7 @@ const parseDate = (dateString: string): Date | null => {
       }
     }
   }
-  
+
   // Fallback: try native Date parsing
   const fallbackDate = new Date(cleanDateString);
   return !isNaN(fallbackDate.getTime()) ? fallbackDate : null;
@@ -72,7 +72,7 @@ export function StockAnalysisChart({
   const { state } = useApp();
   const { getFilteredData } = useGlobalFilterContext();
   const [chartType, setChartType] = useState<"area" | "bar">("area");
-  
+
   const isDarkMode = state.settings.theme === "dark";
 
   const processedData = useMemo(() => {
@@ -93,15 +93,13 @@ export function StockAnalysisChart({
     const requiredColumns = [
       "Date",
       "RCF Production",
-      "RCF Sales", 
-      "RCF Stock Left",
+      "RCF Sales",
       "Boomi Samrudhi Production",
       "Boomi Samrudhi Sales",
-      "Boomi Samrudhi Stock Left"
     ];
-    
+
     console.log("Available columns:", Object.keys(sampleRow));
-    const missingColumns = requiredColumns.filter(col => !(col in sampleRow));
+    const missingColumns = requiredColumns.filter((col) => !(col in sampleRow));
     if (missingColumns.length > 0) {
       console.warn("Missing columns:", missingColumns);
     }
@@ -110,10 +108,8 @@ export function StockAnalysisChart({
       [month: string]: {
         rcfProduction: number[];
         rcfSales: number[];
-        rcfStock: number[];
         boomiProduction: number[];
         boomiSales: number[];
-        boomiStock: number[];
       };
     } = {};
 
@@ -132,7 +128,9 @@ export function StockAnalysisChart({
 
         const date = parseDate(String(dateValue));
         if (!date) {
-          console.log(`Row ${index}: Invalid date format "${dateValue}", skipping`);
+          console.log(
+            `Row ${index}: Invalid date format "${dateValue}", skipping`
+          );
           skippedRowCount++;
           return;
         }
@@ -146,32 +144,50 @@ export function StockAnalysisChart({
           monthlyData[monthKey] = {
             rcfProduction: [],
             rcfSales: [],
-            rcfStock: [],
             boomiProduction: [],
             boomiSales: [],
-            boomiStock: [],
           };
         }
 
         const parseAndPush = (arr: number[], value: any, fieldName: string) => {
-          if (value !== null && value !== undefined && String(value).trim() !== "") {
+          if (
+            value !== null &&
+            value !== undefined &&
+            String(value).trim() !== ""
+          ) {
             const stringValue = String(value).replace(/,/g, "");
             const num = parseFloat(stringValue);
             if (!isNaN(num)) {
               arr.push(num);
             } else {
-              console.log(`Row ${index}: Invalid ${fieldName} value "${value}"`);
+              console.log(
+                `Row ${index}: Invalid ${fieldName} value "${value}"`
+              );
             }
           }
         };
 
         // Parse data with better error handling
-        parseAndPush(monthlyData[monthKey].rcfProduction, row["RCF Production"], "RCF Production");
-        parseAndPush(monthlyData[monthKey].rcfSales, row["RCF Sales"], "RCF Sales");
-        parseAndPush(monthlyData[monthKey].rcfStock, row["RCF Stock Left"], "RCF Stock Left");
-        parseAndPush(monthlyData[monthKey].boomiProduction, row["Boomi Samrudhi Production"], "Boomi Samrudhi Production");
-        parseAndPush(monthlyData[monthKey].boomiSales, row["Boomi Samrudhi Sales"], "Boomi Samrudhi Sales");
-        parseAndPush(monthlyData[monthKey].boomiStock, row["Boomi Samrudhi Stock Left"], "Boomi Samrudhi Stock Left");
+        parseAndPush(
+          monthlyData[monthKey].rcfProduction,
+          row["RCF Production"],
+          "RCF Production"
+        );
+        parseAndPush(
+          monthlyData[monthKey].rcfSales,
+          row["RCF Sales"],
+          "RCF Sales"
+        );
+        parseAndPush(
+          monthlyData[monthKey].boomiProduction,
+          row["Boomi Samrudhi Production"],
+          "Boomi Samrudhi Production"
+        );
+        parseAndPush(
+          monthlyData[monthKey].boomiSales,
+          row["Boomi Samrudhi Sales"],
+          "Boomi Samrudhi Sales"
+        );
 
         processedRowCount++;
       } catch (e) {
@@ -193,30 +209,29 @@ export function StockAnalysisChart({
 
     console.log("Sorted months:", sortedMonths);
 
-    const avg = (arr: number[]) =>
-      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    // Calculate total (sum) instead of average
+    const sum = (arr: number[]) =>
+      arr.length ? arr.reduce((a, b) => a + b, 0) : 0;
 
     const createSeries = (product: "rcf" | "boomi") => {
       const p = product === "rcf" ? "rcf" : "boomi";
-      
+
       const productionData = sortedMonths.map((m) => {
-        const data = monthlyData[m][`${p}Production` as keyof (typeof monthlyData)[string]];
-        return Math.round(avg(data));
-      });
-      
-      const salesData = sortedMonths.map((m) => {
-        const data = monthlyData[m][`${p}Sales` as keyof (typeof monthlyData)[string]];
-        return Math.round(avg(data));
-      });
-      
-      const stockData = sortedMonths.map((m) => {
-        const data = monthlyData[m][`${p}Stock` as keyof (typeof monthlyData)[string]];
-        return Math.round(avg(data));
+        const data =
+          monthlyData[m][
+            `${p}Production` as keyof (typeof monthlyData)[string]
+          ];
+        return Math.round(sum(data));
       });
 
-      console.log(`${product} Production data:`, productionData);
-      console.log(`${product} Sales data:`, salesData);
-      console.log(`${product} Stock data:`, stockData);
+      const salesData = sortedMonths.map((m) => {
+        const data =
+          monthlyData[m][`${p}Sales` as keyof (typeof monthlyData)[string]];
+        return Math.round(sum(data));
+      });
+
+      console.log(`${product} Production data (total):`, productionData);
+      console.log(`${product} Sales data (total):`, salesData);
 
       return [
         {
@@ -225,27 +240,23 @@ export function StockAnalysisChart({
           color: "#3b82f6",
         },
         {
-          name: "Sales", 
+          name: "Sales",
           data: salesData,
           color: "#ef4444",
-        },
-        {
-          name: "Unsold Stock",
-          data: stockData,
-          color: "#ffc658",
         },
       ];
     };
 
     const rcfData = { categories: sortedMonths, series: createSeries("rcf") };
-    const boomiData = { categories: sortedMonths, series: createSeries("boomi") };
+    const boomiData = {
+      categories: sortedMonths,
+      series: createSeries("boomi"),
+    };
 
     // Check if we have any actual data
-    const hasActualData = rcfData.series.some(series => 
-      series.data.some(value => value > 0)
-    ) || boomiData.series.some(series => 
-      series.data.some(value => value > 0)
-    );
+    const hasActualData =
+      rcfData.series.some((series) => series.data.some((value) => value > 0)) ||
+      boomiData.series.some((series) => series.data.some((value) => value > 0));
 
     console.log("Has actual data:", hasActualData);
 
@@ -259,8 +270,8 @@ export function StockAnalysisChart({
     return (
       <div className={`p-4 text-center ${className}`}>
         <p className="text-gray-500">
-          No valid stock data available for the selected datasets. 
-          Please check that your data contains valid dates and numeric values.
+          No valid stock data available for the selected datasets. Please check
+          that your data contains valid dates and numeric values.
         </p>
       </div>
     );
@@ -321,13 +332,15 @@ export function StockAnalysisChart({
         formatter: (val) => val.toFixed(0),
       },
       title: {
-        text: "Average Value",
+        text: "Total Value (Bags)",
         style: { color: isDarkMode ? "#9ca3af" : "#6b7280" },
       },
     },
     tooltip: {
       theme: isDarkMode ? "dark" : "light",
-      y: { formatter: (val) => `${val.toFixed(2)}` },
+      y: {
+        formatter: (val) => `${val.toFixed(0)} bags`,
+      },
     },
     legend: {
       position: "bottom",
@@ -369,11 +382,11 @@ export function StockAnalysisChart({
     <div className={`space-y-5 ${className}`}>
       {renderChart(
         processedData.rcfData,
-        "RCF: Production, Sales, and Unsold Stock Over Time"
+        "RCF: Production and Sales Over Time"
       )}
       {renderChart(
         processedData.boomiData,
-        "Boomi Samrudhi: Production, Sales, and Unsold Stock Over Time"
+        "Boomi Samrudhi: Production and Sales Over Time"
       )}
     </div>
   );
