@@ -91,54 +91,99 @@ const formatIndianNumber = (value: number): string => {
   }
 };
 
-// Helper function to get the starting month and year from data
-const getStartingPeriod = (data: any[]) => {
-  if (data.length === 0) return null;
+// Format numbers with Indian separators and exactly 2 decimal places (rounded)
+const formatIndianTwoDecimals = (value: number): string => {
+  if (value === null || value === undefined || !isFinite(value)) return "0.00";
+  const rounded = Number(Number(value).toFixed(2)); // rounds to 2 decimals
+  const parts = rounded.toFixed(2).split(".");
+  const intPart = Number(parts[0]).toLocaleString("en-IN");
+  const frac = parts[1] || "00";
+  return `${intPart}.${frac}`;
+};
 
-  const monthOrder = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+// Compact Indian formatting (K, L, Cr) with exactly 2 decimal places
+const formatIndianCompactTwoDecimals = (value: number): string => {
+  if (value === null || value === undefined || !isFinite(value)) return "0.00";
 
-  let earliestYear = Infinity;
-  let earliestMonth = "";
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  // use the same thresholds as your earlier formatIndianNumber but ensure two decimals
+  if (absValue >= 10000000) {
+    // Crores
+    const v = absValue / 10000000;
+    return `${sign}${v.toFixed(2)} Cr`;
+  } else if (absValue >= 100000) {
+    // Lakhs
+    const v = absValue / 100000;
+    return `${sign}${v.toFixed(2)} L`;
+  } else if (absValue >= 1000) {
+    // Thousands (K)
+    const v = absValue / 1000;
+    return `${sign}${v.toFixed(2)}K`;
+  } else {
+    // Regular number with Indian separators and two decimals
+    return `${sign}${formatIndianTwoDecimals(absValue)}`;
+  }
+};
+
+// Helper function to convert Kg to Metric Tons
+const convertKgToMT = (kg: number): number => {
+  return kg / 1000;
+};
+
+const getDateRangeWithFullDates = (data: any[]) => {
+  if (data.length === 0) return { start: null, end: null };
+
+  const dates: Date[] = [];
 
   data.forEach((row) => {
-    const year = Number(row["Year"]);
-    const month = String(row["Month"]);
+    const billDocDate = row["Bill.Doc.Date"];
 
-    if (!year || !month) return;
+    if (!billDocDate) return;
 
-    if (year < earliestYear) {
-      earliestYear = year;
-      earliestMonth = month;
-    } else if (year === earliestYear) {
-      const currentMonthIndex = monthOrder.indexOf(month);
-      const earliestMonthIndex = monthOrder.indexOf(earliestMonth);
+    // Parse the date string - handles various formats
+    const parsedDate = new Date(billDocDate);
 
-      if (
-        currentMonthIndex !== -1 &&
-        (earliestMonthIndex === -1 || currentMonthIndex < earliestMonthIndex)
-      ) {
-        earliestMonth = month;
-      }
+    // Check if date is valid
+    if (!isNaN(parsedDate.getTime())) {
+      dates.push(parsedDate);
     }
   });
 
-  if (earliestYear === Infinity) return null;
+  if (dates.length === 0) {
+    return { start: null, end: null };
+  }
 
-  const shortYear = String(earliestYear).slice(-2);
-  return `${earliestMonth}'${shortYear}`;
+  // Find earliest and latest dates using Math.min and Math.max
+  const earliestDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const latestDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+  // Format: "April 2025" (removed day)
+  const formatDate = (date: Date): string => {
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${month} ${year}`;
+  };
+
+  return {
+    start: formatDate(earliestDate),
+    end: formatDate(latestDate),
+  };
 };
 
 const formatIndianCommas = (value: number): string => {
@@ -313,6 +358,164 @@ const ExecutiveSummaryCard = ({
   );
 };
 
+// const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
+//   return (
+//     <div className="bg-gradient-to-br from-white via-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
+//       {/* Premium Blue Gradient Header */}
+//       <div className="relative px-6 py-4 bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-slate-900 dark:via-gray-800 dark:to-slate-900">
+//         <div
+//           className="absolute inset-0 opacity-20"
+//           style={{
+//             backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+//           }}
+//         ></div>
+//         <div className="relative flex items-center justify-between">
+//           <div className="flex items-center space-x-3">
+//             <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+//               <Factory className="w-6 h-6 text-white" />
+//             </div>
+//             <div>
+//               <h2 className="text-xl font-bold text-white mb-1">
+//                 Production Insights
+//               </h2>
+//               <p className="text-blue-200 text-sm font-medium">
+//                 Monthly capacity utilization & performance metrics
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Clean, Professional Layout */}
+//       <div className="p-5">
+//         {/* Minimalist Month Cards - Horizontal Timeline Style */}
+//         <div className="space-y-4">
+//           {data.map((month, index) => {
+//             const efficiency =
+//               (month.actualProduction / month.productionCapacity) * 100;
+//             const revenuePerKg = month.revenue / month.actualProduction;
+
+//             return (
+//               <div
+//                 key={index}
+//                 className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden"
+//               >
+//                 {/* Month Header Bar with Theme Colors */}
+//                 <div className="px-5 py-3 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
+//                   <div className="flex items-center justify-between">
+//                     <div className="flex items-center space-x-3">
+//                       <div className="w-2 h-8 rounded-full bg-blue-500"></div>
+//                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+//                         {month.month}
+//                       </h3>
+//                     </div>
+//                     <div className="flex items-center space-x-4">
+//                       <div className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+//                         {efficiency.toFixed(1)}% Efficiency
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+
+//                 {/* Metrics Grid - Clean & Professional */}
+//                 <div className="px-5 py-4">
+//                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+//                     {/* Capacity Metric - Converted to MT */}
+//                     <div className="text-center">
+//                       <div className="flex items-center justify-center mb-2">
+//                         <Gauge className="w-4 h-4 text-orange-500 mr-2" />
+//                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+//                           Capacity
+//                         </span>
+//                       </div>
+//                       <div className="text-xl font-bold text-orange-500 bg-clip-text">
+//                         {formatIndianNumber(
+//                           convertKgToMT(month.productionCapacity)
+//                         )}
+//                       </div>
+//                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                         MT
+//                       </div>
+//                     </div>
+
+//                     {/* Sales Metric - Converted to MT */}
+//                     <div className="text-center">
+//                       <div className="flex items-center justify-center mb-2">
+//                         <Package2 className="w-4 h-4 text-blue-500 mr-2" />
+//                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+//                           Sales
+//                         </span>
+//                       </div>
+//                       <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+//                         {formatIndianNumber(
+//                           convertKgToMT(month.actualProduction)
+//                         )}
+//                       </div>
+//                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                         MT
+//                       </div>
+//                     </div>
+
+//                     {/* Revenue Metric */}
+//                     <div className="text-center">
+//                       <div className="flex items-center justify-center mb-2">
+//                         <IndianRupee className="w-4 h-4 text-emerald-500 mr-2" />
+//                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+//                           Revenue
+//                         </span>
+//                       </div>
+//                       <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+//                         ₹{formatIndianNumber(month.revenue)}
+//                       </div>
+//                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                         Total
+//                       </div>
+//                     </div>
+
+//                     {/* Rate per Kg Metric */}
+//                     <div className="text-center">
+//                       <div className="flex items-center justify-center mb-2">
+//                         <BarChart3 className="w-4 h-4 text-purple-500 mr-2" />
+//                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+//                           Rate/Kg
+//                         </span>
+//                       </div>
+//                       <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+//                         ₹{formatIndianCommas(revenuePerKg)}
+//                       </div>
+//                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                         Per Kg
+//                       </div>
+//                     </div>
+//                   </div>
+
+//                   {/* Consistent Theme Progress Indicator */}
+//                   <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+//                     <div className="flex items-center justify-between mb-2">
+//                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+//                         Production Capacity Utilisation
+//                       </span>
+//                       <span className="text-sm font-semibold text-gray-900 dark:text-white">
+//                         {efficiency.toFixed(1)}%
+//                       </span>
+//                     </div>
+//                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+//                       <div
+//                         className="h-1.5 rounded-full transition-all duration-1000 bg-blue-500"
+//                         style={{ width: `${Math.min(efficiency, 100)}%` }}
+//                       ></div>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
 const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
   return (
     <div className="bg-gradient-to-br from-white via-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
@@ -347,15 +550,22 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
         <div className="space-y-4">
           {data.map((month, index) => {
             const efficiency =
-              (month.actualProduction / month.productionCapacity) * 100;
-            const revenuePerKg = month.revenue / month.actualProduction;
+              month.productionCapacity && month.productionCapacity !== 0
+                ? (month.actualProduction / month.productionCapacity) * 100
+                : 0;
+
+            // Rate per Kg: month.sales assumed to be in KG
+            const ratePerKg =
+              month.sales && month.sales !== 0
+                ? month.revenue / month.sales
+                : 0;
 
             return (
               <div
                 key={index}
                 className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
-                {/* Month Header Bar with Theme Colors */}
+                {/* Month Header Bar */}
                 <div className="px-5 py-3 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -366,16 +576,17 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                        {efficiency.toFixed(1)}% Efficiency
+                        {isFinite(efficiency) ? efficiency.toFixed(1) : "0.0"}%
+                        Efficiency
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Metrics Grid - Clean & Professional */}
+                {/* Metrics Grid - 5 cards */}
                 <div className="px-5 py-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {/* Capacity Metric - Updated with Gauge icon and gradient yellow */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                    {/* Capacity (MT) */}
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-2">
                         <Gauge className="w-4 h-4 text-orange-500 mr-2" />
@@ -383,15 +594,35 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
                           Capacity
                         </span>
                       </div>
-                      <div className="text-xl font-bold text-orange-500 bg-clip-text text-transparent">
-                        {formatIndianNumber(month.productionCapacity)}
+                      <div className="text-lg font-bold text-orange-500 bg-clip-text">
+                        {formatIndianTwoDecimals(
+                          convertKgToMT(month.productionCapacity)
+                        )}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Kg
+                        MT
                       </div>
                     </div>
 
-                    {/* Sales Metric */}
+                    {/* Actual Production (MT) - converted from KG to MT and shown with 2 decimals */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <Activity className="w-4 h-4 text-indigo-500 mr-2" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                          Actual Production
+                        </span>
+                      </div>
+                      <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                        {formatIndianTwoDecimals(
+                          convertKgToMT(month.actualProduction)
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        MT
+                      </div>
+                    </div>
+
+                    {/* Sales (MT) */}
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-2">
                         <Package2 className="w-4 h-4 text-blue-500 mr-2" />
@@ -399,15 +630,15 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
                           Sales
                         </span>
                       </div>
-                      <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                        {formatIndianNumber(month.actualProduction)}
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {formatIndianTwoDecimals(convertKgToMT(month.sales))}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Kg
+                        MT
                       </div>
                     </div>
 
-                    {/* Revenue Metric */}
+                    {/* Revenue (compact Indian: K / L / Cr) */}
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-2">
                         <IndianRupee className="w-4 h-4 text-emerald-500 mr-2" />
@@ -415,24 +646,24 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
                           Revenue
                         </span>
                       </div>
-                      <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                        ₹{formatIndianNumber(month.revenue)}
+                      <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{formatIndianCompactTwoDecimals(month.revenue)}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Total
                       </div>
                     </div>
 
-                    {/* Rate per Kg Metric */}
+                    {/* Rate / Kg */}
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-2">
                         <BarChart3 className="w-4 h-4 text-purple-500 mr-2" />
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                          Rate/Kg
+                          Rate / Kg
                         </span>
                       </div>
-                      <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                        ₹{formatIndianCommas(revenuePerKg)}
+                      <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                        ₹{formatIndianTwoDecimals(ratePerKg)}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Per Kg
@@ -440,14 +671,14 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
                     </div>
                   </div>
 
-                  {/* Consistent Theme Progress Indicator */}
+                  {/* Progress bar */}
                   <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                         Production Capacity Utilisation
                       </span>
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {efficiency.toFixed(1)}%
+                        {isFinite(efficiency) ? efficiency.toFixed(1) : "0.0"}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
@@ -467,7 +698,13 @@ const ProductionAnalyticsDashboard = ({ data }: { data: any[] }) => {
   );
 };
 
-const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
+const CustomerIntelligenceHub = ({
+  data,
+  dateRange,
+}: {
+  data: any[];
+  dateRange: { start: string | null; end: string | null };
+}) => {
   const totalRevenue = data.reduce((acc, c) => acc + c.revenue, 0);
 
   return (
@@ -501,6 +738,11 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
               </h2>
               <p className="text-emerald-200 text-sm font-medium">
                 {data.length} active partnerships driving growth
+                {dateRange.start && dateRange.end && (
+                  <span className="ml-2">
+                    ({dateRange.start} to {dateRange.end})
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -551,7 +793,7 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
 
                   {/* Metrics Grid */}
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Sales Volume Card */}
+                    {/* Sales Volume Card - Converted to MT */}
                     <div className="p-4 bg-white/70 dark:bg-gray-800/70 rounded-xl border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
                       <div className="flex items-center mb-2">
                         <Package2 className="w-4 h-4 text-gray-600 dark:text-gray-400 mr-2" />
@@ -560,14 +802,14 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
                         </span>
                       </div>
                       <div className="text-lg font-bold text-gray-900 dark:text-white">
-                        {formatIndianNumber(customer.sales)}
+                        {formatIndianNumber(convertKgToMT(customer.sales))}
                       </div>
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Kilograms
+                        Metric Tons
                       </div>
                     </div>
 
-                    {/* Rate per Kg Card */}
+                    {/* Rate per Kg Card - Updated to show 2 decimal places */}
                     <div className="p-4 bg-white/70 dark:bg-gray-800/70 rounded-xl border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
                       <div className="flex items-center mb-2">
                         <BarChart3 className="w-4 h-4 text-emerald-600 dark:text-emerald-500 mr-2" />
@@ -576,7 +818,7 @@ const CustomerIntelligenceHub = ({ data }: { data: any[] }) => {
                         </span>
                       </div>
                       <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                        ₹{formatIndianCommas(ratePerKg)}
+                        ₹{ratePerKg.toFixed(2)}
                       </div>
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                         Per kilogram
@@ -622,7 +864,12 @@ export function CBGTab() {
   const [chartType, setChartType] = useState<"bar" | "line" | "area">("bar");
   const [pieChartType, setPieChartType] = useState<"pie" | "donut">("donut");
 
-  // Summary Cards Data with sparkline data and starting period
+  // Get date range from data
+  const dateRange = useMemo(() => {
+    return getDateRangeWithFullDates(cbgData);
+  }, [cbgData]);
+
+  // Summary Cards Data with sparkline data and date range
   const summaryData = useMemo(() => {
     if (cbgData.length === 0) {
       return {
@@ -630,7 +877,6 @@ export function CBGTab() {
         totalRevenue: 0,
         sparklineProduction: [],
         sparklineRevenue: [],
-        startingPeriod: null,
       };
     }
 
@@ -647,15 +893,11 @@ export function CBGTab() {
     const sparklineProduction = [65, 78, 66, 44, 56, 67, 75];
     const sparklineRevenue = [45, 52, 38, 24, 33, 26, 21];
 
-    // Get starting period
-    const startingPeriod = getStartingPeriod(cbgData);
-
     return {
       totalSales,
       totalRevenue,
       sparklineProduction,
       sparklineRevenue,
-      startingPeriod,
     };
   }, [cbgData]);
 
@@ -668,6 +910,7 @@ export function CBGTab() {
       {
         productionCapacity: number;
         actualProduction: number;
+        sales: number;
         revenue: number;
       }
     >();
@@ -681,21 +924,27 @@ export function CBGTab() {
         monthlyMap.set(month, {
           productionCapacity: 10.2 * 1000 * getDaysInMonth(month, year),
           actualProduction: 0,
+          sales: 0,
           revenue: 0,
         });
       }
 
       const monthData = monthlyMap.get(month)!;
-      monthData.actualProduction += parseNumericValue(row["Quantity"]);
+      // Use "Actual Production in MT" for actual production
+      monthData.actualProduction += parseNumericValue(
+        row["Actual Production in MT"]
+      );
+      // Use "Quantity" column for sales
+      monthData.sales += parseNumericValue(row["Quantity"]);
       monthData.revenue += parseNumericValue(row["Total Invoice value"]);
     });
 
     return Array.from(monthlyMap.entries()).map(
-      ([month, { productionCapacity, actualProduction, revenue }]) => ({
+      ([month, { productionCapacity, actualProduction, sales, revenue }]) => ({
         month,
         productionCapacity,
         actualProduction,
-        sales: actualProduction,
+        sales,
         revenue,
       })
     );
@@ -724,7 +973,60 @@ export function CBGTab() {
       .sort((a, b) => b.revenue - a.revenue);
   }, [cbgData]);
 
-  // Enhanced Chart Options
+  // Get top 3 customers and their monthly sales data
+  // Get specific customers in desired order and their monthly sales data
+  const customerMonthlySales = useMemo(() => {
+    if (cbgData.length === 0) return { orderedCustomers: [], monthlyData: {} };
+
+    // Define the specific customer order
+    const customerOrder = [
+      "AGP City Gas Pvt. Ltd. (Bagalkote)",
+      "Megha City Gas Distribution Pvt. Lt",
+      "AGP City Gas Pvt. Ltd. (Vijayapura)",
+    ];
+
+    // Find these customers from the comparison data
+    const orderedCustomers = customerOrder
+      .map((customerName) =>
+        customerComparison.find((c) => c.name === customerName)
+      )
+      .filter((c) => c !== undefined) as typeof customerComparison;
+
+    // Calculate monthly sales for each specified customer
+    const monthlyData: {
+      [month: string]: {
+        [customerName: string]: number;
+        total: number;
+      };
+    } = {};
+
+    cbgData.forEach((row) => {
+      const month = String(row["Month"]);
+      const customerName = row["Ship to party name"] as string;
+      const quantity = parseNumericValue(row["Quantity"]);
+
+      if (!month || !customerName) return;
+
+      if (!monthlyData[month]) {
+        monthlyData[month] = { total: 0 };
+      }
+
+      // Add to customer's monthly total if they're in the ordered list
+      if (customerOrder.includes(customerName)) {
+        if (!monthlyData[month][customerName]) {
+          monthlyData[month][customerName] = 0;
+        }
+        monthlyData[month][customerName] += quantity;
+      }
+
+      // Add to total
+      monthlyData[month].total += quantity;
+    });
+
+    return { orderedCustomers, monthlyData };
+  }, [cbgData, customerComparison]);
+
+  // Enhanced Chart Options for Customer Sales Comparison
   const comparisonChartOptions: ApexOptions = {
     chart: {
       type: chartType,
@@ -745,7 +1047,7 @@ export function CBGTab() {
         },
       },
     },
-    colors: ["#3B82F6", "#10B981"],
+    colors: ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"],
     dataLabels: {
       enabled: false,
     },
@@ -767,7 +1069,7 @@ export function CBGTab() {
     },
     yaxis: {
       title: {
-        text: "Production (Kg)",
+        text: "Sales Volume (MT)",
         style: {
           color: isDarkMode ? "#9CA3AF" : "#6B7280",
           fontSize: "11px",
@@ -808,7 +1110,7 @@ export function CBGTab() {
         shade: "light",
         type: "vertical",
         shadeIntensity: 0.3,
-        gradientToColors: ["#93C5FD", "#86EFAC"],
+        gradientToColors: ["#93C5FD", "#86EFAC", "#FCD34D", "#C4B5FD"],
         inverseColors: false,
         opacityFrom: 0.8,
         opacityTo: 0.1,
@@ -822,7 +1124,7 @@ export function CBGTab() {
       intersect: false,
       y: {
         formatter: function (value) {
-          return formatIndianCommas(value) + " Kg";
+          return formatIndianCommas(value) + " MT";
         },
       },
     },
@@ -839,7 +1141,7 @@ export function CBGTab() {
     plotOptions: {
       bar: {
         borderRadius: 8,
-        columnWidth: "60%",
+        columnWidth: "70%",
         dataLabels: {
           position: "top",
         },
@@ -847,20 +1149,31 @@ export function CBGTab() {
     },
   };
 
-  const comparisonChartSeries = [
-    {
-      name: "Sales in Kg",
+  const comparisonChartSeries = useMemo(() => {
+    const series: any[] = [];
+
+    // Add series for each customer in the specified order
+    customerMonthlySales.orderedCustomers.forEach((customer) => {
+      series.push({
+        name: customer.name,
+        data: monthlyDistribution.map((d) => {
+          const salesValue =
+            customerMonthlySales.monthlyData[d.month]?.[customer.name] || 0;
+          return parseFloat(formatNumber(convertKgToMT(salesValue)));
+        }),
+      });
+    });
+
+    // Add total sales series at the end
+    series.push({
+      name: "Total Sales",
       data: monthlyDistribution.map((d) =>
-        parseFloat(formatNumber(d.actualProduction))
+        parseFloat(formatNumber(convertKgToMT(d.actualProduction)))
       ),
-    },
-    {
-      name: "Production Capacity",
-      data: monthlyDistribution.map((d) =>
-        parseFloat(formatNumber(d.productionCapacity))
-      ),
-    },
-  ];
+    });
+
+    return series;
+  }, [monthlyDistribution, customerMonthlySales]);
 
   const pieChartOptions: ApexOptions = {
     chart: {
@@ -994,16 +1307,16 @@ export function CBGTab() {
         className="grid grid-cols-1 lg:grid-cols-2 gap-5"
       >
         <ExecutiveSummaryCard
-          title="Production Volume"
-          value={summaryData.totalSales}
-          subtitle={`Total CBG production across all facilities${
-            summaryData.startingPeriod
-              ? ` (from ${summaryData.startingPeriod})`
+          title="Sales Volume"
+          value={convertKgToMT(summaryData.totalSales)}
+          subtitle={`Total CBG sales ${
+            dateRange.start && dateRange.end
+              ? ` (${dateRange.start} to ${dateRange.end})`
               : ""
           }`}
           icon={Package2}
           color="blue"
-          suffix="Kg"
+          suffix="MT"
           trend="up"
           trendValue="+12.4%"
           sparklineData={summaryData.sparklineProduction}
@@ -1011,9 +1324,9 @@ export function CBGTab() {
         <ExecutiveSummaryCard
           title="Revenue Generated"
           value={`₹${formatIndianNumber(summaryData.totalRevenue)}`}
-          subtitle={`Total earnings from CBG sales${
-            summaryData.startingPeriod
-              ? ` (from ${summaryData.startingPeriod})`
+          subtitle={`Total revenue from CBG sales\n${
+            dateRange.start && dateRange.end
+              ? ` (${dateRange.start} to ${dateRange.end})`
               : ""
           }`}
           icon={IndianRupee}
@@ -1031,15 +1344,18 @@ export function CBGTab() {
 
       {/* Customer Intelligence Hub */}
       <div className="printable-chart-container">
-        <CustomerIntelligenceHub data={customerComparison} />
+        <CustomerIntelligenceHub
+          data={customerComparison}
+          dateRange={dateRange}
+        />
       </div>
 
       {/* Advanced Analytics Charts - Full Width */}
       <div className="space-y-5">
-        {/* Production vs Capacity Chart */}
+        {/* Customer Sales Comparison Chart */}
         <div className="printable-chart-container w-full bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
           <ChartContainer
-            title="Production vs Sales Comparison"
+            title="Customer Sales Comparison (Month-wise)"
             availableTypes={["bar", "line", "area"]}
             currentType={chartType}
             onChartTypeChange={(type) =>
