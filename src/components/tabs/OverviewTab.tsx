@@ -75,19 +75,38 @@ export function OverviewTab({ data }: OverviewTabProps) {
       <DrillDownBreadcrumb />
 
       {/* Pass the filtered 'data' prop to all child components */}
-      <div id="kpi-cards-container" className=" gap-3 grid grid-cols-1">
+      <div id="kpi-cards-container" className="gap-3 grid grid-cols-1">
+        {/* First Section Heading - Year-to-Date */}
+        <div className="mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+            Annual Performance Summary
+          </h2>
+          <div className="h-1 w-24 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full"></div>
+        </div>
+
         <DatasetSpecificKPIs />
-        {hasRevenueData && <RevenueKPICards />}
 
         {hasStockData && <StockKPICards />}
 
+        <B2BBuyerKPIs />
         {hasMDAClaimData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <MDAClaimKPI />
           </div>
         )}
 
-        <B2BBuyerKPIs />
+        {/* Second Section Heading - Monthly Revenue (Static) */}
+        {hasRevenueData && (
+          <>
+            <div className="mt-6 mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                Monthly Revenue Insights
+              </h2>
+              <div className="h-1 w-24 bg-gradient-to-r from-green-600 to-green-400 rounded-full"></div>
+            </div>
+            <RevenueKPICards />
+          </>
+        )}
       </div>
 
       <div className="flex justify-end">
@@ -107,7 +126,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
       {chartsVisible && (
         <>
           <div className="printable-chart-container grid grid-cols-1">
-            <WeeklyDataDistributionChart />
+            <DatasetTimeSeriesChart />
           </div>
 
           {hasFOMData && (
@@ -116,9 +135,9 @@ export function OverviewTab({ data }: OverviewTabProps) {
             </div>
           )}
 
-          <div className="printable-chart-container">
-            <DatasetTimeSeriesChart />
-          </div>
+          {/* <div className="printable-chart-container">
+            <WeeklyDataDistributionChart />
+          </div> */}
 
           <div className="printable-chart-container">
             <DynamicRevenueBreakdownChart />

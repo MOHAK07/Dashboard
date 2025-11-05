@@ -1,271 +1,5 @@
-// import React, { useMemo } from "react";
-// import { TrendingUp, TrendingDown, Percent } from "lucide-react";
-// import { useApp } from "../../contexts/AppContext";
-// import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
-// import { ColorManager } from "../../utils/colorManager";
-
-// interface MDAClaimKPIProps {
-//   className?: string;
-// }
-
-// export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
-//   const { state } = useApp();
-//   const { filterState } = useGlobalFilterContext(); // Use filterState for direct access
-
-//   const mdaKPIs = useMemo(() => {
-//     const mdaDatasets = state.datasets.filter(
-//       (dataset) =>
-//         state.activeDatasetIds.includes(dataset.id) &&
-//         ColorManager.isMDAClaimDataset(dataset.name)
-//     );
-
-//     if (mdaDatasets.length === 0) {
-//       return {
-//         hasData: false,
-//         recoveryPercentage: 0,
-//         totalEligible: 0,
-//         totalReceived: 0,
-//       };
-//     }
-
-//     let allMDAData = mdaDatasets.flatMap((dataset) => dataset.data);
-
-//     if (allMDAData.length === 0) {
-//       return {
-//         hasData: false,
-//         recoveryPercentage: 0,
-//         totalEligible: 0,
-//         totalReceived: 0,
-//       };
-//     }
-
-//     const sampleRow = allMDAData[0];
-//     const columns = Object.keys(sampleRow);
-//     const monthColumn = columns.find((col) =>
-//       col.toLowerCase().includes("month")
-//     );
-//     const yearColumn = columns.find((col) =>
-//       col.toLowerCase().includes("year")
-//     );
-//     const eligibleAmountColumn = columns.find((col) =>
-//       col.toLowerCase().includes("eligible")
-//     );
-//     const amountReceivedColumn = columns.find((col) =>
-//       col.toLowerCase().includes("received")
-//     );
-
-//     if (
-//       !monthColumn ||
-//       !yearColumn ||
-//       !eligibleAmountColumn ||
-//       !amountReceivedColumn
-//     ) {
-//       console.warn("MDA KPI: Missing required columns");
-//       return {
-//         hasData: false,
-//         recoveryPercentage: 0,
-//         totalEligible: 0,
-//         totalReceived: 0,
-//       };
-//     }
-
-//     const { startDate, endDate } = filterState.filters.dateRange;
-//     const { selectedMonths } = filterState.filters.months;
-//     const monthOrder = [
-//       "January",
-//       "February",
-//       "March",
-//       "April",
-//       "May",
-//       "June",
-//       "July",
-//       "August",
-//       "September",
-//       "October",
-//       "November",
-//       "December",
-//     ];
-
-//     let filteredData = allMDAData;
-
-//     // Apply Custom Date Range Filter using the robust numeric method
-//     if (startDate && endDate) {
-//       const start = new Date(startDate);
-//       const end = new Date(endDate);
-//       const startYearMonth = start.getUTCFullYear() * 100 + start.getUTCMonth();
-//       const endYearMonth = end.getUTCFullYear() * 100 + end.getUTCMonth();
-
-//       filteredData = filteredData.filter((row) => {
-//         const year = parseInt(String(row[yearColumn]));
-//         const monthIndex = monthOrder.indexOf(String(row[monthColumn]));
-//         if (isNaN(year) || monthIndex === -1) return false;
-//         const rowYearMonth = year * 100 + monthIndex;
-//         return rowYearMonth >= startYearMonth && rowYearMonth <= endYearMonth;
-//       });
-//     }
-
-//     // Apply Month Name Filter
-//     if (selectedMonths.length > 0) {
-//       filteredData = filteredData.filter((row) =>
-//         selectedMonths.includes(String(row[monthColumn]))
-//       );
-//     }
-
-//     if (filteredData.length === 0) {
-//       return {
-//         hasData: false,
-//         recoveryPercentage: 0,
-//         totalEligible: 0,
-//         totalReceived: 0,
-//       };
-//     }
-
-//     let totalEligible = 0;
-//     let totalReceived = 0;
-
-//     const parseAmount = (value: any): number => {
-//       if (
-//         value === null ||
-//         value === undefined ||
-//         value === "-" ||
-//         String(value).trim() === ""
-//       )
-//         return 0;
-//       let cleaned = String(value).replace(/[",\s]/g, "");
-//       if (cleaned.endsWith(".00")) cleaned = cleaned.slice(0, -3);
-//       const parsed = parseFloat(cleaned);
-//       return isNaN(parsed) ? 0 : parsed;
-//     };
-
-//     filteredData.forEach((row) => {
-//       const eligible = parseAmount(row[eligibleAmountColumn]);
-//       const received = parseAmount(row[amountReceivedColumn]);
-//       if (eligible > 0 || received > 0) {
-//         totalEligible += eligible;
-//         totalReceived += received;
-//       }
-//     });
-
-//     const recoveryPercentage =
-//       totalEligible > 0 ? (totalReceived / totalEligible) * 100 : 0;
-
-//     return {
-//       hasData: totalEligible > 0 || totalReceived > 0,
-//       recoveryPercentage: Math.round(recoveryPercentage * 100) / 100,
-//       totalEligible,
-//       totalReceived,
-//     };
-//   }, [state.datasets, state.activeDatasetIds, filterState]);
-
-//   if (!mdaKPIs.hasData) {
-//     return null;
-//   }
-
-//   const formatAmount = (amount: number): string => {
-//     if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)}Cr`;
-//     if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)}L`;
-//     if (amount >= 1000) return `₹${(amount / 1000).toFixed(2)}K`;
-//     return `₹${amount.toFixed(2)}`;
-//   };
-
-//   const getChangeIcon = (percentage: number) => {
-//     if (percentage >= 75)
-//       return <TrendingUp className="h-4 w-4 text-success-500" />;
-//     if (percentage >= 50)
-//       return <Percent className="h-4 w-4 text-warning-500" />;
-//     return <TrendingDown className="h-4 w-4 text-error-500" />;
-//   };
-
-//   const getChangeColor = (percentage: number) => {
-//     if (percentage >= 75) return "text-success-600 dark:text-success-400";
-//     if (percentage >= 50) return "text-warning-600 dark:text-warning-400";
-//     return "text-error-600 dark:text-error-400";
-//   };
-
-//   const getBackgroundColor = (percentage: number) => {
-//     if (percentage >= 75) return "bg-success-100 dark:bg-success-900/50";
-//     if (percentage >= 50) return "bg-warning-100 dark:bg-warning-900/50";
-//     return "bg-error-100 dark:bg-error-900/50";
-//   };
-
-//   return (
-//     <div
-//       className={`card hover:shadow-md transition-all duration-200 ${className}`}
-//     >
-//       <div className="flex items-start justify-between">
-//         <div className="flex-1">
-//           <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-//             MDA Claim Recovery Rate
-//           </p>
-//           <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-//             {mdaKPIs.recoveryPercentage.toFixed(2)}%
-//           </p>
-
-//           {/* <div className={`flex items-center space-x-1.5 mb-3 ${getChangeColor(mdaKPIs.recoveryPercentage)}`}>
-//             {getChangeIcon(mdaKPIs.recoveryPercentage)}
-//             <span className="text-sm font-medium">
-//               {mdaKPIs.recoveryPercentage >= 75 ? 'Excellent' :
-//                mdaKPIs.recoveryPercentage >= 50 ? 'Good' : 'Needs Improvement'}
-//             </span>
-//           </div> */}
-
-//           <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-//             <div className="flex justify-between">
-//               <span>Total Eligible:</span>
-//               <span className="font-medium">
-//                 {formatAmount(mdaKPIs.totalEligible)}
-//               </span>
-//             </div>
-//             <div className="flex justify-between">
-//               <span>Amount Received:</span>
-//               <span className="font-medium">
-//                 {formatAmount(mdaKPIs.totalReceived)}
-//               </span>
-//             </div>
-//           </div>
-//         </div>
-
-//         <div
-//           className={`p-3 rounded-lg ${getBackgroundColor(
-//             mdaKPIs.recoveryPercentage
-//           )}`}
-//         >
-//           <Percent
-//             className={`h-6 w-6 ${
-//               mdaKPIs.recoveryPercentage >= 75
-//                 ? "text-success-600 dark:text-success-400"
-//                 : mdaKPIs.recoveryPercentage >= 50
-//                 ? "text-warning-600 dark:text-warning-400"
-//                 : "text-error-600 dark:text-error-400"
-//             }`}
-//           />
-//         </div>
-//       </div>
-
-//       {/* <div className="mt-4">
-//         <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-//           <span>Recovery Progress</span>
-//           <span>{mdaKPIs.recoveryPercentage.toFixed(2)}%</span>
-//         </div>
-//         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-//           <div
-//             className={`h-2 rounded-full transition-all duration-500 ${
-//               mdaKPIs.recoveryPercentage >= 75 ? 'bg-success-500' :
-//               mdaKPIs.recoveryPercentage >= 50 ? 'bg-warning-500' :
-//               'bg-error-500'
-//             }`}
-//             style={{ width: `${Math.min(mdaKPIs.recoveryPercentage, 100)}%` }}
-//           />
-//         </div>
-//       </div> */}
-//     </div>
-//   );
-// }
-
-// export default MDAClaimKPI;
-
 import React, { useMemo } from "react";
-import { Percent, FileText, CheckCircle, Wallet } from "lucide-react";
+import { Percent, FileText, CheckCircle, Wallet, Calendar } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import { useGlobalFilterContext } from "../../contexts/GlobalFilterContext";
 import { ColorManager } from "../../utils/colorManager";
@@ -292,6 +26,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
         totalEligible: 0,
         totalReceived: 0,
         balanceAmount: 0,
+        dateRange: null,
       };
     }
 
@@ -304,6 +39,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
         totalEligible: 0,
         totalReceived: 0,
         balanceAmount: 0,
+        dateRange: null,
       };
     }
 
@@ -335,6 +71,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
         totalEligible: 0,
         totalReceived: 0,
         balanceAmount: 0,
+        dateRange: null,
       };
     }
 
@@ -385,7 +122,52 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
         totalEligible: 0,
         totalReceived: 0,
         balanceAmount: 0,
+        dateRange: null,
       };
+    }
+
+    // Calculate earliest and latest dates from filtered data
+    let earliestYear = Infinity;
+    let earliestMonthIndex = 12;
+    let latestYear = -Infinity;
+    let latestMonthIndex = -1;
+
+    filteredData.forEach((row) => {
+      const year = parseInt(String(row[yearColumn]));
+      const monthIndex = monthOrder.indexOf(String(row[monthColumn]));
+
+      if (!isNaN(year) && monthIndex !== -1) {
+        const rowYearMonth = year * 100 + monthIndex;
+        const earliestYearMonth = earliestYear * 100 + earliestMonthIndex;
+        const latestYearMonth = latestYear * 100 + latestMonthIndex;
+
+        // Check for earliest date
+        if (rowYearMonth < earliestYearMonth) {
+          earliestYear = year;
+          earliestMonthIndex = monthIndex;
+        }
+
+        // Check for latest date
+        if (rowYearMonth > latestYearMonth) {
+          latestYear = year;
+          latestMonthIndex = monthIndex;
+        }
+      }
+    });
+
+    // Create dynamic date range string
+    let dateRangeDisplay = null;
+    if (earliestYear !== Infinity && latestYear !== -Infinity) {
+      const fromMonth = monthOrder[earliestMonthIndex];
+      const fromYear = earliestYear.toString().slice(-2);
+      const toMonth = monthOrder[latestMonthIndex];
+      const toYear = latestYear.toString().slice(-2);
+
+      if (fromMonth === toMonth && fromYear === toYear) {
+        dateRangeDisplay = `(${fromMonth}'${fromYear})`;
+      } else {
+        dateRangeDisplay = `(From ${fromMonth}'${fromYear} to ${toMonth}'${toYear})`;
+      }
     }
 
     let totalEligible = 0;
@@ -424,6 +206,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
       totalEligible,
       totalReceived,
       balanceAmount,
+      dateRange: dateRangeDisplay,
     };
   }, [state.datasets, state.activeDatasetIds, filterState]);
 
@@ -458,6 +241,23 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
 
   return (
     <div className={`card lg:col-span-3 ${className}`}>
+      {/* Date Header */}
+      {mdaKPIs.dateRange && (
+        <div className="mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <div className="flex flex-col">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                MDA Claim Recovery Rate
+              </p>
+              <p className="text-[0.8rem] font-normal text-gray-500 dark:text-gray-500 -mt-0.5">
+                {mdaKPIs.dateRange}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         {/* Left Section: Recovery Rate */}
         <div className="flex items-center w-full md:w-auto md:justify-start space-x-4">
@@ -466,7 +266,7 @@ export function MDAClaimKPI({ className = "" }: MDAClaimKPIProps) {
           </div>
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              MDA Claim Recovery Rate
+              Recovery Percentage
             </p>
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {mdaKPIs.recoveryPercentage.toFixed(2)}%

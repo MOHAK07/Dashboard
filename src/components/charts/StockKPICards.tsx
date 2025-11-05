@@ -15,11 +15,193 @@ interface StockKPICardsProps {
   className?: string;
 }
 
+// Enhanced date parsing function (copied from StockAnalysisChart)
+const parseDate = (dateString: string): Date | null => {
+  if (!dateString || typeof dateString !== "string") return null;
+
+  // Remove any extra whitespace
+  const cleanDateString = dateString.trim();
+
+  // Try multiple date formats
+  const formats = [
+    // dd-mm-yyyy or dd/mm/yyyy
+    /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/,
+    // dd-mm-yy or dd/mm/yy
+    /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/,
+    // yyyy-mm-dd
+    /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/,
+  ];
+
+  for (const format of formats) {
+    const match = cleanDateString.match(format);
+    if (match) {
+      let day, month, year;
+
+      if (format === formats[2]) {
+        // yyyy-mm-dd format
+        year = parseInt(match[1], 10);
+        month = parseInt(match[2], 10) - 1;
+        day = parseInt(match[3], 10);
+      } else {
+        // dd-mm-yyyy or dd-mm-yy format
+        day = parseInt(match[1], 10);
+        month = parseInt(match[2], 10) - 1;
+        year = parseInt(match[3], 10);
+
+        // Handle 2-digit years
+        if (year < 100) {
+          year += year < 50 ? 2000 : 1900;
+        }
+      }
+
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        const date = new Date(year, month, day);
+        if (
+          date.getFullYear() === year &&
+          date.getMonth() === month &&
+          date.getDate() === day
+        ) {
+          return date;
+        }
+      }
+    }
+  }
+
+  // Fallback: try native Date parsing
+  const fallbackDate = new Date(cleanDateString);
+  return !isNaN(fallbackDate.getTime()) ? fallbackDate : null;
+};
+
 export function StockKPICards({ className = "" }: StockKPICardsProps) {
   const { state } = useApp();
-  const { getFilteredData } = useGlobalFilterContext();
+  const { getFilteredData, filterState } = useGlobalFilterContext();
 
-  const productionSalesKPIs = useMemo(() => {
+  // Dynamic date range logic with data-based fallback
+  const dateRangeText = useMemo(() => {
+    const { selectedMonths } = filterState.filters.months;
+    const { startDate, endDate } = filterState.filters.dateRange;
+    const monthOrder = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    // Priority 1: Use selected months from global filter
+    if (selectedMonths.length > 0) {
+      const sortedMonths = [...selectedMonths].sort(
+        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+      );
+
+      if (sortedMonths.length === 1) {
+        return `(${sortedMonths[0]}'25)`;
+      } else {
+        const fromMonth = sortedMonths[0];
+        const toMonth = sortedMonths[sortedMonths.length - 1];
+        return `(From ${fromMonth}'25 to ${toMonth}'25)`;
+      }
+    }
+
+    // Priority 2: Use date range from global date range filter
+    if (startDate && endDate) {
+      try {
+        const startDateObj = new Date(startDate + "T00:00:00");
+        const endDateObj = new Date(endDate + "T00:00:00");
+
+        const startMonth = monthOrder[startDateObj.getUTCMonth()];
+        const startYear = startDateObj.getFullYear().toString().slice(-2);
+        const endMonth = monthOrder[endDateObj.getUTCMonth()];
+        const endYear = endDateObj.getFullYear().toString().slice(-2);
+
+        if (startMonth === endMonth && startYear === endYear) {
+          return `(${startMonth}'${startYear})`;
+        } else {
+          return `(From ${startMonth}'${startYear} to ${endMonth}'${endYear})`;
+        }
+      } catch (e) {
+        // Fallback if date is invalid
+      }
+    }
+
+    // Priority 2.5: Use only start date if end date is not available
+    if (startDate) {
+      try {
+        const date = new Date(startDate + "T00:00:00");
+        const monthName = monthOrder[date.getUTCMonth()];
+        const year = date.getFullYear().toString().slice(-2);
+        return `(From ${monthName}'${year})`;
+      } catch (e) {
+        // Fallback if date is invalid
+      }
+    }
+
+    // Priority 3: Derive from actual stock data when no filters are applied
+    const stockDatasets = state.datasets.filter(
+      (dataset) =>
+        state.activeDatasetIds.includes(dataset.id) &&
+        ColorManager.isStockDataset(dataset.name)
+    );
+
+    if (stockDatasets.length > 0) {
+      const allStockData = stockDatasets.flatMap((dataset) => dataset.data);
+
+      if (allStockData.length > 0) {
+        const sampleRow = allStockData[0];
+        const columns = Object.keys(sampleRow);
+        const dateColumn = columns.find((col) =>
+          col.toLowerCase().includes("date")
+        );
+
+        if (dateColumn) {
+          let earliestDate: Date | null = null;
+          let latestDate: Date | null = null;
+
+          allStockData.forEach((row) => {
+            const date = parseDate(row[dateColumn]);
+            if (date) {
+              if (!earliestDate || date < earliestDate) {
+                earliestDate = date;
+              }
+              if (!latestDate || date > latestDate) {
+                latestDate = date;
+              }
+            }
+          });
+
+          if (earliestDate && latestDate) {
+            const startMonth = monthOrder[earliestDate.getMonth()];
+            const startYear = earliestDate.getFullYear().toString().slice(-2);
+            const endMonth = monthOrder[latestDate.getMonth()];
+            const endYear = latestDate.getFullYear().toString().slice(-2);
+
+            if (startMonth === endMonth && startYear === endYear) {
+              return `(${startMonth}'${startYear})`;
+            } else {
+              return `(From ${startMonth}'${startYear} to ${endMonth}'${endYear})`;
+            }
+          }
+        }
+      }
+    }
+
+    // Final fallback (should rarely be reached)
+    return "(All data)";
+  }, [
+    filterState.filters.months,
+    filterState.filters.dateRange,
+    state.datasets,
+    state.activeDatasetIds,
+  ]);
+
+  const kpiData = useMemo(() => {
     const stockDatasets = state.datasets.filter(
       (dataset) =>
         state.activeDatasetIds.includes(dataset.id) &&
@@ -46,6 +228,7 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
         keywords.every((kw) => col.toLowerCase().includes(kw))
       );
 
+    const dateColumn = findColumn(["date"]);
     const rcfProductionColumn = findColumn(["rcf", "production"]);
     const rcfSalesColumn = findColumn(["rcf", "sales"]);
     const rcfPriceColumn = findColumn(["rcf", "price"]);
@@ -60,9 +243,12 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
       !rcfProductionColumn ||
       !rcfSalesColumn ||
       !boomiProductionColumn ||
-      !boomiSalesColumn
+      !boomiSalesColumn ||
+      !dateColumn // Ensure Date column exists
     ) {
-      console.warn("Production Sales KPI - Missing required columns");
+      console.warn(
+        "Production Sales KPI - Missing required columns (incl. Date)"
+      );
       return { hasData: false };
     }
 
@@ -84,6 +270,7 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
     let boomiPrice = 0;
 
     allStockData.forEach((row, index) => {
+      // Sum KPIs
       totalRCFProduction += parseIndianNumber(row[rcfProductionColumn]);
       totalRCFSales += parseIndianNumber(row[rcfSalesColumn]);
       if (rcfRevenueColumn)
@@ -122,7 +309,7 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
     };
   }, [state.datasets, state.activeDatasetIds, getFilteredData]);
 
-  if (!productionSalesKPIs.hasData) {
+  if (!kpiData.hasData) {
     return null;
   }
 
@@ -157,7 +344,7 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
     boomiSales,
     boomiPrice,
     boomiRevenue,
-  } = productionSalesKPIs;
+  } = kpiData;
   const rcfStatus = getPerformanceStatus(rcfProduction, rcfSales);
   const boomiStatus = getPerformanceStatus(boomiProduction, boomiSales);
 
@@ -167,9 +354,14 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
       <div className="card hover:shadow-md transition-all duration-200">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-400 mb-4">
-              RCF Product Performance
-            </p>
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-400">
+                RCF Product Performance
+              </p>
+              <p className="text-[0.8rem] font-normal text-gray-500 dark:text-gray-500 -mt-0.5">
+                {dateRangeText}
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div className="text-center">
@@ -180,7 +372,8 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatAmount(rcfProduction || 0)}
+                  {formatAmount(rcfProduction || 0)}{" "}
+                  <span className="text-sm font-normal">bags</span>
                 </p>
               </div>
 
@@ -192,7 +385,8 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatAmount(rcfSales || 0)}
+                  {formatAmount(rcfSales || 0)}{" "}
+                  <span className="text-sm font-normal">bags</span>
                 </p>
               </div>
 
@@ -259,9 +453,14 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
       <div className="card hover:shadow-md transition-all duration-200">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-400 mb-4">
-              Boomi Samrudhi Product Performance
-            </p>
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-400">
+                Boomi Samrudhi Product Performance
+              </p>
+              <p className="text-[0.8rem] font-normal text-gray-500 dark:text-gray-500 -mt-0.5">
+                {dateRangeText}
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center">
@@ -272,7 +471,8 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatAmount(boomiProduction || 0)}
+                  {formatAmount(boomiProduction || 0)}{" "}
+                  <span className="text-sm font-normal">bags</span>
                 </p>
               </div>
 
@@ -284,7 +484,8 @@ export function StockKPICards({ className = "" }: StockKPICardsProps) {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatAmount(boomiSales || 0)}
+                  {formatAmount(boomiSales || 0)}{" "}
+                  <span className="text-sm font-normal">bags</span>
                 </p>
               </div>
 
