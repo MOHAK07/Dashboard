@@ -34,7 +34,7 @@ export function BuyerTypeAnalysisChart() {
       { total: number; totalQuantity: number; count: number; prices: number[] }
     >();
 
-    // Initialize both buyer types to ensure they always appear
+    // Always include both buckets
     buyerTypeMap.set("B2B", {
       total: 0,
       totalQuantity: 0,
@@ -52,64 +52,41 @@ export function BuyerTypeAnalysisChart() {
       const data = getFilteredData(dataset.data);
       if (!data || data.length === 0) return;
 
-      // Find the buyer type column (case insensitive and flexible matching)
-      const buyerTypeColumn = Object.keys(data[0] || {}).find((col) => {
-        const lowerCol = col.toLowerCase().replace(/\s+/g, "");
-        return lowerCol.includes("buyer") && lowerCol.includes("type");
-      });
+      const name = (dataset.name || "").toLowerCase();
+      const fileName = (dataset.fileName || "").toLowerCase();
 
-      // Find the price column (case insensitive)
-      const priceColumn = Object.keys(data[0] || {}).find(
-        (col) =>
-          col.toLowerCase() === "price" || col.toLowerCase().includes("price")
+      // Determine dataset type
+      const isFOM =
+        (name.includes("fom") || fileName.includes("fom")) &&
+        !name.includes("lfom") &&
+        !fileName.includes("lfom") &&
+        !name.includes("pos") &&
+        !fileName.includes("pos");
+
+      const isLFOM =
+        (name.includes("lfom") || fileName.includes("lfom")) &&
+        !name.includes("pos") &&
+        !fileName.includes("pos");
+
+      // Columns (case-insensitive)
+      const cols = Object.keys(data[0] || {});
+      const findCol = (pred: (s: string) => boolean) =>
+        cols.find((c) => pred(c.toLowerCase()));
+
+      const buyerTypeColumn = isFOM
+        ? findCol(
+            (lc) =>
+              lc.replace(/\s+/g, "").includes("buyer") && lc.includes("type")
+          )
+        : undefined; // force non-FOM into B2C regardless of any column
+
+      const priceColumn = findCol(
+        (lc) => lc === "price" || lc.includes("price")
+      );
+      const quantityColumn = findCol(
+        (lc) => lc === "quantity" || lc.includes("quantity")
       );
 
-      // Find the quantity column (case insensitive)
-      const quantityColumn = Object.keys(data[0] || {}).find(
-        (col) =>
-          col.toLowerCase() === "quantity" ||
-          col.toLowerCase().includes("quantity")
-      );
-
-      // If dataset doesn't have buyer type column, check if it's a known B2C dataset
-      if (!buyerTypeColumn) {
-        // For datasets without buyer type column, assume B2C if they have price/quantity
-        if (priceColumn && quantityColumn) {
-          data.forEach((row: FlexibleDataRow, index: number) => {
-            const priceRaw = row[priceColumn];
-            const quantityRaw = row[quantityColumn];
-
-            // Parse price
-            let price = 0;
-            if (typeof priceRaw === "number") {
-              price = priceRaw;
-            } else if (typeof priceRaw === "string") {
-              const cleanPrice = priceRaw.replace(/[₹,$\s]/g, "");
-              price = parseFloat(cleanPrice) || 0;
-            }
-
-            // Parse quantity
-            let quantity = 0;
-            if (typeof quantityRaw === "number") {
-              quantity = quantityRaw;
-            } else if (typeof quantityRaw === "string") {
-              quantity = parseFloat(quantityRaw) || 0;
-            }
-
-            // Add to B2C if valid
-            if (price > 0 && quantity > 0) {
-              const b2cData = buyerTypeMap.get("B2C")!;
-              b2cData.total += price;
-              b2cData.totalQuantity += quantity;
-              b2cData.count += 1;
-              b2cData.prices.push(price);
-            }
-          });
-        }
-        return; // Skip to next dataset
-      }
-
-      // Process datasets with buyer type column
       if (!priceColumn || !quantityColumn) {
         console.log(`Dataset ${dataset.name} missing required columns:`, {
           buyerTypeColumn,
@@ -119,68 +96,60 @@ export function BuyerTypeAnalysisChart() {
         return;
       }
 
-      data.forEach((row: FlexibleDataRow, index: number) => {
-        const buyerTypeRaw = row[buyerTypeColumn];
-        const priceRaw = row[priceColumn];
-        const quantityRaw = row[quantityColumn];
+      // Helper: parse numbers safely (strip currency symbols/commas)
+      const parsePrice = (v: unknown) => {
+        if (typeof v === "number") return v;
+        if (typeof v === "string") {
+          const cleaned = v.replace(/[₹,$\s]/g, "").replace(/,/g, "");
+          return parseFloat(cleaned) || 0;
+        }
+        return 0;
+      };
+      const parseQty = (v: unknown) => {
+        if (typeof v === "number") return v;
+        if (typeof v === "string") return parseFloat(v) || 0;
+        return 0;
+      };
 
-        // More robust buyer type parsing
-        let buyerType = String(buyerTypeRaw || "")
-          .toUpperCase()
-          .trim();
+      // Iterate rows
+      data.forEach((row) => {
+        const qty = parseQty(row[quantityColumn]);
+        if (qty <= 0) return;
 
-        // Handle common variations
-        if (
-          buyerType === "B2B" ||
-          buyerType === "B-2-B" ||
-          buyerType === "B 2 B"
-        ) {
-          buyerType = "B2B";
-        } else if (
-          buyerType === "B2C" ||
-          buyerType === "B-2-C" ||
-          buyerType === "B 2 C"
-        ) {
-          buyerType = "B2C";
+        let price = parsePrice(row[priceColumn]);
+        if (price <= 0) return;
+
+        // Apply FOM/LFOM revenue adjustment
+        if (isFOM || isLFOM) {
+          price = (price * 100) / 105;
         }
 
-        // More robust price parsing
-        let price = 0;
-        if (typeof priceRaw === "number") {
-          price = priceRaw;
-        } else if (typeof priceRaw === "string") {
-          // Remove currency symbols and commas, then parse
-          const cleanPrice = priceRaw.replace(/[₹,$\s]/g, "");
-          price = parseFloat(cleanPrice) || 0;
+        // Bucket logic:
+        // - FOM: use buyer type if present (only dataset that can be B2B/B2C)
+        // - Non-FOM (e.g., LFOM): force everything into B2C
+        let bucket: "B2B" | "B2C" = "B2C";
+
+        if (isFOM && buyerTypeColumn) {
+          const btRaw = String(row[buyerTypeColumn] ?? "")
+            .toUpperCase()
+            .trim();
+          if (btRaw === "B2B" || btRaw === "B-2-B" || btRaw === "B 2 B") {
+            bucket = "B2B";
+          } else {
+            // Anything else counts as B2C
+            bucket = "B2C";
+          }
         }
 
-        // More robust quantity parsing
-        let quantity = 0;
-        if (typeof quantityRaw === "number") {
-          quantity = quantityRaw;
-        } else if (typeof quantityRaw === "string") {
-          quantity = parseFloat(quantityRaw) || 0;
-        }
-
-        // Only include valid entries
-        if (
-          buyerType &&
-          (buyerType === "B2B" || buyerType === "B2C") &&
-          price > 0 &&
-          quantity > 0
-        ) {
-          const data = buyerTypeMap.get(buyerType)!;
-          data.total += price;
-          data.totalQuantity += quantity;
-          data.count += 1;
-          data.prices.push(price);
-        }
+        const agg = buyerTypeMap.get(bucket)!;
+        agg.total += price;
+        agg.totalQuantity += qty;
+        agg.count += 1;
+        agg.prices.push(price);
       });
     });
 
-    console.log("Parsed buyer type data:", Array.from(buyerTypeMap.entries()));
-
-    // Convert to array format for chart, always include both types even if one has 0 values
+    // Build chart data
     return Array.from(buyerTypeMap.entries())
       .map(([buyerType, data]) => ({
         buyerType,
