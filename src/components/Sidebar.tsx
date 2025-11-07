@@ -24,7 +24,7 @@ interface SidebarProps {
 const allNavigationItems = [
   {
     id: "overview" as TabType,
-    label: "Dashboard Overview",
+    label: "Fertilizer Analysis",
     icon: BarChart3,
     emoji: "📊",
   },

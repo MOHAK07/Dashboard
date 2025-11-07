@@ -444,23 +444,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, exportSuccessMessage: action.payload };
 
     case "SET_LAST_DB_UPDATE_TIME":
-      console.log("🔴 REDUCER: Payload type:", typeof action.payload);
-      console.log("🔴 REDUCER: Is Date?", action.payload instanceof Date);
-      console.log(
-        "🔴 REDUCER: Current timestamp in state:",
-        state.lastDatabaseUpdateTime
-      );
-
       const newState = {
         ...state,
         lastDatabaseUpdateTime: action.payload,
       };
-
-      console.log(
-        "🔴 REDUCER: New state timestamp:",
-        newState.lastDatabaseUpdateTime
-      );
-      console.log("🔴 REDUCER: State updated successfully");
 
       return newState;
 
@@ -517,7 +504,6 @@ const AppContext = createContext<
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // The useSupabaseData hook is now called here, dependent on the user in our state.
   const {
     datasets: supabaseDatasets,
     isLoading: supabaseLoading,
@@ -549,7 +535,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // --- Data Sync Logic ---
   // This effect syncs data from Supabase whenever it changes OR when the user logs in.
   useEffect(() => {
     if (!state.user) return;
@@ -562,7 +547,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     dispatch({ type: "SET_LOADING", payload: supabaseLoading });
   }, [supabaseDatasets, supabaseError, supabaseLoading, state.user]);
-  
+
   useEffect(() => {
     // Only apply drill-down filters here (global filters are handled by GlobalFilterContext)
     let currentFilteredData = state.filteredData;
