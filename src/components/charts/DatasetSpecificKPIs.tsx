@@ -226,16 +226,15 @@ export function DatasetSpecificKPIs({
 
   // compute KPIs for FOM and LFOM separately and include dateRange per dataset
   const { fomKpi, lfomKpi } = useMemo(() => {
-    const fomDataset = state.datasets.find(
-      (d) =>
-        d.name.toLowerCase().includes("fom") &&
-        !d.name.toLowerCase().includes("pos")
-    );
-    const lfomDataset = state.datasets.find(
-      (d) =>
-        d.name.toLowerCase().includes("lfom") &&
-        !d.name.toLowerCase().includes("pos")
-    );
+    const fomDataset = state.datasets.find((d) => {
+      const n = d.name.toLowerCase();
+      return n.includes("fom") && !n.includes("lfom") && !n.includes("pos");
+    });
+
+    const lfomDataset = state.datasets.find((d) => {
+      const n = d.name.toLowerCase();
+      return n.includes("lfom") && !n.includes("pos");
+    });
 
     const calculate = (dataset) => {
       if (!dataset) return null;
@@ -251,20 +250,32 @@ export function DatasetSpecificKPIs({
 
       let totalQuantity = 0;
       if (quantityColumn) {
-        totalQuantity = filteredData.reduce(
-          (sum, row) =>
-            sum + (parseFloat(String(row[quantityColumn] || "0")) || 0),
-          0
-        );
+        totalQuantity = filteredData.reduce((sum, row) => {
+          const raw = String(row[quantityColumn] || "0");
+          const cleaned = raw.replace(/,/g, "");
+          return sum + (parseFloat(cleaned) || 0);
+        }, 0);
       }
 
       let totalRevenue = 0;
       if (priceColumn) {
-        totalRevenue = filteredData.reduce(
-          (sum, row) =>
-            sum + (parseFloat(String(row[priceColumn] || "0")) || 0),
-          0
-        );
+        totalRevenue = filteredData.reduce((sum, row) => {
+          const raw = String(row[priceColumn] || "0");
+          const cleaned = raw.replace(/,/g, "");
+          return sum + (parseFloat(cleaned) || 0);
+        }, 0);
+
+        // *** Special rule: for FOM dataset, apply (sum * 100) / 105 ***
+        const name = String(dataset.name || "").toLowerCase();
+        const isFom =
+          name.includes("fom") &&
+          !name.includes("lfom") &&
+          !name.includes("pos");
+        const isLfom = name.includes("lfom") && !name.includes("pos");
+
+        if (isFom || isLfom) {
+          totalRevenue = (totalRevenue * 100) / 105;
+        }
       }
 
       return {

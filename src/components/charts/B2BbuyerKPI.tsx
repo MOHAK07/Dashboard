@@ -197,8 +197,8 @@ export function B2BBuyerKPIs({ className = "" }: B2BBuyerKPIsProps) {
     if (!fomDataset) {
       return [];
     }
-    const filteredData = getFilteredData(fomDataset.data);
 
+    const filteredData = getFilteredData(fomDataset.data);
     if (filteredData.length === 0) {
       return [];
     }
@@ -221,23 +221,41 @@ export function B2BBuyerKPIs({ className = "" }: B2BBuyerKPIsProps) {
       return [];
     }
 
+    const isFomNonPOS = (() => {
+      const n = (fomDataset.name || "").toLowerCase();
+      return n.includes("fom") && !n.includes("lfom") && !n.includes("pos");
+    })();
+
     const buyerMap = new Map<string, B2BBuyerData>();
+
     filteredData.forEach((row) => {
       const buyerType = String(row[buyerTypeColumn] || "")
         .toUpperCase()
         .trim();
-      if (buyerType === "B2B") {
-        const name = String(row[nameColumn] || "Unknown Buyer");
-        const quantity = parseFloat(String(row[quantityColumn] || "0")) || 0;
-        const revenue = parseFloat(String(row[priceColumn] || "0")) || 0;
-        if (!buyerMap.has(name)) {
-          buyerMap.set(name, { name, totalQuantity: 0, totalRevenue: 0 });
-        }
-        const buyer = buyerMap.get(name)!;
-        buyer.totalQuantity += quantity;
-        buyer.totalRevenue += revenue;
+      if (buyerType !== "B2B") return;
+
+      const name = String(row[nameColumn] || "Unknown Buyer");
+
+      // Parse numbers safely (strip commas)
+      const quantity =
+        parseFloat(String(row[quantityColumn] ?? "0").replace(/,/g, "")) || 0;
+      const revenueRaw =
+        parseFloat(String(row[priceColumn] ?? "0").replace(/,/g, "")) || 0;
+
+      if (!buyerMap.has(name)) {
+        buyerMap.set(name, { name, totalQuantity: 0, totalRevenue: 0 });
       }
+      const buyer = buyerMap.get(name)!;
+      buyer.totalQuantity += quantity;
+      buyer.totalRevenue += revenueRaw;
     });
+
+    // Apply the same rule used for FOM totals: (sum * 100) / 105
+    if (isFomNonPOS) {
+      for (const b of buyerMap.values()) {
+        b.totalRevenue = (b.totalRevenue * 100) / 105;
+      }
+    }
 
     return Array.from(buyerMap.values())
       .sort((a, b) => b.totalRevenue - a.totalRevenue)
