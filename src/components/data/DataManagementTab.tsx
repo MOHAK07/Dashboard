@@ -41,7 +41,6 @@ export function DataManagementTab() {
   // All tables now use 'id' as the primary key
   const idColumn = "id";
 
-  // Load data for selected table
   const loadTableData = async (tableName: TableName) => {
     setIsLoading(true);
     setError(null);
@@ -62,16 +61,15 @@ export function DataManagementTab() {
     }
   };
 
-  // Subscribe to real-time updates
   useEffect(() => {
     loadTableData(selectedTable);
 
     const handleRealtimeUpdate = (
       payload: RealtimePostgresChangesPayload<FlexibleDataRow>
     ) => {
-      console.log("Real-time change received:", payload);
       const { eventType, new: newRecord, old: oldRecord } = payload;
 
+      // Update timestamp logic (keep your existing code)
       if (payload.commit_timestamp) {
         const updateTime = new Date(payload.commit_timestamp);
         console.log(
@@ -83,14 +81,10 @@ export function DataManagementTab() {
           type: "SET_LAST_DB_UPDATE_TIME",
           payload: updateTime,
         });
-
-        // Store in localStorage for persistence
         localStorage.setItem(
           "lastDatabaseUpdateTime",
           updateTime.toISOString()
         );
-
-        // Dispatch event for UpdateStatus component
         window.dispatchEvent(
           new CustomEvent("supabase-data-changed", {
             detail: {
@@ -101,10 +95,9 @@ export function DataManagementTab() {
             },
           })
         );
-
-        console.log("DATA_TAB: Global state updated successfully");
       }
 
+      // Update local table data
       setTableData((currentData) => {
         if (eventType === "INSERT") {
           return [newRecord, ...currentData];
@@ -122,6 +115,7 @@ export function DataManagementTab() {
       });
     };
 
+    // Create subscription with error handling
     const subscription = DatabaseService.subscribeToTable(
       selectedTable,
       handleRealtimeUpdate
@@ -258,7 +252,7 @@ export function DataManagementTab() {
             <RefreshCw
               className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
             />
-            <span>Refresh</span>
+            <span>{isLoading ? "Refreshing..." : "Refresh"}</span>
           </button>
           <button
             onClick={() => setShowBulkUpload(true)}

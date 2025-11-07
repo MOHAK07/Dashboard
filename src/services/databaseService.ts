@@ -50,6 +50,16 @@ function parseStringDate(dateString: string): Date | null {
 }
 
 export class DatabaseService {
+  // Helper: remove the id / idColumn key from an object (non-mutating)
+  private static stripIdFromObject<T extends Record<string, any>>(
+    obj: T,
+    idColumn: string = "id"
+  ): Omit<T, typeof idColumn> {
+    if (!obj || typeof obj !== "object") return obj as any;
+    const { [idColumn]: _removed, ...rest } = obj as any;
+    return rest as Omit<T, typeof idColumn>;
+  }
+
   // Get current user's profile with role information
   static async getCurrentUserProfile(): Promise<{ role: string } | null> {
     try {
@@ -86,7 +96,14 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
         .single();
 
       if (error) {
-        return { data: null, error: { message: error.message, details: error.details, hint: error.hint } };
+        return {
+          data: null,
+          error: {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          },
+        };
       }
       return { data: [data], error: null };
     } catch (err) {
@@ -106,25 +123,32 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
       const { data, error } = await supabase
         .from(TABLES.APP_STATUS)
         .insert([{ 
-            status_message: status, 
+            status_message: status,
             last_update: new Date().toISOString() 
         }])
         .select();
 
       if (error) {
-        console.error("Error updating app status:", error); // Added for debugging
-        return { data: null, error: { message: error.message, details: error.details, hint: error.hint } };
+        console.error("Error updating app status:", error);
+        return {
+          data: null,
+          error: {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          },
+        };
       }
       return { data, error: null };
     } catch (err) {
-        console.error("Catch block error updating app status:", err); // Added for debugging
-        return {
-            data: null,
-            error: {
-            message: `Unexpected error updating app status`,
-            details: err instanceof Error ? err.message : "Unknown error",
-            },
-        };
+      console.error("Catch block error updating app status:", err);
+      return {
+        data: null,
+        error: {
+          message: `Unexpected error updating app status`,
+          details: err instanceof Error ? err.message : "Unknown error",
+        },
+      };
     }
   }
 
@@ -140,12 +164,11 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
   ): Promise<DatabaseResponse<T>> {
     try {
       let allData: T[] = [];
-      let page = 0;
-      const pageSize = 1000; // Supabase's default limit
+      let from = 0;
+      const pageSize = 1000; // Supabase's max limit per request
       let hasMore = true;
 
       while (hasMore) {
-        const from = page * pageSize;
         const to = from + pageSize - 1;
 
         const { data, error, count } = await supabase
@@ -166,17 +189,20 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
           };
         }
 
-        if (data) {
+        if (data && data.length > 0) {
           allData = allData.concat(data as T[]);
         }
 
-        // Check if there are more records to fetch
-        const totalCount = count || 0;
-        if (allData.length >= totalCount || !data || data.length < pageSize) {
+        // Check if we've fetched all records
+        const totalRecords = count || 0;
+        if (allData.length >= totalRecords || !data || data.length < pageSize) {
           hasMore = false;
+          console.log(
+            `✅ Completed fetching ${tableName}: ${allData.length}/${totalRecords} records`
+          );
+        } else {
+          from += pageSize;
         }
-
-        page++;
       }
 
       return {
@@ -201,15 +227,15 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
     record: Partial<T>
   ): Promise<DatabaseResponse<T>> {
     // Check if user has permission to insert
-    const isAdmin = await this.isCurrentUserAdmin();
-    if (!isAdmin) {
-      return {
-        data: null,
-        error: {
-          message: "Access denied: Only administrators can create records",
-        },
-      };
-    }
+      const isAdmin = await this.isCurrentUserAdmin();
+      if (!isAdmin) {
+        return {
+          data: null,
+          error: {
+            message: "Access denied: Only administrators can create records",
+          },
+        };
+      }
 
     try {
       // Clean the record before insertion
@@ -217,10 +243,15 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
         record as FlexibleDataRow,
         tableName
       );
+      // 🔒 Never send id on insert
+      const cleanedRecordNoId = this.stripIdFromObject(
+        cleanedRecord as any,
+        "id"
+      );
 
       const { data, error } = await supabase
         .from(tableName)
-        .insert([cleanedRecord])
+        .insert([cleanedRecordNoId])
         .select();
 
       if (error) {
@@ -255,16 +286,16 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
     tableName: TableName,
     records: Partial<T>[]
   ): Promise<DatabaseResponse<T>> {
-    // Check if user has permission to insert
-    const isAdmin = await this.isCurrentUserAdmin();
-    if (!isAdmin) {
-      return {
-        data: null,
-        error: {
-          message: "Access denied: Only administrators can upload data",
-        },
-      };
-    }
+      // Check if user has permission to insert
+      const isAdmin = await this.isCurrentUserAdmin();
+      if (!isAdmin) {
+        return {
+          data: null,
+          error: {
+            message: "Access denied: Only administrators can upload data",
+          },
+        };
+      }
 
     try {
       // Supabase has a limit on batch inserts, so we'll chunk them
@@ -278,9 +309,14 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
       const allInsertedData: T[] = [];
 
       for (const chunk of chunks) {
+        // 🔒 Never send id on batch insert (strip for every row in the chunk)
+        const chunkNoIds = chunk.map((r) =>
+          this.stripIdFromObject(r as any, "id")
+        );
+
         const { data, error } = await supabase
           .from(tableName)
-          .insert(chunk)
+          .insert(chunkNoIds)
           .select();
 
         if (error) {
@@ -322,16 +358,16 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
     updates: Partial<T>,
     idColumn: string = "id"
   ): Promise<DatabaseResponse<T>> {
-    // Check if user has permission to update
-    const isAdmin = await this.isCurrentUserAdmin();
-    if (!isAdmin) {
-      return {
-        data: null,
-        error: {
-          message: "Access denied: Only administrators can update records",
-        },
-      };
-    }
+      // Check if user has permission to update
+      const isAdmin = await this.isCurrentUserAdmin();
+      if (!isAdmin) {
+        return {
+          data: null,
+          error: {
+            message: "Access denied: Only administrators can update records",
+          },
+        };
+      }
 
     try {
       // Clean the updates before applying
@@ -340,9 +376,11 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
         tableName
       );
 
+      const payload = this.stripIdFromObject(cleanedUpdates as any, idColumn);
+
       const { data, error } = await supabase
         .from(tableName)
-        .update(cleanedUpdates)
+        .update(payload)
         .eq(idColumn, id)
         .select();
 
@@ -380,15 +418,15 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
     idColumn: string = "id"
   ): Promise<DatabaseResponse<any>> {
     // Check if user has permission to delete
-    const isAdmin = await this.isCurrentUserAdmin();
-    if (!isAdmin) {
-      return {
-        data: null,
-        error: {
-          message: "Access denied: Only administrators can delete records",
-        },
-      };
-    }
+      const isAdmin = await this.isCurrentUserAdmin();
+      if (!isAdmin) {
+        return {
+          data: null,
+          error: {
+            message: "Access denied: Only administrators can delete records",
+          },
+        };
+      }
 
     try {
       const { data, error } = await supabase
@@ -452,6 +490,9 @@ static async getLatestAppStatus(): Promise<DatabaseResponse<FlexibleDataRow>> {
     const cleanedData: any = {};
 
     Object.entries(data).forEach(([key, value]) => {
+      // 🔒 Ignore id at the transformation layer as well
+      if (key.toLowerCase() === "id") return;
+
       if (value === null || value === undefined || value === "") {
         return;
       }

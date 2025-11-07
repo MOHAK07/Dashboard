@@ -12,7 +12,12 @@ const detectDataType = (
   const lowerName = tableName.toLowerCase();
   if (lowerName.includes("stock")) return "stock";
   if (lowerName.includes("production")) return "production";
-  if (lowerName.includes("fom") || lowerName.includes("lfom") || lowerName.includes("cbg")) return "sales";
+  if (
+    lowerName.includes("fom") ||
+    lowerName.includes("lfom") ||
+    lowerName.includes("cbg")
+  )
+    return "sales";
   return "unknown";
 };
 
@@ -93,7 +98,7 @@ export function useSupabaseData(enabled: boolean = true) {
         newDatasets.push(
           convertDatabaseRecordsToDataset(TABLES.CBG, result.cbg)
         );
-      
+
       setDatasets(newDatasets);
     } catch (err) {
       setError(
@@ -109,8 +114,8 @@ export function useSupabaseData(enabled: boolean = true) {
     if (!enabled) {
       setIsLoading(false);
       setDatasets([]);
-      return;
-    }
+          return;
+        }
 
     fetchAllData();
 
@@ -131,7 +136,6 @@ export function useSupabaseData(enabled: boolean = true) {
           if (datasetIndex === -1) return currentDatasets;
 
           const updatedDataset = { ...currentDatasets[datasetIndex] };
-          // All tables now use 'id' as the primary key
           const idColumn = "id";
 
           switch (payload.eventType) {

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { FixedSizeList as List } from "react-window";
 import { Search, SortAsc, SortDesc, Filter, Edit, Trash2 } from "lucide-react";
 import { FlexibleDataRow } from "../types";
 import { DataProcessor } from "../utils/dataProcessing";
@@ -25,102 +24,17 @@ interface ColumnConfig {
   isNumeric: boolean;
 }
 
-interface RowProps {
-  index: number;
-  style: React.CSSProperties;
-  data: {
-    filteredData: FlexibleDataRow[];
-    columns: ColumnConfig[];
-    currency: string;
-    idColumnKey: string;
-    onEdit?: (record: FlexibleDataRow) => void;
-    onDelete?: (record: FlexibleDataRow) => void;
-    selectedRecords?: string[];
-    onSelectionChange?: (selectedIds: string[]) => void;
-    showActions?: boolean;
-  };
-}
-
-function Row({ index, style, data }: RowProps) {
-  const row = data.filteredData[index];
-  const recordId = String(row[data.idColumnKey] || index);
-  const isSelected = data.selectedRecords?.includes(recordId) || false;
-
-  const handleSelectionChange = (checked: boolean) => {
-    if (!data.onSelectionChange || !data.selectedRecords) return;
-
-    if (checked) {
-      data.onSelectionChange([...data.selectedRecords, recordId]);
-    } else {
-      data.onSelectionChange(
-        data.selectedRecords.filter((id) => id !== recordId)
-      );
-    }
-  };
-
-  return (
-    <div
-      style={style}
-      className={`flex border-b border-gray-200 dark:border-gray-700 ${
-        index % 2 === 0
-          ? "bg-gray-50 dark:bg-gray-800"
-          : "bg-white dark:bg-gray-900"
-      } hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors overflow-hidden`}
-    >
-      {data.showActions && (
-        <div
-          className="px-4 py-3 flex items-center space-x-2 flex-shrink-0"
-          style={{ width: 120 }}
-        >
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => handleSelectionChange(e.target.checked)}
-            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-          />
-          <button
-            onClick={() => data.onEdit?.(row)}
-            className="p-1 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded transition-colors"
-            title="Edit record"
-          >
-            <Edit className="h-3 w-3 text-primary-600 dark:text-primary-400" />
-          </button>
-          <button
-            onClick={() => data.onDelete?.(row)}
-            className="p-1 hover:bg-error-100 dark:hover:bg-error-900/50 rounded transition-colors"
-            title="Delete record"
-          >
-            <Trash2 className="h-3 w-3 text-error-600 dark:text-error-400" />
-          </button>
-        </div>
-      )}
-      {data.columns.map((column) => {
-        const value = row[column.key];
-        let displayValue = String(value || "");
-
-        if (column.isNumeric && typeof value === "number") {
-          if (
-            column.key.toLowerCase().includes("price") ||
-            column.key.toLowerCase().includes("revenue")
-          ) {
-            displayValue = DataProcessor.formatCurrency(value, data.currency);
-          } else {
-            displayValue = DataProcessor.formatNumber(value);
-          }
-        }
-
-        return (
-          <div
-            key={column.key}
-            style={{ width: column.width }}
-            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 flex-shrink-0 truncate"
-          >
-            {displayValue}
-          </div>
-        );
-      })}
-    </div>
-  );
+// Helper function to calculate text width
+function getTextWidth(
+  text: string,
+  font: string = "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto"
+): number {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return text.length * 8;
+  context.font = font;
+  const metrics = context.measureText(text);
+  return Math.ceil(metrics.width);
 }
 
 export function DataTable({
@@ -152,35 +66,58 @@ export function DataTable({
 
     return Object.keys(sampleRow).map((key) => {
       const lowerKey = key.toLowerCase();
-      let width = 140; // Default width
 
+      // Calculate the maximum content width for this column
+      let maxContentWidth = getTextWidth(key, "12px -apple-system") + 60;
+
+      // Sample first 100 rows to determine max width
+      const sampleSize = Math.min(data.length, 100);
+      for (let i = 0; i < sampleSize; i++) {
+        const value = data[i][key];
+        let displayValue = String(value || "");
+
+        if (numericColumns.includes(key) && typeof value === "number") {
+          if (lowerKey.includes("price") || lowerKey.includes("revenue")) {
+            displayValue = DataProcessor.formatCurrency(
+              value,
+              state.settings.currency
+            );
+          } else {
+            displayValue = DataProcessor.formatNumber(value);
+          }
+        }
+
+        const contentWidth = getTextWidth(displayValue) + 40;
+        maxContentWidth = Math.max(maxContentWidth, contentWidth);
+      }
+
+      // Apply min and max constraints
+      let width = Math.min(Math.max(maxContentWidth, 120), 400);
+
+      // Special cases for known long content
       if (lowerKey.includes("address") || lowerKey.includes("adress")) {
-        width = 250;
+        width = Math.max(width, 250);
       } else if (lowerKey.includes("quantity applied for mda claim")) {
-        width = 250; // Increased width for long MDA header
+        width = Math.max(width, 250);
       } else if (
         lowerKey.includes("boomi samrudhi") ||
         lowerKey.includes("rcf production") ||
         lowerKey.includes("rcf sales")
       ) {
-        width = 200; // Increased width for long Stock headers
-      } else if (lowerKey.includes("name")) {
-        width = 180;
-      } else if (lowerKey.includes("date")) {
-        width = 120;
+        width = Math.max(width, 200);
       }
 
       return {
         key,
         label: key,
-        width, // Use the dynamically calculated width
+        width,
         sortable: true,
         filterable:
           !lowerKey.includes("address") && !lowerKey.includes("adress"),
         isNumeric: numericColumns.includes(key),
       };
     });
-  }, [data]);
+  }, [data, state.settings.currency]);
 
   const idColumnKey = useMemo(() => {
     if (data.length > 0 && "id" in data[0]) {
@@ -213,7 +150,7 @@ export function DataTable({
     });
 
     if (sortConfig.key) {
-      filtered.sort((a, b) => {
+      filtered = [...filtered].sort((a, b) => {
         const aValue = a[sortConfig.key!];
         const bValue = b[sortConfig.key!];
 
@@ -260,6 +197,29 @@ export function DataTable({
     );
   };
 
+  const handleSelectionChange = (recordId: string, checked: boolean) => {
+    if (!onSelectionChange) return;
+
+    if (checked) {
+      onSelectionChange([...selectedRecords, recordId]);
+    } else {
+      onSelectionChange(selectedRecords.filter((id) => id !== recordId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!onSelectionChange) return;
+
+    if (checked) {
+      const allIds = filteredAndSortedData.map((row, idx) =>
+        String(row[idColumnKey] || idx)
+      );
+      onSelectionChange(allIds);
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
   if (data.length === 0) {
     return (
       <div className={`${className}`}>
@@ -294,14 +254,14 @@ export function DataTable({
 
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            className={`p-2 rounded-lg transition-colors focus:outline-none ${
               showFilters
                 ? "bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400"
                 : "hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
             aria-label="Toggle column filters"
           >
-            <Filter className="h-4 w-4" />
+            <Filter className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -332,93 +292,181 @@ export function DataTable({
       )}
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-x-auto">
-          <div className="flex overflow-x-auto">
-            {showActions && (
-              <div
-                style={{ width: 120, minWidth: 120 }}
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0"
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    selectedRecords.length === filteredAndSortedData.length &&
-                    filteredAndSortedData.length > 0
-                  }
-                  onChange={(e) => {
-                    if (!onSelectionChange) return;
-                    if (e.target.checked) {
-                      const allIds = filteredAndSortedData.map((row, idx) =>
-                        String(row[idColumnKey] || idx)
-                      );
-                      onSelectionChange(allIds);
-                    } else {
-                      onSelectionChange([]);
-                    }
-                  }}
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 mr-2"
-                />
-                Actions
-              </div>
-            )}
-            {columns.map((column) => (
-              <div
-                key={column.key}
-                style={{ width: column.width, minWidth: column.width }}
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap flex-shrink-0"
-              >
-                {column.sortable ? (
-                  <button
-                    onClick={() => handleSort(column.key)}
-                    className="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:text-gray-700 dark:focus:text-gray-200 whitespace-nowrap"
+        <div className="overflow-auto" style={{ maxHeight: "400px" }}>
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0 z-10">
+              <tr>
+                {showActions && (
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
+                    style={{
+                      minWidth: "140px",
+                      width: "140px",
+                      borderRight: "1px solid rgb(229 231 235)",
+                    }}
                   >
-                    <span>{column.label}</span>
-                    {getSortIcon(column.key)}
-                  </button>
-                ) : (
-                  column.label
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedRecords.length ===
+                            filteredAndSortedData.length &&
+                          filteredAndSortedData.length > 0
+                        }
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span>Actions</span>
+                    </div>
+                  </th>
                 )}
-              </div>
-            ))}
-          </div>
-        </div>
+                {columns.map((column, colIndex) => (
+                  <th
+                    key={column.key}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
+                    style={{
+                      minWidth: `${column.width}px`,
+                      width: `${column.width}px`,
+                      borderRight:
+                        colIndex < columns.length - 1
+                          ? "1px solid rgb(229 231 235)"
+                          : "none",
+                    }}
+                  >
+                    {column.sortable ? (
+                      <button
+                        onClick={() => handleSort(column.key)}
+                        className="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none w-full"
+                        title={column.label}
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis block">
+                          {column.label}
+                        </span>
+                        {getSortIcon(column.key)}
+                      </button>
+                    ) : (
+                      <span
+                        className="whitespace-nowrap overflow-hidden text-ellipsis block"
+                        title={column.label}
+                      >
+                        {column.label}
+                      </span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAndSortedData.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length + (showActions ? 1 : 0)}
+                    className="p-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No data matches your current filters
+                  </td>
+                </tr>
+              ) : (
+                filteredAndSortedData.map((row, rowIndex) => {
+                  const recordId = String(row[idColumnKey] || rowIndex);
+                  const isSelected = selectedRecords.includes(recordId);
 
-        {filteredAndSortedData.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            No data matches your current filters
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <List
-              height={400}
-              itemCount={filteredAndSortedData.length}
-              itemSize={48}
-              itemData={{
-                filteredData: filteredAndSortedData,
-                columns,
-                currency: state.settings.currency,
-                idColumnKey,
-                onEdit,
-                onDelete,
-                selectedRecords,
-                onSelectionChange,
-                showActions,
-              }}
-              width="100%"
-              style={{
-                minWidth:
-                  columns.reduce((sum, col) => sum + col.width, 0) +
-                  (showActions ? 120 : 0),
-              }}
-            >
-              {Row}
-            </List>
-          </div>
-        )}
+                  return (
+                    <tr
+                      key={recordId}
+                      className={`border-b border-gray-200 dark:border-gray-700 ${
+                        rowIndex % 2 === 0
+                          ? "bg-white dark:bg-gray-900"
+                          : "bg-gray-50 dark:bg-gray-800"
+                      } hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors`}
+                    >
+                      {showActions && (
+                        <td
+                          className="px-4 py-3"
+                          style={{
+                            minWidth: "140px",
+                            width: "140px",
+                            borderRight: "1px solid rgb(229 231 235)",
+                          }}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) =>
+                                handleSelectionChange(
+                                  recordId,
+                                  e.target.checked
+                                )
+                              }
+                              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <button
+                              onClick={() => onEdit?.(row)}
+                              className="p-1 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded transition-colors"
+                              title="Edit record"
+                            >
+                              <Edit className="h-3 w-3 text-primary-600 dark:text-primary-400" />
+                            </button>
+                            <button
+                              onClick={() => onDelete?.(row)}
+                              className="p-1 hover:bg-error-100 dark:hover:bg-error-900/50 rounded transition-colors"
+                              title="Delete record"
+                            >
+                              <Trash2 className="h-3 w-3 text-error-600 dark:text-error-400" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                      {columns.map((column, colIndex) => {
+                        const value = row[column.key];
+                        let displayValue = String(value || "");
+
+                        if (column.isNumeric && typeof value === "number") {
+                          if (
+                            column.key.toLowerCase().includes("price") ||
+                            column.key.toLowerCase().includes("revenue")
+                          ) {
+                            displayValue = DataProcessor.formatCurrency(
+                              value,
+                              state.settings.currency
+                            );
+                          } else {
+                            displayValue = DataProcessor.formatNumber(value);
+                          }
+                        }
+
+                        return (
+                          <td
+                            key={column.key}
+                            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                            style={{
+                              minWidth: `${column.width}px`,
+                              width: `${column.width}px`,
+                              borderRight:
+                                colIndex < columns.length - 1
+                                  ? "1px solid rgb(229 231 235)"
+                                  : "none",
+                            }}
+                            title={displayValue}
+                          >
+                            <div className="whitespace-nowrap overflow-hidden text-ellipsis">
+                              {displayValue}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-        <div className="overflow-hidden">
+        <div>
           Showing {filteredAndSortedData.length} of {data.length} rows
           {selectedRecords.length > 0 && (
             <span className="ml-4 text-primary-600 dark:text-primary-400">
