@@ -108,6 +108,14 @@ function isCBGDataset(dataset: Dataset): boolean {
   return dataset.name.toLowerCase() === "cbg";
 }
 
+function isFOMDataset(dataset: Dataset): boolean {
+    return dataset.name.toLowerCase().includes('fom') && !dataset.name.toLowerCase().includes('lfom');
+}
+
+function isLFOMDataset(dataset: Dataset): boolean {
+    return dataset.name.toLowerCase().includes('lfom');
+}
+
 // Helper function to filter out CBG dataset from IDs
 function filterOutCBG(datasets: Dataset[], datasetIds: string[]): string[] {
   return datasetIds.filter((id) => {
@@ -291,6 +299,43 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_ACTIVE_TAB": {
       const cbgDataset = state.datasets.find((d) => isCBGDataset(d));
+      const fomDataset = state.datasets.find((d) => isFOMDataset(d));
+      const lfomDataset = state.datasets.find((d) => isLFOMDataset(d));
+
+      // Switching to Dashboard Overview tab
+      if (action.payload === "dashboard-overview") {
+        const overviewDatasetIds = [cbgDataset?.id, fomDataset?.id, lfomDataset?.id].filter(Boolean) as string[];
+        const currentActiveIds = state.activeDatasetIds;
+
+        const combinedData = combineActiveDatasets(
+            state.datasets,
+            overviewDatasetIds
+        );
+
+        return {
+            ...state,
+            activeTab: action.payload,
+            previousActiveDatasetIds: currentActiveIds,
+            activeDatasetIds: overviewDatasetIds,
+            data: combinedData,
+            filteredData: combinedData,
+        };
+      }
+
+      // Switching away from Dashboard Overview tab
+      if (state.activeTab === "dashboard-overview" && action.payload !== "dashboard-overview") {
+          const restoredActiveIds = state.previousActiveDatasetIds;
+          const combinedData = combineActiveDatasets(state.datasets, restoredActiveIds);
+
+          return {
+              ...state,
+              activeTab: action.payload,
+              activeDatasetIds: restoredActiveIds,
+              previousActiveDatasetIds: [],
+              data: combinedData,
+              filteredData: combinedData,
+          };
+      }
 
       // Switching to CBG tab
       if (action.payload === "cbg" && cbgDataset) {

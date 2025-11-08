@@ -10,6 +10,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { MultiFileUpload } from "./components/MultiFileUpload";
 import { OverviewTab } from "./components/tabs/OverviewTab";
+import { DashboardOverviewTab } from "./components/tabs/DashboardOverviewTab";
 import { DataManagementTab } from "./components/data/DataManagementTab";
 import { ExplorerTab } from "./components/tabs/ExplorerTab";
 import { DatasetsTab } from "./components/tabs/DatasetsTab";
@@ -122,7 +123,7 @@ function DashboardContent() {
   useEffect(() => {
     if (role && !state.activeTab) {
       if (role === "admin") {
-        setActiveTab("overview");
+        setActiveTab("dashboard-overview");
       } else if (role === "operator") {
         setActiveTab("data-management");
       }
@@ -201,6 +202,8 @@ function DashboardContent() {
     }
 
     switch (tabToRender) {
+      case "dashboard-overview":
+        return <DashboardOverviewTab />;
       case "overview":
         return role === "admin" ? <OverviewTab data={filteredData} /> : null;
       case "data-management":

@@ -9,6 +9,7 @@ import {
   Library,
   LogOut,
   LineChartIcon,
+  LayoutDashboard,
 } from "lucide-react";
 import { TabType } from "../types";
 import { useApp } from "../contexts/AppContext";
@@ -22,6 +23,12 @@ interface SidebarProps {
 }
 
 const allNavigationItems = [
+  {
+    id: "dashboard-overview" as TabType,
+    label: "Dashboard Overview",
+    icon: LayoutDashboard,
+    emoji: "🏠",
+  },
   {
     id: "overview" as TabType,
     label: "Fertilizer Analysis",
